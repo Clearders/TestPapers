@@ -1,0 +1,18 @@
+{
+  "name": "TestPapers",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare"
+  },
+  "dependencies": {
+    "katex": "^0.16.21",
+    "nuxt": "4.3.0",
+    "vue": "^3.5.32",
+    "vue-router": "^4.5.1"
+  }
+}
