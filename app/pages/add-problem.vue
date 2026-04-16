@@ -198,7 +198,7 @@ function parseParts (text: string): Part[] {
   while ((m = re.exec(text)) !== null) {
     if (m.index > last) parts.push({ isLatex: false, content: text.slice(last, m.index), block: false })
     if (m[1] !== undefined) parts.push({ isLatex: true, content: m[1], block: true })
-    else parts.push({ isLatex: true, content: m[2], block: false })
+    else parts.push({ isLatex: true, content: m[2] || '', block: false })
     last = m.index + m[0].length
   }
   if (last < text.length) parts.push({ isLatex: false, content: text.slice(last), block: false })

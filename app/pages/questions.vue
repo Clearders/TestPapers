@@ -4,7 +4,7 @@
     <p class="page-sub">Browse, search, and filter all available test questions.</p>
 
     <!-- Toolbar -->
-    <div class="toolbar card" style="margin-bottom:20px">
+    <div class="toolbar card" style="margin-bottom:20px; animation: slideDown 0.4s ease backwards; animation-delay: 0.1s;">
       <input
         v-model="search"
         class="form-input"
@@ -21,12 +21,12 @@
         <option value="medium">Medium</option>
         <option value="hard">Hard</option>
       </select>
-      <NuxtLink to="/add-problem" class="btn btn-primary">+ Add Problem</NuxtLink>
+      <a href="/add-problem" class="btn btn-primary">+ Add Problem</a>
     </div>
 
     <!-- Question list -->
-    <div v-if="filtered.length" class="q-list">
-      <div v-for="q in filtered" :key="q.id" class="q-card card">
+    <TransitionGroup name="list" tag="div" class="q-list" v-if="filtered.length">
+      <div v-for="(q, index) in filtered" :key="q.id" class="q-card card" :style="{ animationDelay: `${index * 0.05}s` }">
         <div class="q-card-header">
           <div class="q-meta">
             <span class="badge" :class="`badge-${q.difficulty}`">{{ q.difficulty }}</span>
@@ -50,24 +50,28 @@
           <button class="btn btn-outline btn-sm" @click="toggleAnswer(q.id)">
             {{ shown.has(q.id) ? 'Hide' : 'Show' }} Answer
           </button>
-          <NuxtLink to="/papers" class="btn btn-primary btn-sm">Add to Paper</NuxtLink>
+          <a href="/papers" class="btn btn-primary btn-sm">Add to Paper</a>
         </div>
 
-        <div v-if="shown.has(q.id)" class="q-answer">
-          <strong>Answer:</strong>
-          <template v-for="(part, i) in parseParts(q.answer)" :key="i">
-            <LatexRenderer v-if="part.isLatex" :formula="part.content" />
-            <span v-else>{{ part.content }}</span>
-          </template>
-        </div>
+        <Transition name="fade">
+          <div v-if="shown.has(q.id)" class="q-answer">
+            <strong>Answer:</strong>
+            <template v-for="(part, i) in parseParts(q.answer)" :key="i">
+              <LatexRenderer v-if="part.isLatex" :formula="part.content" />
+              <span v-else>{{ part.content }}</span>
+            </template>
+          </div>
+        </Transition>
       </div>
-    </div>
+    </TransitionGroup>
 
-    <div v-else class="empty-state card">
-      <span style="font-size:2.5rem">📭</span>
-      <p>No questions match your filters.</p>
-      <NuxtLink to="/add-problem" class="btn btn-primary" style="margin-top:12px">Add a Problem</NuxtLink>
-    </div>
+    <Transition name="fade">
+      <div v-if="!filtered.length" class="empty-state card">
+        <span style="font-size:2.5rem; animation: bounce 2s infinite;">📭</span>
+        <p>No questions match your filters.</p>
+        <a href="/add-problem" class="btn btn-primary" style="margin-top:12px">Add a Problem</a>
+      </div>
+    </Transition>
   </section>
 </template>
 
@@ -173,7 +177,7 @@ function parseParts (text: string): Part[] {
   while ((m = re.exec(text)) !== null) {
     if (m.index > last) parts.push({ isLatex: false, content: text.slice(last, m.index), block: false })
     if (m[1] !== undefined) parts.push({ isLatex: true, content: m[1], block: true })
-    else parts.push({ isLatex: true, content: m[2], block: false })
+    else parts.push({ isLatex: true, content: m[2] || '', block: false })
     last = m.index + m[0].length
   }
   if (last < text.length) parts.push({ isLatex: false, content: text.slice(last), block: false })
@@ -182,9 +186,23 @@ function parseParts (text: string): Part[] {
 </script>
 
 <style scoped>
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
 .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
-.q-list { display: flex; flex-direction: column; gap: 16px; }
-.q-card { display: flex; flex-direction: column; gap: 12px; }
+.q-list { display: flex; flex-direction: column; gap: 16px; position: relative; }
+.q-card {
+  display: flex; flex-direction: column; gap: 12px;
+  animation: fadeIn 0.4s ease backwards, slideUp 0.4s ease backwards;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.q-card:hover {
+  transform: translateY(-2px) scale(1.005);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+  border-color: var(--color-primary);
+}
 .q-card-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
 .q-meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .q-id { font-size: .8rem; color: var(--color-muted); }

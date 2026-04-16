@@ -4,10 +4,11 @@
       <div class="header-inner">
         <NuxtLink to="/" class="logo">📝 TestPapers</NuxtLink>
         <nav class="site-nav">
-          <NuxtLink to="/" class="nav-link">Home</NuxtLink>
-          <NuxtLink to="/questions" class="nav-link">Questions</NuxtLink>
-          <NuxtLink to="/papers" class="nav-link">Assemble Paper</NuxtLink>
-          <NuxtLink to="/add-problem" class="nav-link nav-link--highlight">+ Add Problem</NuxtLink>
+          <a href="/" class="nav-link">Home</a>
+          <a href="/questions" class="nav-link">Questions</a>
+          <a href="/papers" class="nav-link">Assemble Paper</a>
+          <a href="/latex" class="nav-link">LaTeX Preview</a>
+          <a href="/add-problem" class="nav-link nav-link--highlight">+ Add Problem</a>
         </nav>
       </div>
     </header>
@@ -51,6 +52,20 @@ input, textarea, select { font: inherit; }
 /* ── Layout ── */
 .site-wrapper { display: flex; flex-direction: column; min-height: 100vh; }
 
+/* ── Animation Keyframes ── */
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 /* ── Header ── */
 .site-header {
   position: sticky; top: 0; z-index: 100;
@@ -58,6 +73,7 @@ input, textarea, select { font: inherit; }
   background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
   box-shadow: 0 1px 4px rgba(0,0,0,.06);
+  animation: slideDown 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .header-inner {
   max-width: 1100px; margin: 0 auto; padding: 0 24px;
@@ -71,25 +87,40 @@ input, textarea, select { font: inherit; }
 .nav-link {
   padding: 6px 14px; border-radius: var(--radius);
   font-size: .9rem; font-weight: 500; color: var(--color-muted);
-  transition: background .15s, color .15s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+.nav-link::after {
+  content: ""; position: absolute; bottom: 0; left: 50%;
+  width: 0; height: 2px; background: var(--color-primary);
+  transition: all 0.3s ease; transform: translateX(-50%);
 }
 .nav-link:hover { background: var(--color-bg); color: var(--color-text); }
+.nav-link:hover::after { width: 60%; }
 .nav-link.router-link-active { background: #eff3fe; color: var(--color-primary); }
 .nav-link--highlight {
   background: var(--color-primary); color: #fff !important;
   margin-left: 8px;
 }
-.nav-link--highlight:hover { background: var(--color-primary-d) !important; }
+.nav-link--highlight::after { display: none; }
+.nav-link--highlight:hover {
+  background: var(--color-primary-d) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(79, 110, 247, 0.3);
+}
 .nav-link--highlight.router-link-active { background: var(--color-primary-d) !important; }
 
 /* ── Main ── */
-.site-main { flex: 1; max-width: 1100px; width: 100%; margin: 0 auto; padding: 32px 24px; }
+.site-main { flex: 1; max-width: 1100px; width: 100%; margin: 0 auto; padding: 32px 24px; animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
 
 /* ── Footer ── */
 .site-footer {
   text-align: center; padding: 20px;
   font-size: .8rem; color: var(--color-muted);
   border-top: 1px solid var(--color-border);
+  animation: fadeIn 0.8s ease backwards;
+  animation-delay: 0.2s;
 }
 
 /* ── Shared utility classes ── */
@@ -97,16 +128,26 @@ input, textarea, select { font: inherit; }
   background: var(--color-surface); border: 1px solid var(--color-border);
   border-radius: var(--radius); box-shadow: var(--shadow);
   padding: 20px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,.12);
 }
 .btn {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 8px 18px; border-radius: var(--radius);
   font-size: .9rem; font-weight: 500; border: none;
-  transition: background .15s, opacity .15s;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
 }
+.btn:active:not(:disabled) { transform: scale(0.96); }
 .btn:disabled { opacity: .5; cursor: not-allowed; }
 .btn-primary { background: var(--color-primary); color: #fff; }
-.btn-primary:hover:not(:disabled) { background: var(--color-primary-d); }
+.btn-primary:hover:not(:disabled) {
+  background: var(--color-primary-d);
+  box-shadow: 0 4px 12px rgba(79, 110, 247, 0.25);
+}
 .btn-outline {
   background: transparent; color: var(--color-primary);
   border: 1px solid var(--color-primary);
@@ -129,15 +170,31 @@ input, textarea, select { font: inherit; }
   border-radius: 4px; font-size: .75rem; font-weight: 500;
   background: #eff3fe; color: var(--color-primary);
 }
-.page-title { font-size: 1.75rem; font-weight: 700; margin-bottom: 6px; }
-.page-sub { color: var(--color-muted); margin-bottom: 24px; font-size: .95rem; }
+.page-title { font-size: 1.75rem; font-weight: 700; margin-bottom: 6px; animation: slideDown 0.5s ease backwards; }
+.page-sub { color: var(--color-muted); margin-bottom: 24px; font-size: .95rem; animation: slideDown 0.5s ease backwards; animation-delay: 0.1s; }
 .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 18px; }
 .form-label { font-size: .875rem; font-weight: 600; }
 .form-input {
   padding: 9px 12px; border: 1px solid var(--color-border);
   border-radius: var(--radius); background: var(--color-surface);
-  transition: border-color .15s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
-.form-input:focus { outline: none; border-color: var(--color-primary); }
+.form-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(79, 110, 247, 0.15);
+  transform: translateY(-1px);
+}
 .form-hint { font-size: .775rem; color: var(--color-muted); }
+
+/* Globals for vue transition group */
+.list-enter-active, .list-leave-active {
+  transition: all 0.4s ease;
+}
+.list-enter-from { opacity: 0; transform: translateX(20px); }
+.list-leave-to { opacity: 0; transform: translateX(-20px); }
+.list-leave-active { position: absolute; }
+
+.fade-enter-active, .fade-leave-active { transition: opacity 0.3s ease, transform 0.3s ease; }
+.fade-enter-from, .fade-leave-to { opacity: 0; transform: translateY(-10px); }
 </style>
