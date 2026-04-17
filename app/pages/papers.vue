@@ -1,6 +1,6 @@
 <template>
   <section>
-    <h1 class="page-title">Assemble Test Paper 📄</h1>
+    <h1 class="page-title">Assemble Test Paper </h1>
     <p class="page-sub">Select questions from the bank and arrange them into a complete paper.</p>
 
     <div class="assembly-layout">
@@ -49,7 +49,7 @@
         <div class="card" style="margin-bottom:16px">
           <div class="form-group">
             <label class="form-label">Paper Title</label>
-            <input v-model="paper.title" class="form-input" placeholder="e.g. Mid-term Examination 2025" />
+            <input v-model="paper.title" class="form-input" placeholder="e.g. Mid-term Examination 2026" />
           </div>
           <div class="paper-meta-row">
             <div class="form-group" style="flex:1">
@@ -68,37 +68,37 @@
         </div>
 
         <!-- Selected questions -->
-        <TransitionGroup name="list" tag="div" class="paper-question-list" v-if="paper.questions.length">
-          <div
-            v-for="(q, idx) in paper.questions"
-            :key="q.id"
-            class="paper-q-item card"
-          >
-            <div class="paper-q-controls">
-              <button class="icon-btn" :disabled="idx === 0" @click="moveUp(idx)" title="Move up">▲</button>
-              <button class="icon-btn" :disabled="idx === paper.questions.length - 1" @click="moveDown(idx)" title="Move down">▼</button>
-            </div>
-            <div class="paper-q-body">
-              <div class="paper-q-num">Q{{ idx + 1 }}</div>
-              <div class="paper-q-content">
-                <div class="bank-item-meta">
-                  <span class="badge" :class="`badge-${q.difficulty}`">{{ q.difficulty }}</span>
-                  <span class="tag">{{ q.subject }}</span>
-                  <span v-for="t in q.tags" :key="t" class="tag">{{ t }}</span>
-                </div>
-                <div class="q-text-wrap">
-                  <template v-for="(part, i) in parseParts(q.text)" :key="i">
-                    <LatexRenderer v-if="part.isLatex" :formula="part.content" :block="part.block" />
-                    <span v-else>{{ part.content }}</span>
-                  </template>
+        <Transition name="fade" mode="out-in">
+          <TransitionGroup name="list" tag="div" class="paper-question-list" v-if="paper.questions.length">
+            <div
+              v-for="(q, idx) in paper.questions"
+              :key="q.id"
+              class="paper-q-item card"
+            >
+              <div class="paper-q-controls">
+                <button class="icon-btn" :disabled="idx === 0" @click="moveUp(idx)" title="Move up">▲</button>
+                <button class="icon-btn" :disabled="idx === paper.questions.length - 1" @click="moveDown(idx)" title="Move down">▼</button>
+              </div>
+              <div class="paper-q-body">
+                <div class="paper-q-num">Q{{ idx + 1 }}</div>
+                <div class="paper-q-content">
+                  <div class="bank-item-meta">
+                    <span class="badge" :class="`badge-${q.difficulty}`">{{ q.difficulty }}</span>
+                    <span class="tag">{{ q.subject }}</span>
+                    <span v-for="t in q.tags" :key="t" class="tag">{{ t }}</span>
+                  </div>
+                  <div class="q-text-wrap">
+                    <template v-for="(part, i) in parseParts(q.text)" :key="i">
+                      <LatexRenderer v-if="part.isLatex" :formula="part.content" :block="part.block" />
+                      <span v-else>{{ part.content }}</span>
+                    </template>
+                  </div>
                 </div>
               </div>
+              <button class="btn btn-danger btn-sm remove-btn" @click="removeQuestion(q.id)">✕</button>
             </div>
-            <button class="btn btn-danger btn-sm remove-btn" @click="removeQuestion(q.id)">✕</button>
-          </div>
-        </TransitionGroup>
-        <Transition name="fade">
-          <div v-if="!paper.questions.length" class="empty-paper card">
+          </TransitionGroup>
+          <div v-else class="empty-paper card">
             <span style="font-size:2rem; animation: bounce 2s infinite;">📋</span>
             <p>No questions added yet. Select some from the bank on the left.</p>
           </div>

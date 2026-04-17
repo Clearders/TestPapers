@@ -1,6 +1,6 @@
 <template>
   <section>
-    <h1 class="page-title">Question Bank 🔍</h1>
+    <h1 class="page-title">Question Bank </h1>
     <p class="page-sub">Browse, search, and filter all available test questions.</p>
 
     <!-- Toolbar -->

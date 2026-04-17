@@ -1,12 +1,24 @@
 <template>
   <section>
-    <h1 class="page-title">Add Problem ➕</h1>
+    <h1 class="page-title">Add Problem </h1>
     <p class="page-sub">Compose a new problem with real-time LaTeX preview.</p>
 
     <div class="add-layout">
       <!-- Form -->
       <div class="form-panel">
         <form class="card" @submit.prevent="submitProblem">
+          <!-- Type -->
+          <div class="form-row">
+            <div class="form-group" style="flex:1">
+              <label class="form-label">Type <span class="required">*</span></label>
+              <select v-model="form.type" class="form-input" required>
+                <option value="choice">Multiple Choice (选择题)</option>
+                <option value="blank">Fill in the Blanks (填空题)</option>
+                <option value="essay">Free Response (解答题)</option>
+              </select>
+            </div>
+          </div>
+
           <!-- Subject & difficulty -->
           <div class="form-row">
             <div class="form-group" style="flex:1">
@@ -55,18 +67,34 @@
               class="form-input form-textarea"
               placeholder="e.g. Solve for $x$: $2x + 5 = 13$"
               required
-            />
+            ></textarea>
+          </div>
+
+          <!-- Options for Multiple Choice -->
+          <div class="form-group" v-if="form.type === 'choice'">
+            <label class="form-label">Options <span class="required">*</span></label>
+            <div v-for="(opt, index) in form.options" :key="index" style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+              <span style="font-weight: bold; width: 24px;">{{ String.fromCharCode(65 + index) }}.</span>
+              <input v-model="form.options[index]" class="form-input" :placeholder="'Option ' + String.fromCharCode(65 + index)" required />
+            </div>
           </div>
 
           <!-- Answer -->
           <div class="form-group">
             <label class="form-label">Answer <span class="required">*</span></label>
             <textarea
+              v-if="form.type !== 'choice'"
               v-model="form.answer"
               class="form-input form-textarea form-textarea--short"
               placeholder="e.g. $x = 4$"
               required
-            />
+            ></textarea>
+            <select v-else v-model="form.answer" class="form-input" required>
+              <option value="">Select Correct Option…</option>
+              <option v-for="(opt, index) in form.options" :key="index" :value="String.fromCharCode(65 + index)">
+                {{ String.fromCharCode(65 + index) }}
+              </option>
+            </select>
           </div>
 
           <!-- Source -->
@@ -77,7 +105,7 @@
 
           <div class="form-actions">
             <button type="submit" class="btn btn-primary" :disabled="submitted">
-              {{ submitted ? '✓ Saved!' : '💾 Save Problem' }}
+              {{ submitted ? '✓ Saved!' : ' Save Problem' }}
             </button>
             <button type="button" class="btn btn-outline" @click="resetForm">Reset</button>
           </div>
@@ -113,19 +141,36 @@
           <div class="preview-section">
             <span class="preview-label">Question</span>
             <div class="preview-content" v-if="form.questionText">
-              <template v-for="(part, i) in parseParts(form.questionText)" :key="i">
+              <template v-for="(part, i) in parseParts(form.questionText)" :key="'q'+i">
                 <LatexRenderer v-if="part.isLatex" :formula="part.content" :block="part.block" />
                 <span v-else>{{ part.content }}</span>
               </template>
             </div>
             <span v-else class="placeholder-text">Your question will appear here…</span>
+
+            <div v-if="form.type === 'choice' && form.options.some(o => o.trim())" style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px;">
+              <div v-for="(opt, index) in form.options" :key="'opt'+index">
+                <span v-if="opt.trim()" style="display: flex; gap: 8px;">
+                  <strong>{{ String.fromCharCode(65 + index) }}.</strong>
+                  <span>
+                    <template v-for="(part, i) in parseParts(opt)" :key="'op'+i">
+                      <LatexRenderer v-if="part.isLatex" :formula="part.content" :block="part.block" />
+                      <span v-else>{{ part.content }}</span>
+                    </template>
+                  </span>
+                </span>
+              </div>
+            </div>
           </div>
 
           <!-- Answer preview -->
           <div class="preview-section" v-if="form.answer">
             <span class="preview-label">Answer</span>
             <div class="preview-content">
-              <template v-for="(part, i) in parseParts(form.answer)" :key="i">
+              <template v-if="form.type === 'choice'">
+                <strong>{{ form.answer }}</strong>
+              </template>
+              <template v-else v-for="(part, i) in parseParts(form.answer)" :key="'a'+i">
                 <LatexRenderer v-if="part.isLatex" :formula="part.content" :block="part.block" />
                 <span v-else>{{ part.content }}</span>
               </template>
@@ -159,12 +204,24 @@ const tagInput = ref('')
 const submitted = ref(false)
 
 const form = reactive({
+  type: 'choice',
   subject: '',
   difficulty: '',
   tags: [] as string[],
   questionText: '',
+  options: ['', '', '', ''],
   answer: '',
   source: ''
+})
+
+watch(() => form.type, (newType, oldType) => {
+  if (newType !== oldType) {
+    if (newType === 'choice') {
+      form.answer = ''
+    } else {
+      form.answer = ''
+    }
+  }
 })
 
 function addTag () {
@@ -180,10 +237,12 @@ function submitProblem () {
 }
 
 function resetForm () {
+  form.type = 'choice'
   form.subject = ''
   form.difficulty = ''
   form.tags = []
   form.questionText = ''
+  form.options = ['', '', '', '']
   form.answer = ''
   form.source = ''
   tagInput.value = ''
@@ -193,6 +252,7 @@ function resetForm () {
 interface Part { isLatex: boolean; content: string; block: boolean }
 function parseParts (text: string): Part[] {
   const parts: Part[] = []
+  if (!text) return parts
   const re = /\$\$([^$]+)\$\$|\$([^$]+)\$/g
   let last = 0; let m: RegExpExecArray | null
   while ((m = re.exec(text)) !== null) {
@@ -228,7 +288,7 @@ const cheatSheet = [
 
 .form-panel .card { display: flex; flex-direction: column; gap: 0; }
 .form-row { display: flex; gap: 16px; flex-wrap: wrap; }
-.form-textarea { min-height: 120px; resize: vertical; font-family: monospace; }
+.form-textarea { min-height: 120px; resize: vertical; font-family: monospace; transition-property: border-color, box-shadow, background-color; }
 .form-textarea--short { min-height: 70px; }
 .tag-input-row { display: flex; gap: 8px; }
 .tag-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }

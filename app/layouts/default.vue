@@ -1,5 +1,15 @@
 <template>
   <div class="site-wrapper">
+    <!-- Delicate dynamic background globally -->
+    <div class="dynamic-bg" aria-hidden="true">
+      <div class="bg-pattern"></div>
+      <div class="shape shape-1"></div>
+      <div class="shape shape-2"></div>
+      <div class="shape shape-3"></div>
+      <div class="shape shape-4"></div>
+      <div class="shape shape-5"></div>
+    </div>
+
     <header class="site-header">
       <div class="header-inner">
         <NuxtLink to="/" class="logo">📝 TestPapers</NuxtLink>
@@ -50,7 +60,94 @@ button { cursor: pointer; font: inherit; }
 input, textarea, select { font: inherit; }
 
 /* ── Layout ── */
-.site-wrapper { display: flex; flex-direction: column; min-height: 100vh; }
+.site-wrapper { display: flex; flex-direction: column; min-height: 100vh; position: relative; overflow: hidden; }
+
+/* ── Dynamic Global Background Styles ── */
+.dynamic-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+  background: var(--color-bg);
+}
+
+.bg-pattern {
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background-image: radial-gradient(var(--color-border) 1px, transparent 1px);
+  background-size: 32px 32px;
+  opacity: 0.6;
+  z-index: 1;
+}
+
+.shape {
+  position: absolute;
+  filter: blur(80px);
+  opacity: 0.35;
+  border-radius: 50%;
+  animation: float 20s infinite ease-in-out alternate;
+  z-index: 0;
+}
+
+.shape-1 {
+  width: 300px;
+  height: 300px;
+  background: var(--color-primary, #4f6ef7);
+  top: -10%;
+  left: -10%;
+  animation-delay: 0s;
+}
+
+.shape-2 {
+  width: 400px;
+  height: 400px;
+  background: #22c55e;
+  bottom: -20%;
+  right: -10%;
+  animation-delay: -5s;
+  animation-duration: 25s;
+}
+
+.shape-3 {
+  width: 250px;
+  height: 250px;
+  background: #3a56d4;
+  top: 40%;
+  left: 60%;
+  animation-delay: -10s;
+  animation-duration: 18s;
+}
+
+.shape-4 {
+  width: 350px;
+  height: 350px;
+  background: #f43f5e;
+  top: 20%;
+  right: 15%;
+  animation-delay: -7s;
+  animation-duration: 22s;
+}
+
+.shape-5 {
+  width: 450px;
+  height: 450px;
+  background: #eab308;
+  bottom: 0%;
+  left: 20%;
+  animation-delay: -14s;
+  animation-duration: 30s;
+}
+
+@keyframes float {
+  0% { transform: translate(0, 0) scale(1) rotate(0deg); }
+  33% { transform: translate(15%, 20%) scale(1.15) rotate(45deg); }
+  66% { transform: translate(-10%, 15%) scale(0.95) rotate(-30deg); }
+  100% { transform: translate(-5%, -10%) scale(0.9) rotate(0deg); }
+}
 
 /* ── Animation Keyframes ── */
 @keyframes slideDown {
