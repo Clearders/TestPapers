@@ -17,6 +17,16 @@ A web frontend for creating and managing test papers, built with **Nuxt 4.3.0** 
 | [Vue](https://vuejs.org) | 3.x |
 | [KaTeX](https://katex.org) | 0.16.x |
 
+## Permissions
+
+The frontend includes login, role-aware navigation, protected authoring actions, and an admin user management page.
+
+Default backend accounts:
+
+- `admin` / `admin123`: full access and user management.
+- `teacher` / `teacher123`: create, update, and delete questions and papers.
+- `viewer` / `viewer123`: read-only access without answer visibility.
+
 ## Getting Started
 
 ```bash

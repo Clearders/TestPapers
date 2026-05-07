@@ -1,0 +1,85 @@
+<template>
+  <section class="login-page">
+    <div class="login-card card">
+      <h1 class="page-title">Login</h1>
+      <p class="page-sub">Sign in to access the question bank and protected authoring tools.</p>
+
+      <form @submit.prevent="submitLogin">
+        <div class="form-group">
+          <label class="form-label">Username</label>
+          <input v-model="username" class="form-input" autocomplete="username" required />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input v-model="password" class="form-input" type="password" autocomplete="current-password" required />
+        </div>
+        <button class="btn btn-primary" type="submit" :disabled="isSubmitting">
+          {{ isSubmitting ? 'Signing in...' : 'Sign In' }}
+        </button>
+        <p v-if="errorMessage" class="login-error">{{ errorMessage }}</p>
+      </form>
+
+      <div class="demo-users">
+        <span class="form-hint">Demo accounts</span>
+        <button class="btn btn-outline btn-sm" type="button" @click="fillDemo('admin', 'admin123')">Admin</button>
+        <button class="btn btn-outline btn-sm" type="button" @click="fillDemo('teacher', 'teacher123')">Teacher</button>
+        <button class="btn btn-outline btn-sm" type="button" @click="fillDemo('viewer', 'viewer123')">Viewer</button>
+      </div>
+    </div>
+  </section>
+</template>
+
+<script setup lang="ts">
+const { login } = useAuth()
+
+const username = ref('')
+const password = ref('')
+const errorMessage = ref('')
+const isSubmitting = ref(false)
+
+useHead({
+  title: 'Login | TestPapers'
+})
+
+function fillDemo (name: string, pass: string) {
+  username.value = name
+  password.value = pass
+}
+
+async function submitLogin () {
+  errorMessage.value = ''
+  isSubmitting.value = true
+
+  try {
+    await login(username.value, password.value)
+    await navigateTo('/questions')
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : 'Login failed.'
+  } finally {
+    isSubmitting.value = false
+  }
+}
+</script>
+
+<style scoped>
+.login-page {
+  display: grid;
+  place-items: center;
+  min-height: calc(100vh - 180px);
+}
+.login-card {
+  width: min(100%, 440px);
+}
+.demo-users {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 18px;
+}
+.login-error {
+  color: var(--color-danger);
+  font-size: .875rem;
+  margin-top: 12px;
+}
+</style>
