@@ -21,7 +21,10 @@
           <button v-if="isAuthenticated" class="nav-link nav-button" type="button" @click="logout">
             {{ user?.displayName || user?.username }} · Logout
           </button>
-          <NuxtLink v-else to="/login" class="nav-link nav-link--highlight">Login</NuxtLink>
+          <template v-else>
+            <NuxtLink to="/register" class="nav-link">Register</NuxtLink>
+            <NuxtLink to="/login" class="nav-link nav-link--highlight">Login</NuxtLink>
+          </template>
         </nav>
       </div>
     </header>
@@ -37,11 +40,7 @@
 </template>
 
 <script setup lang="ts">
-const { hasPermission, isAuthenticated, loadSession, logout, user } = useAuth()
-
-onMounted(() => {
-  void loadSession()
-})
+const { hasPermission, isAuthenticated, logout, user } = useAuth()
 </script>
 
 <style>

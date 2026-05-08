@@ -17,8 +17,10 @@
               <label class="form-label">Type <span class="required">*</span></label>
               <select v-model="form.type" class="form-input" required>
                 <option value="choice">Multiple Choice</option>
+                <option value="true_false">True / False</option>
                 <option value="blank">Fill in the Blank</option>
-                <option value="essay">Free Response</option>
+                <option value="short_answer">Short Answer</option>
+                <option value="essay">Essay</option>
               </select>
             </div>
           </div>
@@ -79,6 +81,25 @@
             </div>
           </div>
 
+          <div v-if="form.type === 'true_false'" class="form-group">
+            <label class="form-label">Options <span class="required">*</span></label>
+            <div class="option-row">
+              <span class="option-label">A.</span>
+              <input :value="form.options[0]" class="form-input" disabled placeholder="True" />
+            </div>
+            <div class="option-row">
+              <span class="option-label">B.</span>
+              <input :value="form.options[1]" class="form-input" disabled placeholder="False" />
+            </div>
+          </div>
+
+          <QuestionImageUploader
+            v-model:images="form.images"
+            :uploading="uploadingImage"
+            @select="handleImageSelected"
+            @remove="removeImage"
+          />
+
           <div v-if="form.type === 'essay'" class="form-group">
             <label class="form-label">Essay Blank Space</label>
             <div class="form-row">
@@ -109,17 +130,22 @@
           <div class="form-group">
             <label class="form-label">Answer <span class="required">*</span></label>
             <textarea
-              v-if="form.type !== 'choice'"
+              v-if="form.type !== 'choice' && form.type !== 'true_false'"
               v-model="form.answer"
               class="form-input form-textarea form-textarea--short"
               placeholder="e.g. $x = 4$"
               required
             />
-            <select v-else v-model="form.answer" class="form-input" required>
+            <select v-else-if="form.type === 'choice'" v-model="form.answer" class="form-input" required>
               <option value="">Select Correct Option</option>
               <option v-for="(opt, index) in form.options" :key="index" :value="opt.trim()">
                 {{ String.fromCharCode(65 + index) }}. {{ opt.trim() }}
               </option>
+            </select>
+            <select v-else v-model="form.answer" class="form-input" required>
+              <option value="">Select Correct Answer</option>
+              <option value="True">True</option>
+              <option value="False">False</option>
             </select>
           </div>
 
@@ -145,117 +171,47 @@
         </form>
       </div>
 
-      <div class="preview-panel">
-        <div class="panel-head">
-          <h2>Live Preview</h2>
-        </div>
-
-        <div class="preview-card card">
-          <div class="preview-header">
-            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-              <span v-if="form.difficulty" class="badge" :class="`badge-${form.difficulty}`">{{ form.difficulty }}</span>
-              <span v-if="form.subject" class="tag">{{ form.subject }}</span>
-              <span v-for="tag in form.tags" :key="tag" class="tag">{{ tag }}</span>
-            </div>
-            <span v-if="form.source" class="form-hint">{{ form.source }}</span>
-          </div>
-
-          <div class="preview-section">
-            <span class="preview-label">Question</span>
-            <div v-if="form.questionText" class="preview-content">
-              <template v-for="(part, i) in parseLatexParts(form.questionText)" :key="'q' + i">
-                <LatexRenderer v-if="part.isLatex" :formula="part.content" :block="part.block" />
-                <span v-else>{{ part.content }}</span>
-              </template>
-            </div>
-            <span v-else class="placeholder-text">Your question will appear here.</span>
-
-            <div v-if="form.type === 'choice' && form.options.some(option => option.trim())" class="preview-options">
-              <div v-for="(opt, index) in form.options" :key="'opt' + index">
-                <span v-if="opt.trim()" class="preview-option">
-                  <strong>{{ String.fromCharCode(65 + index) }}.</strong>
-                  <span>
-                    <template v-for="(part, i) in parseLatexParts(opt)" :key="'op' + i">
-                      <LatexRenderer v-if="part.isLatex" :formula="part.content" :block="part.block" />
-                      <span v-else>{{ part.content }}</span>
-                    </template>
-                  </span>
-                </span>
-              </div>
-            </div>
-
-            <div
-              v-if="form.type === 'essay'"
-              class="essay-preview-space"
-              :style="{ minHeight: `${essayBlankHeight}px` }"
-            />
-          </div>
-
-          <div v-if="form.answer" class="preview-section">
-            <span class="preview-label">Answer</span>
-            <div class="preview-content">
-              <template v-if="form.type === 'choice'">
-                <strong>{{ form.answer }}</strong>
-              </template>
-              <template v-else v-for="(part, i) in parseLatexParts(form.answer)" :key="'a' + i">
-                <LatexRenderer v-if="part.isLatex" :formula="part.content" :block="part.block" />
-                <span v-else>{{ part.content }}</span>
-              </template>
-            </div>
-          </div>
-        </div>
-
-        <div class="cheatsheet card" style="margin-top:20px">
-          <h3 style="margin-bottom:10px;font-size:.95rem">LaTeX Quick Reference</h3>
-          <table class="cheat-table">
-            <thead>
-              <tr><th>Type</th><th>Syntax</th><th>Result</th></tr>
-            </thead>
-            <tbody>
-              <tr v-for="row in cheatSheet" :key="row.label">
-                <td>{{ row.label }}</td>
-                <td><code>{{ row.code }}</code></td>
-                <td><LatexRenderer :formula="row.formula" /></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <AddProblemPreview
+        :form="form"
+        :essay-blank-height="essayBlankHeight"
+        :cheat-sheet="cheatSheet"
+      />
     </div>
   </section>
 </template>
 
 <script setup lang="ts">
-import { DEFAULT_ESSAY_BLANK_SPACE } from '~/composables/useQuestionBank'
+import AddProblemPreview from '~/components/questions/AddProblemPreview.vue'
+import QuestionImageUploader from '~/components/questions/QuestionImageUploader.vue'
+import { DEFAULT_ESSAY_BLANK_SPACE, type QuestionImage } from '~/composables/useQuestionBank'
 
-const { addQuestion } = useQuestionBank()
-const { hasPermission, loadSession } = useAuth()
+const { addQuestion, uploadImage } = useQuestionBank()
+const { hasPermission } = useAuth()
 
 const tagInput = ref('')
 const submitted = ref(false)
 const submitError = ref('')
 const isSaving = ref(false)
+const uploadingImage = ref(false)
 const canCreateQuestions = computed(() => hasPermission('questions:write'))
 
-onMounted(() => {
-  void loadSession()
-})
-
 const form = reactive({
-  type: 'choice',
+  type: 'choice' as 'choice' | 'true_false' | 'blank' | 'short_answer' | 'essay',
   subject: '',
-  difficulty: '',
+  difficulty: '' as '' | 'easy' | 'medium' | 'hard',
   tags: [] as string[],
   questionText: '',
-  options: ['', '', '', ''],
+  options: ['', '', '', ''] as string[],
   answer: '',
   source: '',
-  essayBlankSpace: { ...DEFAULT_ESSAY_BLANK_SPACE }
+  essayBlankSpace: { ...DEFAULT_ESSAY_BLANK_SPACE },
+  images: [] as QuestionImage[]
 })
 
 watch(() => form.type, () => {
   form.answer = ''
   if (form.type === 'choice' && form.options.length !== 4) form.options = ['', '', '', '']
+  if (form.type === 'true_false') form.options = ['True', 'False']
   if (form.type === 'essay') form.essayBlankSpace = { ...DEFAULT_ESSAY_BLANK_SPACE }
 })
 
@@ -280,6 +236,26 @@ function removeTag (tag: string) {
   form.tags = form.tags.filter(item => item !== tag)
 }
 
+async function handleImageSelected (event: Event) {
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
+  if (!file) return
+
+  uploadingImage.value = true
+  try {
+    const url = await uploadImage(file)
+    form.images.push({ url, caption: '' })
+  } catch {
+    submitError.value = 'Failed to upload image.'
+  } finally {
+    uploadingImage.value = false
+  }
+}
+
+function removeImage (index: number) {
+  form.images.splice(index, 1)
+}
+
 async function submitProblem () {
   submitError.value = ''
   if (!canCreateQuestions.value) {
@@ -290,12 +266,12 @@ async function submitProblem () {
 
   try {
     await addQuestion({
-      type: form.type as 'choice' | 'blank' | 'essay',
+      type: form.type,
       subject: form.subject.trim(),
       difficulty: form.difficulty as 'easy' | 'medium' | 'hard',
       tags: [...form.tags],
       text: form.questionText.trim(),
-      options: form.type === 'choice'
+      options: (form.type === 'choice' || form.type === 'true_false')
         ? form.options.map(option => option.trim()).filter(Boolean)
         : undefined,
       answer: form.answer.trim(),
@@ -305,7 +281,8 @@ async function submitProblem () {
             lines: form.essayBlankSpace.lines,
             lineHeight: form.essayBlankSpace.lineHeight
           }
-        : undefined
+        : undefined,
+      images: form.images
     })
 
     submitted.value = true
@@ -328,6 +305,7 @@ function resetForm (clearBanner = true) {
   form.answer = ''
   form.source = ''
   form.essayBlankSpace = { ...DEFAULT_ESSAY_BLANK_SPACE }
+  form.images = []
   tagInput.value = ''
   if (clearBanner) submitted.value = false
 }

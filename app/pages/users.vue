@@ -70,7 +70,7 @@
 <script setup lang="ts">
 import type { AuthUser, UserRole } from '~/composables/useAuth'
 
-const { authFetch, hasPermission, loadSession, user } = useAuth()
+const { authFetch, hasPermission, isAuthReady, user } = useAuth()
 
 const users = ref<AuthUser[]>([])
 const isSaving = ref(false)
@@ -88,10 +88,13 @@ useHead({
   title: 'User Permissions | TestPapers'
 })
 
-onMounted(async () => {
-  await loadSession()
-  if (canManageUsers.value) await loadUsers()
-})
+watch(
+  [isAuthReady, canManageUsers],
+  ([ready, allowed]) => {
+    if (ready && allowed) void loadUsers()
+  },
+  { immediate: true }
+)
 
 async function loadUsers () {
   const response = await authFetch<AuthUser[]>('/users', { method: 'GET' })

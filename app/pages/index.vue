@@ -59,11 +59,7 @@
 </template>
 
 <script setup lang="ts">
-const { hasPermission, isAuthenticated, loadSession } = useAuth()
-
-onMounted(() => {
-  void loadSession()
-})
+const { hasPermission, isAuthenticated } = useAuth()
 </script>
 
 <style scoped>

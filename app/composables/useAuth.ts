@@ -1,46 +1,9 @@
-export type Permission =
-  | 'questions:read'
-  | 'questions:write'
-  | 'questions:delete'
-  | 'answers:read'
-  | 'papers:read'
-  | 'papers:write'
-  | 'users:manage'
+import type { AuthSession, AuthUser, Permission, RegisterPayload } from '~/types/auth'
 
-export type UserRole = 'admin' | 'teacher' | 'viewer'
-
-export interface AuthUser {
-  id: number
-  username: string
-  displayName: string
-  role: UserRole
-  permissions: Permission[]
-  isActive: boolean
-  createdAt: string
-  updatedAt: string
-}
-
-interface ApiEnvelope<T> {
-  success: boolean
-  data: T
-  meta?: {
-    requestId?: string
-  }
-}
-
-interface AuthSession {
-  token: string
-  tokenType: 'bearer'
-  expiresAt: string
-  user: AuthUser
-}
+export type { AuthSession, AuthUser, Permission, RegisterPayload, UserRole } from '~/types/auth'
 
 const AUTH_TOKEN_KEY = 'testpapers-auth-token'
-
-function getApiBase () {
-  const config = useRuntimeConfig()
-  return config.public.apiBase || 'http://127.0.0.1:8010/api/v1'
-}
+let sessionLoadPromise: Promise<AuthUser | null> | null = null
 
 function getStoredToken () {
   if (import.meta.server) return ''
@@ -57,31 +20,29 @@ export function useAuth () {
   const token = useState<string>('auth-token', () => getStoredToken())
   const user = useState<AuthUser | null>('auth-user', () => null)
   const isAuthReady = useState<boolean>('auth-ready', () => false)
+  const { apiFetch, authHeaders } = useApi()
 
   const isAuthenticated = computed(() => Boolean(token.value && user.value))
 
-  function authHeaders () {
-    return token.value
-      ? { Authorization: `Bearer ${token.value}` }
-      : {}
-  }
-
-  async function authFetch<T> (path: string, options: any = {}) {
-    return await $fetch<ApiEnvelope<T>>(path, {
-      baseURL: getApiBase(),
-      ...options,
-      headers: {
-        ...authHeaders(),
-        ...(options.headers || {})
-      }
-    })
-  }
+  const authFetch = apiFetch
 
   function hasPermission (permission: Permission) {
     return Boolean(user.value?.permissions.includes(permission))
   }
 
-  async function loadSession () {
+  async function loadSession (options: { force?: boolean } = {}) {
+    if (isAuthReady.value && !options.force) return user.value
+    if (sessionLoadPromise && !options.force) return await sessionLoadPromise
+
+    sessionLoadPromise = loadSessionInternal()
+    try {
+      return await sessionLoadPromise
+    } finally {
+      sessionLoadPromise = null
+    }
+  }
+
+  async function loadSessionInternal () {
     if (!token.value) {
       isAuthReady.value = true
       user.value = null
@@ -89,7 +50,7 @@ export function useAuth () {
     }
 
     try {
-      const response = await authFetch<AuthUser>('/auth/me', { method: 'GET' })
+      const response = await apiFetch<AuthUser>('/auth/me', { method: 'GET' })
       user.value = response.data
       return response.data
     } catch {
@@ -103,9 +64,9 @@ export function useAuth () {
   }
 
   async function login (username: string, password: string) {
-    const response = await $fetch<ApiEnvelope<AuthSession>>('/auth/login', {
-      baseURL: getApiBase(),
+    const response = await apiFetch<AuthSession>('/auth/login', {
       method: 'POST',
+      auth: false,
       body: {
         username,
         password
@@ -119,10 +80,24 @@ export function useAuth () {
     return response.data.user
   }
 
+  async function register (payload: RegisterPayload) {
+    const response = await apiFetch<AuthSession>('/auth/register', {
+      method: 'POST',
+      auth: false,
+      body: payload
+    })
+
+    token.value = response.data.token
+    user.value = response.data.user
+    isAuthReady.value = true
+    saveStoredToken(response.data.token)
+    return response.data.user
+  }
+
   async function logout () {
     if (token.value) {
       try {
-        await authFetch('/auth/logout', { method: 'POST' })
+        await apiFetch('/auth/logout', { method: 'POST' })
       } catch {
         // Local logout should still succeed when the server is unavailable.
       }
@@ -143,6 +118,7 @@ export function useAuth () {
     loadSession,
     login,
     logout,
+    register,
     token,
     user
   }

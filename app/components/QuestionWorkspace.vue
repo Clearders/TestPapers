@@ -16,90 +16,50 @@
             <h2>Question Bank</h2>
             <p class="panel-sub">Loaded from the backend question service.</p>
           </div>
-          <span class="tag count-tag">{{ filtered.length }} / {{ questions.length }}</span>
+          <span class="tag count-tag">{{ currentQuestions.length }} / {{ activePagination.total }}</span>
         </div>
 
-        <div class="toolbar card">
-          <input
-            v-model="search"
-            class="form-input"
-            style="flex:1;min-width:180px"
-            placeholder="Search questions"
+        <QuestionBankToolbar
+          v-model:search="search"
+          v-model:filter-subject="filterSubject"
+          v-model:filter-difficulty="filterDifficulty"
+          :bank-mode="bankMode"
+          :subjects="subjects"
+          :can-create-questions="canCreateQuestions"
+          @switch-bank-mode="switchBankMode"
+        />
+
+        <div v-if="questionError" class="status-banner status-banner--error">
+          {{ questionError }}
+        </div>
+
+        <div v-if="activeLoading" class="status-banner">
+          Loading questions...
+        </div>
+
+        <TransitionGroup name="list" tag="div" class="q-list" v-if="currentQuestions.length">
+          <QuestionBankCard
+            v-for="(q, index) in currentQuestions"
+            :key="q.id"
+            :question="q"
+            :index="index"
+            :can-read-answers="canReadAnswers"
+            :is-shown="shown.has(q.id)"
+            :is-added="isAdded(q.id)"
+            :type-label="typeLabel"
+            @toggle-answer="toggleAnswer"
+            @toggle-question="toggleQuestion"
           />
-          <select v-model="filterSubject" class="form-input">
-            <option value="">All subjects</option>
-            <option v-for="subject in subjects" :key="subject" :value="subject">{{ subject }}</option>
-          </select>
-          <select v-model="filterDifficulty" class="form-input">
-            <option value="">All difficulties</option>
-            <option value="easy">Easy</option>
-            <option value="medium">Medium</option>
-            <option value="hard">Hard</option>
-          </select>
-          <NuxtLink v-if="canCreateQuestions" to="/add-problem" class="btn btn-primary">+ Add Problem</NuxtLink>
-        </div>
-
-        <TransitionGroup name="list" tag="div" class="q-list" v-if="filtered.length">
-          <div v-for="(q, index) in filtered" :key="q.id" class="q-card card" :style="{ animationDelay: `${index * 0.05}s` }">
-            <div class="q-card-header">
-              <div class="q-meta">
-                <span class="badge" :class="`badge-${q.difficulty}`">{{ q.difficulty }}</span>
-                <span class="tag">{{ q.subject }}</span>
-                <span v-for="tag in q.tags" :key="tag" class="tag">{{ tag }}</span>
-              </div>
-              <span class="q-id">#{{ q.id }}</span>
-            </div>
-
-            <div class="q-body">
-              <div class="q-text">
-                <template v-for="(part, i) in parseLatexParts(q.text)" :key="i">
-                  <LatexRenderer v-if="part.isLatex" :formula="part.content" :block="part.block" />
-                  <span v-else>{{ part.content }}</span>
-                </template>
-              </div>
-
-              <div v-if="q.type === 'choice' && q.options?.length" class="q-options">
-                <div v-for="(opt, idx) in q.options" :key="idx" class="q-option">
-                  <span class="q-option-label">{{ String.fromCharCode(65 + idx) }}.</span>
-                  <template v-for="(part, i) in parseLatexParts(opt)" :key="i">
-                    <LatexRenderer v-if="part.isLatex" :formula="part.content" />
-                    <span v-else>{{ part.content }}</span>
-                  </template>
-                </div>
-              </div>
-
-              <p v-if="q.source" class="q-source">Source: {{ q.source }}</p>
-            </div>
-
-            <div class="q-footer">
-              <button v-if="canReadAnswers" class="btn btn-outline btn-sm" @click="toggleAnswer(q.id)">
-                {{ shown.has(q.id) ? 'Hide' : 'Show' }} Answer
-              </button>
-              <button
-                class="btn btn-sm"
-                :class="isAdded(q.id) ? 'btn-danger' : 'btn-primary'"
-                @click="toggleQuestion(q)"
-              >
-                {{ isAdded(q.id) ? 'Remove from Paper' : 'Add to Paper' }}
-              </button>
-            </div>
-
-            <div class="q-answer-wrapper" :class="{ 'is-open': shown.has(q.id) }">
-              <div class="q-answer-inner">
-                <div v-if="canReadAnswers" class="q-answer">
-                  <strong>Answer:</strong>
-                  <template v-for="(part, i) in parseLatexParts(q.answer)" :key="i">
-                    <LatexRenderer v-if="part.isLatex" :formula="part.content" />
-                    <span v-else>{{ part.content }}</span>
-                  </template>
-                </div>
-              </div>
-            </div>
-          </div>
         </TransitionGroup>
 
+        <PaginationControls
+          :pagination="activePagination"
+          :loading="activeLoading"
+          @change="goToPage"
+        />
+
         <Transition name="fade">
-          <div v-if="!filtered.length" class="empty-state card">
+          <div v-if="!activeLoading && !currentQuestions.length" class="empty-state card">
             <p>No questions match the current filters.</p>
             <NuxtLink v-if="canCreateQuestions" to="/add-problem" class="btn btn-primary">Add a Problem</NuxtLink>
           </div>
@@ -226,7 +186,7 @@
                     </template>
                   </div>
 
-                  <div v-if="q.type === 'choice' && q.options?.length" class="export-options">
+                  <div v-if="(q.type === 'choice' || q.type === 'true_false') && q.options?.length" class="export-options">
                     <div v-for="(opt, idx) in q.options" :key="idx" class="export-option">
                       <span class="q-option-label">{{ String.fromCharCode(65 + idx) }}.</span>
                       <span>
@@ -243,6 +203,17 @@
                     class="export-essay-space"
                     :style="getEssayBlankStyle(q)"
                   />
+
+                  <div v-if="q.images?.length" class="export-images">
+                    <img
+                      v-for="(img, imgIdx) in q.images"
+                      :key="imgIdx"
+                      :src="img.url"
+                      :alt="img.caption || 'Question image'"
+                      :title="img.caption || ''"
+                      class="export-image-thumb"
+                    />
+                  </div>
 
                   <div v-if="includeAnswersInExport && canReadAnswers" class="export-answer">
                     <strong>Answer:</strong>
@@ -262,12 +233,28 @@
 </template>
 
 <script setup lang="ts">
-import { DEFAULT_ESSAY_BLANK_SPACE, type Question } from '~/composables/useQuestionBank'
-const { canCreateQuestions, canReadAnswers, questions, loadQuestions, isLoading } = useQuestionBank()
-const { hasPermission, loadSession } = useAuth()
+import PaginationControls from '~/components/questions/PaginationControls.vue'
+import QuestionBankCard from '~/components/questions/QuestionBankCard.vue'
+import QuestionBankToolbar from '~/components/questions/QuestionBankToolbar.vue'
+import { DEFAULT_ESSAY_BLANK_SPACE, QUESTION_TYPE_LABELS, type Question } from '~/composables/useQuestionBank'
+const {
+  canCreateQuestions,
+  canReadAnswers,
+  questions,
+  myQuestions,
+  loadQuestions,
+  loadMyQuestions,
+  isLoading,
+  isLoadingMine,
+  error: questionError,
+  questionPagination,
+  myQuestionPagination
+} = useQuestionBank()
+const { hasPermission, isAuthReady } = useAuth()
 
 type ExportMode = 'paper' | 'categorized'
 type QuestionType = Question['type']
+type BankMode = 'all' | 'mine'
 
 const search = ref('')
 const filterSubject = ref('')
@@ -275,6 +262,8 @@ const filterDifficulty = ref('')
 const shown = ref<Set<number>>(new Set())
 const exportMode = ref<ExportMode>('paper')
 const includeAnswersInExport = ref(false)
+const bankMode = ref<BankMode>('all')
+const pageSize = ref(20)
 
 const paper = reactive({
   title: '',
@@ -285,46 +274,70 @@ const paper = reactive({
 })
 
 const exported = ref(false)
-const questionTypeOrder: QuestionType[] = ['choice', 'blank', 'essay']
-const questionTypeLabels: Record<QuestionType, string> = {
-  choice: 'Multiple Choice',
-  blank: 'Fill-in-the-Blank',
-  essay: 'Essay Questions'
-}
+const questionTypeOrder: QuestionType[] = ['choice', 'true_false', 'blank', 'short_answer', 'essay']
 
 const canReadQuestions = computed(() => hasPermission('questions:read'))
 
-onMounted(async () => {
-  await loadSession()
-  if (canReadQuestions.value) {
-    void loadQuestions()
-  }
+const currentQuestions = computed(() => bankMode.value === 'mine' ? myQuestions.value : questions.value)
+const activePagination = computed(() => bankMode.value === 'mine' ? myQuestionPagination.value : questionPagination.value)
+const activeLoading = computed(() => bankMode.value === 'mine' ? isLoadingMine.value : isLoading.value)
+
+watch(
+  [isAuthReady, canReadQuestions],
+  ([ready, allowed]) => {
+    if (ready && allowed) void loadCurrentPage(1)
+  },
+  { immediate: true }
+)
+
+watch([search, filterSubject, filterDifficulty], () => {
+  if (canReadQuestions.value) void loadCurrentPage(1)
 })
 
 watch(canReadAnswers, (allowed) => {
   if (!allowed) includeAnswersInExport.value = false
 })
 
-const subjects = computed(() => [...new Set(questions.value.map(question => question.subject))].sort())
+async function switchBankMode (mode: BankMode) {
+  bankMode.value = mode
+  await loadCurrentPage(1)
+}
 
-const filtered = computed(() => questions.value.filter((question) => {
-  if (filterSubject.value && question.subject !== filterSubject.value) return false
-  if (filterDifficulty.value && question.difficulty !== filterDifficulty.value) return false
+function currentQuery (page: number) {
+  return {
+    q: search.value.trim() || undefined,
+    subject: filterSubject.value || undefined,
+    difficulty: (filterDifficulty.value || undefined) as Question['difficulty'] | undefined,
+    page,
+    pageSize: pageSize.value,
+    sortBy: 'createdAt',
+    sortOrder: 'desc' as const
+  }
+}
 
-  if (!search.value) return true
+async function loadCurrentPage (page: number) {
+  if (bankMode.value === 'mine') {
+    await loadMyQuestions(currentQuery(page))
+    return
+  }
+  await loadQuestions(currentQuery(page))
+}
 
-  const keyword = search.value.toLowerCase()
-  return question.text.toLowerCase().includes(keyword) ||
-    question.subject.toLowerCase().includes(keyword) ||
-    (question.answer || '').toLowerCase().includes(keyword) ||
-    question.tags.some(tag => tag.toLowerCase().includes(keyword))
-}))
+function goToPage (page: number) {
+  void loadCurrentPage(page)
+}
+
+function typeLabel (type: Question['type']) {
+  return QUESTION_TYPE_LABELS[type] || type
+}
+
+const subjects = computed(() => [...new Set(currentQuestions.value.map(question => question.subject))].sort())
 
 const exportSections = computed(() => {
   const rawSections = exportMode.value === 'categorized'
     ? questionTypeOrder.map(type => ({
         key: type,
-        title: questionTypeLabels[type],
+        title: QUESTION_TYPE_LABELS[type],
         questions: paper.questions.filter(question => question.type === type)
       })).filter(section => section.questions.length)
     : [{
@@ -672,6 +685,42 @@ function getEssayBlankStyle (question: Question) {
   background: #f8fafc;
   border: 1px solid var(--color-border);
   border-radius: 8px;
+}
+.q-type-tag {
+  display: inline-block;
+  font-size: .7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--color-primary);
+  background: #eff3fe;
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-right: 4px;
+  vertical-align: middle;
+}
+.q-images {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+.q-image-thumb,
+.export-image-thumb {
+  max-width: 160px;
+  max-height: 120px;
+  object-fit: contain;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+}
+.export-images {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+.bank-mode-tabs {
+  display: flex;
+  gap: 8px;
 }
 </style>
 

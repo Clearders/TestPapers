@@ -1,13 +1,14 @@
 {
-  "name": "TestPapers",
+  "name": "testpapers",
   "type": "module",
   "private": true,
   "scripts": {
-    "build": "nuxt build",
-    "dev": "nuxt dev",
-    "generate": "nuxt generate",
-    "preview": "nuxt preview",
-    "postinstall": "nuxt prepare"
+    "build": "node scripts/run-nuxi.mjs build",
+    "check": "node scripts/run-nuxi.mjs build",
+    "dev": "node scripts/run-nuxi.mjs dev",
+    "generate": "node scripts/run-nuxi.mjs generate",
+    "preview": "node scripts/run-nuxi.mjs preview",
+    "postinstall": "node scripts/run-nuxi.mjs prepare"
   },
   "dependencies": {
     "katex": "^0.16.21",

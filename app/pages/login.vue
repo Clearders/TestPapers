@@ -25,6 +25,11 @@
         <button class="btn btn-outline btn-sm" type="button" @click="fillDemo('teacher', 'teacher123')">Teacher</button>
         <button class="btn btn-outline btn-sm" type="button" @click="fillDemo('viewer', 'viewer123')">Viewer</button>
       </div>
+
+      <p class="register-prompt">
+        Need a teacher account?
+        <NuxtLink to="/register">Create one</NuxtLink>
+      </p>
     </div>
   </section>
 </template>
@@ -81,5 +86,14 @@ async function submitLogin () {
   color: var(--color-danger);
   font-size: .875rem;
   margin-top: 12px;
+}
+.register-prompt {
+  margin-top: 18px;
+  font-size: .875rem;
+  color: var(--color-muted);
+}
+.register-prompt a {
+  color: var(--color-primary);
+  font-weight: 600;
 }
 </style>
