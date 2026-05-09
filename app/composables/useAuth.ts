@@ -2,32 +2,53 @@ import type { AuthSession, AuthUser, Permission, RegisterPayload } from '~/types
 
 export type { AuthSession, AuthUser, Permission, RegisterPayload, UserRole } from '~/types/auth'
 
-const AUTH_TOKEN_KEY = 'testpapers-auth-token'
+const REFRESH_SKEW_MS = 2 * 60 * 1000
 let sessionLoadPromise: Promise<AuthUser | null> | null = null
-
-function getStoredToken () {
-  if (import.meta.server) return ''
-  return localStorage.getItem(AUTH_TOKEN_KEY) || ''
-}
-
-function saveStoredToken (token: string) {
-  if (import.meta.server) return
-  if (token) localStorage.setItem(AUTH_TOKEN_KEY, token)
-  else localStorage.removeItem(AUTH_TOKEN_KEY)
-}
+let refreshTimer: ReturnType<typeof setTimeout> | null = null
 
 export function useAuth () {
-  const token = useState<string>('auth-token', () => getStoredToken())
   const user = useState<AuthUser | null>('auth-user', () => null)
+  const expiresAt = useState<string>('auth-expires-at', () => '')
   const isAuthReady = useState<boolean>('auth-ready', () => false)
-  const { apiFetch, authHeaders } = useApi()
+  const { apiFetch, authHeaders, refreshSessionCookie } = useApi()
 
-  const isAuthenticated = computed(() => Boolean(token.value && user.value))
-
+  const isAuthenticated = computed(() => Boolean(user.value))
   const authFetch = apiFetch
 
   function hasPermission (permission: Permission) {
     return Boolean(user.value?.permissions.includes(permission))
+  }
+
+  function applySession (session: AuthSession | null) {
+    user.value = session?.user || null
+    expiresAt.value = session?.expiresAt || ''
+    isAuthReady.value = true
+    scheduleRefresh()
+  }
+
+  function clearSession () {
+    applySession(null)
+  }
+
+  function scheduleRefresh () {
+    if (import.meta.server) return
+    if (refreshTimer) clearTimeout(refreshTimer)
+    refreshTimer = null
+
+    if (!expiresAt.value) return
+    const refreshAt = new Date(expiresAt.value).getTime() - REFRESH_SKEW_MS
+    const delay = Math.max(5_000, refreshAt - Date.now())
+
+    refreshTimer = setTimeout(() => {
+      void refreshSession()
+    }, delay)
+  }
+
+  async function refreshSession () {
+    const refreshed = await refreshSessionCookie()
+    isAuthReady.value = true
+    scheduleRefresh()
+    return refreshed ? user.value : null
   }
 
   async function loadSession (options: { force?: boolean } = {}) {
@@ -43,23 +64,29 @@ export function useAuth () {
   }
 
   async function loadSessionInternal () {
-    if (!token.value) {
-      isAuthReady.value = true
-      user.value = null
-      return null
-    }
-
     try {
-      const response = await apiFetch<AuthUser>('/auth/me', { method: 'GET' })
-      user.value = response.data
-      return response.data
+      if (import.meta.server) {
+        const response = await apiFetch<AuthUser>('/auth/me', {
+          method: 'GET',
+          auth: false,
+          retryOnUnauthorized: false
+        })
+        user.value = response.data
+        expiresAt.value = ''
+        isAuthReady.value = true
+        return response.data
+      }
+
+      const response = await apiFetch<AuthSession>('/auth/refresh', {
+        method: 'POST',
+        auth: false,
+        retryOnUnauthorized: false
+      })
+      applySession(response.data)
+      return response.data.user
     } catch {
-      token.value = ''
-      user.value = null
-      saveStoredToken('')
+      clearSession()
       return null
-    } finally {
-      isAuthReady.value = true
     }
   }
 
@@ -67,16 +94,14 @@ export function useAuth () {
     const response = await apiFetch<AuthSession>('/auth/login', {
       method: 'POST',
       auth: false,
+      retryOnUnauthorized: false,
       body: {
         username,
         password
       }
     })
 
-    token.value = response.data.token
-    user.value = response.data.user
-    isAuthReady.value = true
-    saveStoredToken(response.data.token)
+    applySession(response.data)
     return response.data.user
   }
 
@@ -84,42 +109,43 @@ export function useAuth () {
     const response = await apiFetch<AuthSession>('/auth/register', {
       method: 'POST',
       auth: false,
+      retryOnUnauthorized: false,
       body: payload
     })
 
-    token.value = response.data.token
-    user.value = response.data.user
-    isAuthReady.value = true
-    saveStoredToken(response.data.token)
+    applySession(response.data)
     return response.data.user
   }
 
   async function logout () {
-    if (token.value) {
-      try {
-        await apiFetch('/auth/logout', { method: 'POST' })
-      } catch {
-        // Local logout should still succeed when the server is unavailable.
-      }
+    try {
+      await apiFetch('/auth/logout', {
+        method: 'POST',
+        auth: false,
+        retryOnUnauthorized: false
+      })
+    } catch {
+      // Local logout should still succeed when the server is unavailable.
+    } finally {
+      clearSession()
+      await navigateTo('/login')
     }
-    token.value = ''
-    user.value = null
-    isAuthReady.value = true
-    saveStoredToken('')
-    await navigateTo('/login')
   }
 
   return {
     authFetch,
     authHeaders,
+    clearSession,
+    expiresAt,
     hasPermission,
     isAuthenticated,
     isAuthReady,
     loadSession,
     login,
     logout,
+    refreshSession,
     register,
-    token,
+    scheduleRefresh,
     user
   }
 }

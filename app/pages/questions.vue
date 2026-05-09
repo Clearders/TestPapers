@@ -3,7 +3,14 @@
 </template>
 
 <script setup lang="ts">
+definePageMeta({
+  requiresAuth: true,
+  permissions: ['questions:read']
+})
+
+const { t } = useI18n()
+
 useHead({
-  title: 'Workspace | TestPapers'
+  title: computed(() => `${t('common.workspace')} | TestPapers`)
 })
 </script>

@@ -39,26 +39,26 @@
         />
       </div>
 
-      <p v-if="question.source" class="q-source">Source: {{ question.source }}</p>
+      <p v-if="question.source" class="q-source">{{ $t('common.source') }}: {{ question.source }}</p>
     </div>
 
     <div class="q-footer">
       <button v-if="canReadAnswers" class="btn btn-outline btn-sm" @click="$emit('toggle-answer', question.id)">
-        {{ isShown ? 'Hide' : 'Show' }} Answer
+        {{ isShown ? $t('common.hideAnswer') : $t('common.showAnswer') }}
       </button>
       <button
         class="btn btn-sm"
         :class="isAdded ? 'btn-danger' : 'btn-primary'"
         @click="$emit('toggle-question', question)"
       >
-        {{ isAdded ? 'Remove from Paper' : 'Add to Paper' }}
+        {{ isAdded ? $t('common.removeFromPaper') : $t('common.addToPaper') }}
       </button>
     </div>
 
     <div class="q-answer-wrapper" :class="{ 'is-open': isShown }">
       <div class="q-answer-inner">
         <div v-if="canReadAnswers" class="q-answer">
-          <strong>Answer:</strong>
+          <strong>{{ $t('common.answer') }}:</strong>
           <template v-for="(part, i) in parseLatexParts(question.answer)" :key="i">
             <LatexRenderer v-if="part.isLatex" :formula="part.content" />
             <span v-else>{{ part.content }}</span>

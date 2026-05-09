@@ -1,6 +1,6 @@
 <template>
   <div class="form-group">
-    <label class="form-label">Images</label>
+    <label class="form-label">{{ $t('images.title') }}</label>
     <div class="image-upload-area">
       <input
         ref="imageInput"
@@ -17,16 +17,16 @@
           <input
             :value="img.caption"
             class="form-input form-input--sm"
-            placeholder="Image caption (optional)"
+            :placeholder="$t('images.captionPlaceholder')"
             @input="updateCaption(imgIdx, ($event.target as HTMLInputElement).value)"
           />
           <button type="button" class="btn btn-outline btn-sm" @click="$emit('remove', imgIdx)">
-            Remove
+            {{ $t('images.remove') }}
           </button>
         </div>
       </div>
     </div>
-    <span v-if="uploading" class="form-hint">Uploading image...</span>
+    <span v-if="uploading" class="form-hint">{{ $t('images.uploading') }}</span>
   </div>
 </template>
 

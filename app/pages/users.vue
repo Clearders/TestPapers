@@ -1,39 +1,39 @@
 <template>
   <section>
-    <h1 class="page-title">User Permissions</h1>
-    <p class="page-sub">Manage account roles for question authors, reviewers, and administrators.</p>
+    <h1 class="page-title">{{ $t('users.title') }}</h1>
+    <p class="page-sub">{{ $t('users.subtitle') }}</p>
 
     <div v-if="!canManageUsers" class="card permission-card">
-      <h2>Access restricted</h2>
-      <p>Only administrators can manage users and roles.</p>
-      <NuxtLink to="/login" class="btn btn-primary">Login as Admin</NuxtLink>
+      <h2>{{ $t('users.accessRestricted') }}</h2>
+      <p>{{ $t('users.accessRestrictedMessage') }}</p>
+      <NuxtLink to="/login" class="btn btn-primary">{{ $t('users.loginAsAdmin') }}</NuxtLink>
     </div>
 
     <div v-else class="users-layout">
       <form class="card user-form" @submit.prevent="createUser">
-        <h2>Create User</h2>
+        <h2>{{ $t('users.createUser') }}</h2>
         <div class="form-group">
-          <label class="form-label">Username</label>
+          <label class="form-label">{{ $t('users.username') }}</label>
           <input v-model="form.username" class="form-input" required />
         </div>
         <div class="form-group">
-          <label class="form-label">Display Name</label>
+          <label class="form-label">{{ $t('users.displayName') }}</label>
           <input v-model="form.displayName" class="form-input" required />
         </div>
         <div class="form-group">
-          <label class="form-label">Password</label>
+          <label class="form-label">{{ $t('users.password') }}</label>
           <input v-model="form.password" class="form-input" type="password" minlength="6" required />
         </div>
         <div class="form-group">
-          <label class="form-label">Role</label>
+          <label class="form-label">{{ $t('users.role') }}</label>
           <select v-model="form.role" class="form-input">
-            <option value="admin">Admin</option>
-            <option value="teacher">Teacher</option>
-            <option value="viewer">Viewer</option>
+            <option value="admin">{{ $t('login.admin') }}</option>
+            <option value="teacher">{{ $t('login.teacher') }}</option>
+            <option value="viewer">{{ $t('login.viewer') }}</option>
           </select>
         </div>
         <button class="btn btn-primary" type="submit" :disabled="isSaving">
-          {{ isSaving ? 'Creating...' : 'Create User' }}
+          {{ isSaving ? $t('users.creating') : $t('users.createUserBtn') }}
         </button>
         <p v-if="message" class="form-message">{{ message }}</p>
       </form>
@@ -46,16 +46,16 @@
           </div>
           <div class="user-controls">
             <select v-model="item.role" class="form-input" @change="updateUser(item)">
-              <option value="admin">Admin</option>
-              <option value="teacher">Teacher</option>
-              <option value="viewer">Viewer</option>
+              <option value="admin">{{ $t('login.admin') }}</option>
+              <option value="teacher">{{ $t('login.teacher') }}</option>
+              <option value="viewer">{{ $t('login.viewer') }}</option>
             </select>
             <label class="active-toggle">
               <input v-model="item.isActive" type="checkbox" @change="updateUser(item)" />
-              <span>Active</span>
+              <span>{{ $t('users.active') }}</span>
             </label>
             <button class="btn btn-danger btn-sm" type="button" :disabled="item.id === user?.id" @click="deleteUser(item.id)">
-              Delete
+              {{ $t('common.delete') }}
             </button>
           </div>
           <div class="permission-list">
@@ -70,7 +70,13 @@
 <script setup lang="ts">
 import type { AuthUser, UserRole } from '~/composables/useAuth'
 
+definePageMeta({
+  requiresAuth: true,
+  permissions: ['users:manage']
+})
+
 const { authFetch, hasPermission, isAuthReady, user } = useAuth()
+const { t } = useI18n()
 
 const users = ref<AuthUser[]>([])
 const isSaving = ref(false)
@@ -85,7 +91,7 @@ const form = reactive({
 })
 
 useHead({
-  title: 'User Permissions | TestPapers'
+  title: computed(() => `${t('users.title')} | TestPapers`)
 })
 
 watch(
@@ -118,10 +124,10 @@ async function createUser () {
     form.displayName = ''
     form.password = ''
     form.role = 'viewer'
-    message.value = 'User created.'
+    message.value = t('users.userCreated')
     await loadUsers()
   } catch (error) {
-    message.value = error instanceof Error ? error.message : 'Failed to create user.'
+    message.value = error instanceof Error ? error.message : t('users.createFailed')
   } finally {
     isSaving.value = false
   }

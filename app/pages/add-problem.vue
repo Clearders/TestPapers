@@ -1,12 +1,12 @@
 <template>
   <section>
-    <h1 class="page-title">Add Problem</h1>
-    <p class="page-sub">Compose a new problem with real-time LaTeX preview.</p>
+    <h1 class="page-title">{{ $t('addProblem.title') }}</h1>
+    <p class="page-sub">{{ $t('addProblem.subtitle') }}</p>
 
     <div v-if="!canCreateQuestions" class="card permission-card">
-      <h2>Permission required</h2>
-      <p>You need the questions:write permission to create new problems.</p>
-      <NuxtLink to="/login" class="btn btn-primary">Login</NuxtLink>
+      <h2>{{ $t('addProblem.permissionRequired') }}</h2>
+      <p>{{ $t('addProblem.permissionMessage') }}</p>
+      <NuxtLink to="/login" class="btn btn-primary">{{ $t('addProblem.loginLink') }}</NuxtLink>
     </div>
 
     <div v-else class="add-layout">
@@ -14,67 +14,67 @@
         <form class="card" @submit.prevent="submitProblem">
           <div class="form-row">
             <div class="form-group" style="flex:1">
-              <label class="form-label">Type <span class="required">*</span></label>
+              <label class="form-label">{{ $t('addProblem.type') }} <span class="required">{{ $t('addProblem.required') }}</span></label>
               <select v-model="form.type" class="form-input" required>
-                <option value="choice">Multiple Choice</option>
-                <option value="true_false">True / False</option>
-                <option value="blank">Fill in the Blank</option>
-                <option value="short_answer">Short Answer</option>
-                <option value="essay">Essay</option>
+                <option value="choice">{{ $t('questionTypes.choice') }}</option>
+                <option value="true_false">{{ $t('questionTypes.true_false') }}</option>
+                <option value="blank">{{ $t('questionTypes.blank') }}</option>
+                <option value="short_answer">{{ $t('questionTypes.short_answer') }}</option>
+                <option value="essay">{{ $t('questionTypes.essay') }}</option>
               </select>
             </div>
           </div>
 
           <div class="form-row">
             <div class="form-group" style="flex:1">
-              <label class="form-label">Subject <span class="required">*</span></label>
+              <label class="form-label">{{ $t('addProblem.subject') }} <span class="required">{{ $t('addProblem.required') }}</span></label>
               <input v-model="form.subject" class="form-input" placeholder="e.g. Mathematics" required />
             </div>
             <div class="form-group" style="flex:1">
-              <label class="form-label">Difficulty <span class="required">*</span></label>
+              <label class="form-label">{{ $t('addProblem.difficulty') }} <span class="required">{{ $t('addProblem.required') }}</span></label>
               <select v-model="form.difficulty" class="form-input" required>
-                <option value="">Select</option>
-                <option value="easy">Easy</option>
-                <option value="medium">Medium</option>
-                <option value="hard">Hard</option>
+                <option value="">{{ $t('addProblem.select') }}</option>
+                <option value="easy">{{ $t('difficulty.easy') }}</option>
+                <option value="medium">{{ $t('difficulty.medium') }}</option>
+                <option value="hard">{{ $t('difficulty.hard') }}</option>
               </select>
             </div>
           </div>
 
           <div class="form-group">
-            <label class="form-label">Tags</label>
+            <label class="form-label">{{ $t('addProblem.tags') }}</label>
             <div class="tag-input-row">
               <input
                 v-model="tagInput"
                 class="form-input"
-                placeholder="Add tag and press Enter"
+                :placeholder="$t('addProblem.tagPlaceholder')"
                 @keydown.enter.prevent="addTag"
               />
-              <button type="button" class="btn btn-outline btn-sm" @click="addTag">Add</button>
+              <button type="button" class="btn btn-outline btn-sm" @click="addTag">{{ $t('addProblem.tagAdd') }}</button>
             </div>
             <div v-if="form.tags.length" class="tag-list">
               <span v-for="tag in form.tags" :key="tag" class="tag tag-removable">
                 {{ tag }} <button type="button" @click="removeTag(tag)">x</button>
               </span>
             </div>
-            <span class="form-hint">Press Enter or click Add after each tag.</span>
+            <span class="form-hint">{{ $t('addProblem.tagHint') }}</span>
           </div>
 
           <div class="form-group">
             <label class="form-label">
-              Question Text <span class="required">*</span>
-              <span class="form-hint" style="margin-left:8px">Use `$...$` for inline LaTeX and `$$...$$` for block LaTeX.</span>
+              {{ $t('addProblem.questionText') }} <span class="required">{{ $t('addProblem.required') }}</span>
+              <span class="form-hint" style="margin-left:8px">{{ $t('addProblem.questionTextHint') }}</span>
             </label>
             <textarea
               v-model="form.questionText"
               class="form-input form-textarea"
-              placeholder="e.g. Solve for $x$: $2x + 5 = 13$"
+              :placeholder="$t('addProblem.questionPlaceholder')"
               required
             />
           </div>
 
           <div v-if="form.type === 'choice'" class="form-group">
-            <label class="form-label">Options <span class="required">*</span></label>
+            <label class="form-label">{{ $t('addProblem.options') }} <span class="required">{{ $t('addProblem.required') }}</span></label>
             <div v-for="(opt, index) in form.options" :key="index" class="option-row">
               <span class="option-label">{{ String.fromCharCode(65 + index) }}.</span>
               <input v-model="form.options[index]" class="form-input" :placeholder="'Option ' + String.fromCharCode(65 + index)" required />
@@ -82,14 +82,14 @@
           </div>
 
           <div v-if="form.type === 'true_false'" class="form-group">
-            <label class="form-label">Options <span class="required">*</span></label>
+            <label class="form-label">{{ $t('addProblem.options') }} <span class="required">{{ $t('addProblem.required') }}</span></label>
             <div class="option-row">
               <span class="option-label">A.</span>
-              <input :value="form.options[0]" class="form-input" disabled placeholder="True" />
+              <input :value="form.options[0]" class="form-input" disabled :placeholder="$t('addProblem.true')" />
             </div>
             <div class="option-row">
               <span class="option-label">B.</span>
-              <input :value="form.options[1]" class="form-input" disabled placeholder="False" />
+              <input :value="form.options[1]" class="form-input" disabled :placeholder="$t('addProblem.false')" />
             </div>
           </div>
 
@@ -101,10 +101,10 @@
           />
 
           <div v-if="form.type === 'essay'" class="form-group">
-            <label class="form-label">Essay Blank Space</label>
+            <label class="form-label">{{ $t('addProblem.essayBlankSpace') }}</label>
             <div class="form-row">
               <div class="form-group compact-field">
-                <label class="form-label form-label--sub">Lines</label>
+                <label class="form-label form-label--sub">{{ $t('addProblem.lines') }}</label>
                 <input
                   v-model.number="form.essayBlankSpace.lines"
                   class="form-input"
@@ -114,7 +114,7 @@
                 />
               </div>
               <div class="form-group compact-field">
-                <label class="form-label form-label--sub">Line Height (px)</label>
+                <label class="form-label form-label--sub">{{ $t('addProblem.lineHeight') }}</label>
                 <input
                   v-model.number="form.essayBlankSpace.lineHeight"
                   class="form-input"
@@ -124,11 +124,11 @@
                 />
               </div>
             </div>
-            <span class="form-hint">This controls the reserved writing area in the exported preview.</span>
+            <span class="form-hint">{{ $t('addProblem.essayHint') }}</span>
           </div>
 
           <div class="form-group">
-            <label class="form-label">Answer <span class="required">*</span></label>
+            <label class="form-label">{{ $t('addProblem.answer') }} <span class="required">{{ $t('addProblem.required') }}</span></label>
             <textarea
               v-if="form.type !== 'choice' && form.type !== 'true_false'"
               v-model="form.answer"
@@ -137,28 +137,28 @@
               required
             />
             <select v-else-if="form.type === 'choice'" v-model="form.answer" class="form-input" required>
-              <option value="">Select Correct Option</option>
+              <option value="">{{ $t('addProblem.selectCorrectOption') }}</option>
               <option v-for="(opt, index) in form.options" :key="index" :value="opt.trim()">
                 {{ String.fromCharCode(65 + index) }}. {{ opt.trim() }}
               </option>
             </select>
             <select v-else v-model="form.answer" class="form-input" required>
-              <option value="">Select Correct Answer</option>
-              <option value="True">True</option>
-              <option value="False">False</option>
+              <option value="">{{ $t('addProblem.selectCorrectAnswer') }}</option>
+              <option value="True">{{ $t('addProblem.true') }}</option>
+              <option value="False">{{ $t('addProblem.false') }}</option>
             </select>
           </div>
 
           <div class="form-group">
-            <label class="form-label">Source / Reference</label>
-            <input v-model="form.source" class="form-input" placeholder="e.g. Chapter 3, Exercise 5" />
+            <label class="form-label">{{ $t('addProblem.sourceReference') }}</label>
+            <input v-model="form.source" class="form-input" :placeholder="$t('addProblem.sourcePlaceholder')" />
           </div>
 
           <div class="form-actions">
             <button type="submit" class="btn btn-primary" :disabled="submitted || isSaving">
-              {{ isSaving ? 'Saving...' : submitted ? 'Saved' : 'Save Problem' }}
+              {{ isSaving ? $t('addProblem.saving') : submitted ? $t('addProblem.saved') : $t('addProblem.saveProblem') }}
             </button>
-            <button type="button" class="btn btn-outline" @click="handleReset">Reset</button>
+            <button type="button" class="btn btn-outline" @click="handleReset">{{ $t('addProblem.reset') }}</button>
           </div>
 
           <div v-if="submitError" class="success-banner" style="background:#fef2f2;border-color:#fecaca;color:#b91c1c">
@@ -166,7 +166,7 @@
           </div>
 
           <div v-if="submitted" class="success-banner">
-            Problem saved successfully. <NuxtLink to="/questions">Open the workspace</NuxtLink>
+            {{ $t('addProblem.savedSuccess') }} <NuxtLink to="/questions">{{ $t('addProblem.openWorkspace') }}</NuxtLink>
           </div>
         </form>
       </div>
@@ -185,8 +185,14 @@ import AddProblemPreview from '~/components/questions/AddProblemPreview.vue'
 import QuestionImageUploader from '~/components/questions/QuestionImageUploader.vue'
 import { DEFAULT_ESSAY_BLANK_SPACE, type QuestionImage } from '~/composables/useQuestionBank'
 
+definePageMeta({
+  requiresAuth: true,
+  permissions: ['questions:write']
+})
+
 const { addQuestion, uploadImage } = useQuestionBank()
 const { hasPermission } = useAuth()
+const { t } = useI18n()
 
 const tagInput = ref('')
 const submitted = ref(false)
@@ -246,7 +252,7 @@ async function handleImageSelected (event: Event) {
     const url = await uploadImage(file)
     form.images.push({ url, caption: '' })
   } catch {
-    submitError.value = 'Failed to upload image.'
+    submitError.value = t('addProblem.uploadFailed')
   } finally {
     uploadingImage.value = false
   }
@@ -259,7 +265,7 @@ function removeImage (index: number) {
 async function submitProblem () {
   submitError.value = ''
   if (!canCreateQuestions.value) {
-    submitError.value = 'You do not have permission to create questions.'
+    submitError.value = t('addProblem.noPermission')
     return
   }
   isSaving.value = true
@@ -289,7 +295,7 @@ async function submitProblem () {
     setTimeout(() => { submitted.value = false }, 4000)
     resetForm(false)
   } catch (error) {
-    submitError.value = error instanceof Error ? error.message : 'Failed to save problem.'
+    submitError.value = error instanceof Error ? error.message : t('addProblem.saveFailed')
   } finally {
     isSaving.value = false
   }
@@ -314,16 +320,16 @@ function handleReset () {
   resetForm()
 }
 
-const cheatSheet = [
-  { label: 'Fraction', code: '\\frac{a}{b}', formula: '\\frac{a}{b}' },
-  { label: 'Square root', code: '\\sqrt{x}', formula: '\\sqrt{x}' },
-  { label: 'Power', code: 'x^{2}', formula: 'x^{2}' },
-  { label: 'Subscript', code: 'x_{n}', formula: 'x_{n}' },
-  { label: 'Integral', code: '\\int_a^b f\\,dx', formula: '\\int_a^b f\\,dx' },
-  { label: 'Sum', code: '\\sum_{i=1}^n i', formula: '\\sum_{i=1}^n i' },
-  { label: 'Infinity', code: '\\infty', formula: '\\infty' },
-  { label: 'Greek', code: '\\alpha, \\beta', formula: '\\alpha, \\beta' }
-]
+const cheatSheet = computed(() => [
+  { label: t('cheatsheet.items.fraction'), code: '\\frac{a}{b}', formula: '\\frac{a}{b}' },
+  { label: t('cheatsheet.items.sqroot'), code: '\\sqrt{x}', formula: '\\sqrt{x}' },
+  { label: t('cheatsheet.items.power'), code: 'x^{2}', formula: 'x^{2}' },
+  { label: t('cheatsheet.items.subscript'), code: 'x_{n}', formula: 'x_{n}' },
+  { label: t('cheatsheet.items.integral'), code: '\\int_a^b f\\,dx', formula: '\\int_a^b f\\,dx' },
+  { label: t('cheatsheet.items.sum'), code: '\\sum_{i=1}^n i', formula: '\\sum_{i=1}^n i' },
+  { label: t('cheatsheet.items.infinity'), code: '\\infty', formula: '\\infty' },
+  { label: t('cheatsheet.items.greek'), code: '\\alpha, \\beta', formula: '\\alpha, \\beta' }
+])
 </script>
 
 <style scoped>

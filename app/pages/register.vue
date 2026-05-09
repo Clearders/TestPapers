@@ -1,31 +1,31 @@
 <template>
   <section class="register-page">
     <form class="register-card card" @submit.prevent="submitRegister">
-      <h1 class="page-title">Create Account</h1>
-      <p class="page-sub">Register a teacher account for question authoring and test paper tools.</p>
+      <h1 class="page-title">{{ $t('register.title') }}</h1>
+      <p class="page-sub">{{ $t('register.subtitle') }}</p>
 
       <div class="form-group">
-        <label class="form-label">Username</label>
+        <label class="form-label">{{ $t('register.username') }}</label>
         <input v-model="form.username" class="form-input" autocomplete="username" minlength="3" maxlength="64" required />
       </div>
 
       <div class="form-group">
-        <label class="form-label">Display Name</label>
+        <label class="form-label">{{ $t('register.displayName') }}</label>
         <input v-model="form.displayName" class="form-input" autocomplete="name" maxlength="120" required />
       </div>
 
       <div class="form-group">
-        <label class="form-label">Password</label>
+        <label class="form-label">{{ $t('register.password') }}</label>
         <input v-model="form.password" class="form-input" type="password" autocomplete="new-password" minlength="6" maxlength="128" required />
       </div>
 
       <div class="form-group">
-        <label class="form-label">Confirm Password</label>
+        <label class="form-label">{{ $t('register.confirmPassword') }}</label>
         <input v-model="confirmPassword" class="form-input" type="password" autocomplete="new-password" minlength="6" maxlength="128" required />
       </div>
 
       <button class="btn btn-primary" type="submit" :disabled="isSubmitting">
-        {{ isSubmitting ? 'Creating...' : 'Create Account' }}
+        {{ isSubmitting ? $t('register.creating') : $t('register.createAccount') }}
       </button>
 
       <p v-if="message" class="register-message" :class="{ 'register-message--error': hasError }">
@@ -33,15 +33,20 @@
       </p>
 
       <p class="login-prompt">
-        Already have an account?
-        <NuxtLink to="/login">Sign in</NuxtLink>
+        {{ $t('register.alreadyHaveAccount') }}
+        <NuxtLink to="/login">{{ $t('register.signIn') }}</NuxtLink>
       </p>
     </form>
   </section>
 </template>
 
 <script setup lang="ts">
+definePageMeta({
+  guestOnly: true
+})
+
 const { register } = useAuth()
+const { t } = useI18n()
 
 const form = reactive({
   username: '',
@@ -54,7 +59,7 @@ const message = ref('')
 const hasError = ref(false)
 
 useHead({
-  title: 'Register | TestPapers'
+  title: computed(() => `${t('register.title')} | TestPapers`)
 })
 
 async function submitRegister () {
@@ -62,7 +67,7 @@ async function submitRegister () {
   hasError.value = false
 
   if (form.password !== confirmPassword.value) {
-    message.value = 'Passwords do not match.'
+    message.value = t('register.passwordsMismatch')
     hasError.value = true
     return
   }
@@ -77,7 +82,7 @@ async function submitRegister () {
     })
     await navigateTo('/questions')
   } catch (error) {
-    message.value = error instanceof Error ? error.message : 'Registration failed.'
+    message.value = error instanceof Error ? error.message : t('register.registrationFailed')
     hasError.value = true
   } finally {
     isSubmitting.value = false

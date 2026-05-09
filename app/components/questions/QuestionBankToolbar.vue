@@ -6,14 +6,14 @@
         :class="bankMode === 'all' ? 'btn-primary' : 'btn-outline'"
         @click="$emit('switch-bank-mode', 'all')"
       >
-        All Questions
+        {{ $t('common.allQuestions') }}
       </button>
       <button
         class="btn btn-sm"
         :class="bankMode === 'mine' ? 'btn-primary' : 'btn-outline'"
         @click="$emit('switch-bank-mode', 'mine')"
       >
-        My Questions
+        {{ $t('common.myQuestions') }}
       </button>
     </div>
 
@@ -21,7 +21,7 @@
       <input
         :value="search"
         class="form-input search-input"
-        placeholder="Search questions"
+        :placeholder="$t('common.search')"
         @input="$emit('update:search', ($event.target as HTMLInputElement).value)"
       />
       <select
@@ -29,7 +29,7 @@
         class="form-input"
         @change="$emit('update:filterSubject', ($event.target as HTMLSelectElement).value)"
       >
-        <option value="">All subjects</option>
+        <option value="">{{ $t('common.allSubjects') }}</option>
         <option v-for="subject in subjects" :key="subject" :value="subject">{{ subject }}</option>
       </select>
       <select
@@ -37,12 +37,12 @@
         class="form-input"
         @change="$emit('update:filterDifficulty', ($event.target as HTMLSelectElement).value)"
       >
-        <option value="">All difficulties</option>
-        <option value="easy">Easy</option>
-        <option value="medium">Medium</option>
-        <option value="hard">Hard</option>
+        <option value="">{{ $t('common.allDifficulties') }}</option>
+        <option value="easy">{{ $t('difficulty.easy') }}</option>
+        <option value="medium">{{ $t('difficulty.medium') }}</option>
+        <option value="hard">{{ $t('difficulty.hard') }}</option>
       </select>
-      <NuxtLink v-if="canCreateQuestions" to="/add-problem" class="btn btn-primary">+ Add Problem</NuxtLink>
+      <NuxtLink v-if="canCreateQuestions" to="/add-problem" class="btn btn-primary">{{ $t('common.addProblem') }}</NuxtLink>
     </div>
   </div>
 </template>

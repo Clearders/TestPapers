@@ -1,0 +1,129 @@
+type RealtimeStatus = 'idle' | 'connecting' | 'connected' | 'disconnected'
+type RealtimeHandler = (payload: unknown) => void
+
+let socket: WebSocket | null = null
+let reconnectTimer: ReturnType<typeof setTimeout> | null = null
+let heartbeatTimer: ReturnType<typeof setInterval> | null = null
+let reconnectAttempts = 0
+const handlers = new Map<string, Set<RealtimeHandler>>()
+
+function getRealtimeUrl () {
+  const config = useRuntimeConfig()
+  const configuredUrl = config.public.wsBase
+  if (configuredUrl) return configuredUrl
+
+  const apiUrl = new URL(config.public.apiBase || 'http://127.0.0.1:8010/api/v1')
+  apiUrl.protocol = apiUrl.protocol === 'https:' ? 'wss:' : 'ws:'
+  apiUrl.pathname = apiUrl.pathname.replace(/\/api\/v1\/?$/, '/api/v1/ws')
+  apiUrl.search = ''
+  return apiUrl.toString()
+}
+
+function emit (event: string, payload: unknown) {
+  const listeners = handlers.get(event)
+  if (!listeners) return
+  for (const handler of listeners) handler(payload)
+}
+
+function clearTimers () {
+  if (reconnectTimer) clearTimeout(reconnectTimer)
+  if (heartbeatTimer) clearInterval(heartbeatTimer)
+  reconnectTimer = null
+  heartbeatTimer = null
+}
+
+export function useRealtime () {
+  const status = useState<RealtimeStatus>('realtime-status', () => 'idle')
+  const lastEvent = useState<string>('realtime-last-event', () => '')
+  const lastPayload = useState<unknown>('realtime-last-payload', () => null)
+  const { isAuthenticated, refreshSession } = useAuth()
+
+  function disconnect () {
+    clearTimers()
+    reconnectAttempts = 0
+    if (socket) {
+      socket.onopen = null
+      socket.onclose = null
+      socket.onerror = null
+      socket.onmessage = null
+      socket.close()
+      socket = null
+    }
+    status.value = 'disconnected'
+  }
+
+  async function scheduleReconnect () {
+    if (!isAuthenticated.value || reconnectTimer) return
+
+    const refreshed = await refreshSession()
+    if (!refreshed) return
+
+    const delay = Math.min(30_000, 1_000 * 2 ** reconnectAttempts)
+    reconnectAttempts += 1
+    reconnectTimer = setTimeout(() => {
+      reconnectTimer = null
+      connect()
+    }, delay)
+  }
+
+  function connect () {
+    if (import.meta.server || !isAuthenticated.value || socket?.readyState === WebSocket.OPEN || socket?.readyState === WebSocket.CONNECTING) return
+
+    status.value = 'connecting'
+    socket = new WebSocket(getRealtimeUrl())
+
+    socket.onopen = () => {
+      status.value = 'connected'
+      reconnectAttempts = 0
+      heartbeatTimer = setInterval(() => {
+        if (socket?.readyState === WebSocket.OPEN) {
+          socket.send(JSON.stringify({ event: 'ping' }))
+        }
+      }, 25_000)
+    }
+
+    socket.onmessage = (event) => {
+      try {
+        const message = JSON.parse(event.data) as { event?: string, payload?: unknown }
+        if (!message.event) return
+        lastEvent.value = message.event
+        lastPayload.value = message.payload
+        emit(message.event, message.payload)
+      } catch {
+        lastEvent.value = 'error'
+        lastPayload.value = { message: 'Invalid realtime message' }
+      }
+    }
+
+    socket.onerror = () => {
+      status.value = 'disconnected'
+    }
+
+    socket.onclose = () => {
+      clearTimers()
+      socket = null
+      status.value = 'disconnected'
+      void scheduleReconnect()
+    }
+  }
+
+  function on (event: string, handler: RealtimeHandler) {
+    const listeners = handlers.get(event) || new Set<RealtimeHandler>()
+    listeners.add(handler)
+    handlers.set(event, listeners)
+
+    return () => {
+      listeners.delete(handler)
+      if (!listeners.size) handlers.delete(event)
+    }
+  }
+
+  return {
+    connect,
+    disconnect,
+    lastEvent,
+    lastPayload,
+    on,
+    status
+  }
+}

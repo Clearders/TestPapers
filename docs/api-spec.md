@@ -32,7 +32,7 @@
 | 内容类型   | `application/json; charset=utf-8` |
 | 时间格式   | ISO 8601 UTC（如 `2026-05-07T12:00:00Z`） |
 | 字段命名   | `camelCase`（驼峰命名）         |
-| 认证方式   | `Authorization: Bearer <token>` |
+| 认证方式   | HttpOnly Cookie `testpapers_session`（兼容 `Authorization: Bearer <token>`） |
 
 ### 1.2 统一响应格式
 
@@ -157,8 +157,6 @@ POST /api/v1/auth/login
 {
   "success": true,
   "data": {
-    "token": "aBcDeF...（96 字符 URL-safe 随机串）",
-    "tokenType": "bearer",
     "expiresAt": "2026-05-08T00:00:00Z",
     "user": {
       "id": 1,
@@ -183,8 +181,8 @@ POST /api/v1/auth/login
 }
 ```
 
-- `token`: 认证令牌，后续请求放入 `Authorization` 头。
-- `expiresAt`: 令牌过期时间（签发后 **12 小时**）。
+- 登录成功后服务端会写入 HttpOnly `testpapers_session` Cookie，浏览器端 JavaScript 不再读取或保存令牌。
+- `expiresAt`: 会话过期时间（签发后 **12 小时**）。
 - `user.permissions`: 当前用户拥有的权限列表，按字母排序。
 
 **错误响应**：
@@ -208,7 +206,7 @@ POST /api/v1/auth/login
 GET /api/v1/auth/me
 ```
 
-**请求头**：`Authorization: Bearer <token>` **（必填）**
+**认证**：浏览器自动携带 HttpOnly `testpapers_session` Cookie；非浏览器客户端可兼容使用 `Authorization: Bearer <token>`。
 
 **成功响应** (200)：返回 `data` 为当前 `User` 对象（结构与登录响应中的 `user` 字段相同）。
 
@@ -220,11 +218,31 @@ GET /api/v1/auth/me
 POST /api/v1/auth/logout
 ```
 
-**请求头**：`Authorization: Bearer <token>` **（必填）**
+**认证**：浏览器自动携带 HttpOnly `testpapers_session` Cookie；接口会清理服务端会话并删除 Cookie。
 
 **成功响应**：`204 No Content`（无响应体）
 
-调用后令牌立即失效，后续使用同一令牌的请求将返回 `401 INVALID_TOKEN`。
+调用后会话立即失效，后续使用同一 Cookie 或兼容 Bearer token 的请求将返回 `401 INVALID_TOKEN`。
+
+### 2.5 刷新会话
+
+```http
+POST /api/v1/auth/refresh
+```
+
+**认证**：浏览器自动携带 HttpOnly `testpapers_session` Cookie；非浏览器客户端可兼容使用 `Authorization: Bearer <token>`。
+
+**成功响应** (200)：刷新服务端会话、轮换 Cookie，并返回 `AuthSession`。
+
+### 2.6 实时 WebSocket
+
+```http
+WS /api/v1/ws
+```
+
+**认证**：连接握手时携带 HttpOnly `testpapers_session` Cookie，或兼容使用 Bearer token。
+
+连接成功后服务端发送 `auth.connected` 事件。客户端发送 `{ "event": "ping" }` 时，服务端返回 `{ "event": "pong" }`。
 
 ---
 
@@ -817,8 +835,6 @@ type Permission =
 
 ```typescript
 interface AuthSession {
-  token: string
-  tokenType: 'bearer'
   expiresAt: string
   user: User
 }
@@ -843,6 +859,7 @@ interface AuthSession {
 | 409         | `QUESTION_ALREADY_IN_PAPER` | 试题已在试卷中               |
 | 409         | `USER_ALREADY_EXISTS`       | 用户名已存在                 |
 | 422         | `VALIDATION_ERROR`          | 请求参数校验失败             |
+| 422         | `INSUFFICIENT_QUESTIONS`    | 自动组卷候选题数量不足       |
 | 500         | `INTERNAL_ERROR`            | 服务器内部错误               |
 
 ---
@@ -851,13 +868,14 @@ interface AuthSession {
 
 | 前端页面 / 组件                              | 功能             | 调用的 API                                                                                                                                                            |
 | -------------------------------------------- | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `pages/login.vue`                            | 用户登录/登出     | `POST /api/v1/auth/login`<br>`GET /api/v1/auth/me`<br>`POST /api/v1/auth/logout`                                                                                      |
+| `pages/login.vue`                            | 用户登录/登出     | `POST /api/v1/auth/login`<br>`POST /api/v1/auth/refresh`<br>`GET /api/v1/auth/me`<br>`POST /api/v1/auth/logout`                                                        |
+| `pages/register.vue`                         | 用户注册/自动登录  | `POST /api/v1/auth/register`<br>`GET /api/v1/auth/me`                                                                                                                   |
 | `pages/questions.vue`（工作台 Workspace）     | 试题浏览与搜索    | `GET /api/v1/questions`<br>`GET /api/v1/questions/mine`                                                                                                                |
 | `pages/add-problem.vue`                      | 创建试题          | `POST /api/v1/questions`<br>`POST /api/v1/images/upload`                                                                                                               |
-| `components/QuestionWorkspace.vue`           | 试题筛选、答案查看、试卷组装 | `GET /api/v1/questions`（含搜索/筛选参数）<br>`GET /api/v1/questions/mine`<br>可选：`POST/PATCH /api/v1/papers`                                                         |
+| `components/QuestionWorkspace.vue`           | 试题筛选、答案查看、试卷组装、自动组卷 | `GET /api/v1/questions`（含搜索/筛选参数）<br>`GET /api/v1/questions/mine`<br>`POST /api/v1/papers/generate`<br>可选：`POST/PATCH /api/v1/papers`                         |
 | `pages/users.vue`                            | 用户管理          | `GET /api/v1/users`<br>`POST /api/v1/users`<br>`PATCH /api/v1/users/{id}`<br>`DELETE /api/v1/users/{id}`                                                                |
 | `composables/useQuestionBank.ts`             | 试题 CRUD 封装    | `GET /api/v1/questions`<br>`POST /api/v1/questions`<br>`PATCH /api/v1/questions/{id}`<br>`DELETE /api/v1/questions/{id}`<br>`GET /api/v1/questions/mine`<br>`POST /api/v1/images/upload` |
-| `composables/useAuth.ts`                     | 认证状态管理      | `POST /api/v1/auth/login`<br>`GET /api/v1/auth/me`<br>`POST /api/v1/auth/logout`                                                                                      |
+| `composables/useAuth.ts`                     | 认证状态管理      | `POST /api/v1/auth/login`<br>`POST /api/v1/auth/refresh`<br>`GET /api/v1/auth/me`<br>`POST /api/v1/auth/logout`<br>`WS /api/v1/ws`                                      |
 
 ---
 
@@ -866,8 +884,11 @@ interface AuthSession {
 | 方法     | 路径                                        | 所需权限             | 说明             |
 | -------- | ------------------------------------------- | -------------------- | ---------------- |
 | `POST`   | `/api/v1/auth/login`                        | 无                   | 登录             |
+| `POST`   | `/api/v1/auth/register`                     | 无                   | 注册并写入会话 Cookie |
+| `POST`   | `/api/v1/auth/refresh`                      | 登录即可             | 刷新会话 Cookie  |
 | `GET`    | `/api/v1/auth/me`                           | 登录即可             | 获取当前用户     |
 | `POST`   | `/api/v1/auth/logout`                       | 登录即可             | 登出             |
+| `WS`     | `/api/v1/ws`                                | 登录即可             | 实时通信         |
 | `GET`    | `/api/v1/users`                             | `users:manage`       | 用户列表         |
 | `POST`   | `/api/v1/users`                             | `users:manage`       | 创建用户         |
 | `PATCH`  | `/api/v1/users/{id}`                        | `users:manage`       | 更新用户         |
@@ -882,6 +903,7 @@ interface AuthSession {
 | `PATCH`  | `/api/v1/questions/{id}`                    | `questions:write`    | 更新试题         |
 | `DELETE` | `/api/v1/questions/{id}`                    | `questions:delete`   | 删除试题         |
 | `POST`   | `/api/v1/papers`                            | `papers:write`       | 创建试卷         |
+| `POST`   | `/api/v1/papers/generate`                   | `papers:write`       | 遗传算法自动组卷 |
 | `GET`    | `/api/v1/papers/{id}`                       | `papers:read`        | 试卷详情         |
 | `PATCH`  | `/api/v1/papers/{id}`                       | `papers:write`       | 更新试卷         |
 | `POST`   | `/api/v1/papers/{id}/questions`             | `papers:write`       | 向试卷添加试题   |
@@ -889,8 +911,155 @@ interface AuthSession {
 | `PUT`    | `/api/v1/papers/{id}/questions/order`       | `papers:write`       | 调整试题排序     |
 | `POST`   | `/api/v1/papers/{id}/export-preview`        | `papers:read`        | 导出预览         |
 
-## 10. Notes for implementation
+## 10. API 更新 (2026-05-09)
 
-- The current frontend expects full question content including `answer`.
-- If the backend later restricts answer visibility, the workspace client must distinguish authoring mode from exam delivery mode.
-- If paper persistence is introduced, the frontend should move builder state out of component-local reactive state and into an API-backed store.
+### 10.1 基于 Cookie 的认证
+
+认证现在通过 HttpOnly 会话 Cookie 持久化。
+
+| 端点 | 认证方式 | 行为说明 |
+| --- | --- | --- |
+| `POST /api/v1/auth/login` | 公开 | 验证凭据，创建服务端会话，并设置 `testpapers_session` HttpOnly Cookie。 |
+| `POST /api/v1/auth/register` | 公开 | 创建用户，立即登录，并设置 `testpapers_session`。 |
+| `POST /api/v1/auth/refresh` | Cookie 或 Bearer 降级 | 验证当前会话，轮换令牌，刷新 Cookie，并返回当前 `AuthSession`。 |
+| `GET /api/v1/auth/me` | Cookie 或 Bearer 降级 | 返回当前用户信息，Nuxt 应用通过此接口在页面刷新时恢复登录状态。 |
+| `POST /api/v1/auth/logout` | 有 Cookie 时使用 | 使服务端会话失效并清除 Cookie。 |
+
+前端发送请求时应启用凭证携带。登录/注册/刷新接口不再向浏览器 JavaScript 返回令牌；服务端持有的 HttpOnly Cookie 是唯一可信来源。`Authorization: Bearer <token>` 仅作为非浏览器客户端的兼容性降级方案保留。
+
+```typescript
+interface AuthSession {
+  expiresAt: string
+  user: User
+}
+```
+
+### 10.2 自动会话验证与刷新
+
+Nuxt 路由中间件应仅在 `/api/v1/auth/me` 成功后，才将受保护页面视为已认证。当请求收到 `401 TOKEN_EXPIRED` 时，API 客户端应使用 `POST /api/v1/auth/refresh` 重试一次，刷新成功后再重放原始请求。如果刷新失败，则清除客户端认证状态并重定向到登录页。
+
+### 10.3 WebSocket 实时通道
+
+```http
+WS /api/v1/ws
+```
+
+WebSocket 端点使用相同的 HttpOnly Cookie 进行认证。连接成功后，服务端会发送 `auth.connected` 事件，包含已认证用户信息和服务器时间戳。客户端可发送 `{ "event": "ping" }` 并接收 `{ "event": "pong" }`。
+
+### 10.4 遗传算法自动组卷
+
+```http
+POST /api/v1/papers/generate
+```
+
+所需权限：`papers:write`。
+
+请求体：
+
+```typescript
+interface PaperGenerateRequest {
+  title: string
+  description?: string
+  subject: string
+  totalMarks: number
+  durationMinutes: number
+  questionCount: number
+  difficultyTargets?: Partial<Record<'easy' | 'medium' | 'hard', number>>
+  typeTargets?: Partial<Record<'choice' | 'blank' | 'short' | 'programming', number>>
+  requiredTags?: string[]
+  subjectStrict?: boolean
+  algorithm?: GeneticAlgorithmOptions
+}
+
+interface GeneticAlgorithmOptions {
+  populationSize?: number
+  generations?: number
+  crossoverRate?: number
+  mutationRate?: number
+  elitismCount?: number
+  tournamentSize?: number
+  randomSeed?: number | null
+}
+```
+
+示例：
+
+```json
+{
+  "title": "JavaScript 期中考试",
+  "description": "覆盖课程前半部分的均衡试卷",
+  "subject": "JavaScript",
+  "totalMarks": 100,
+  "durationMinutes": 120,
+  "questionCount": 20,
+  "difficultyTargets": {
+    "easy": 6,
+    "medium": 10,
+    "hard": 4
+  },
+  "typeTargets": {
+    "choice": 8,
+    "blank": 4,
+    "short": 5,
+    "programming": 3
+  },
+  "requiredTags": ["closure", "async"],
+  "subjectStrict": true,
+  "algorithm": {
+    "populationSize": 80,
+    "generations": 120,
+    "crossoverRate": 0.85,
+    "mutationRate": 0.08,
+    "elitismCount": 4,
+    "tournamentSize": 3,
+    "randomSeed": null
+  }
+}
+```
+
+成功响应：
+
+```typescript
+interface PaperGenerateResponse {
+  paper: PaperDetail
+  diagnostics: {
+    fitness: number
+    candidateCount: number
+    questionCount: number
+    difficultyTargets: Record<string, number>
+    difficultyActual: Record<string, number>
+    typeTargets: Record<string, number>
+    typeActual: Record<string, number>
+    requiredTags: string[]
+    coveredRequiredTags: string[]
+    algorithm: Required<Omit<GeneticAlgorithmOptions, 'randomSeed'>> & {
+      randomSeed: number | null
+    }
+  }
+}
+```
+
+校验与错误：
+
+| HTTP 状态码 | 错误码 | 含义 |
+| --- | --- | --- |
+| `401` | `UNAUTHORIZED`、`INVALID_TOKEN`、`TOKEN_EXPIRED` | 会话缺失、无效或已过期。 |
+| `403` | `FORBIDDEN` | 用户没有 `papers:write` 权限。 |
+| `422` | `VALIDATION_ERROR` | 请求体无效，包括不可能的分数/数量约束。 |
+| `422` | `INSUFFICIENT_QUESTIONS` | 筛选后的候选池规模小于 `questionCount`。 |
+
+推荐的默认调参：
+
+| 场景 | 种群规模 | 迭代代数 | 交叉率 | 变异率 | 精英保留数 | 锦标赛规模 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 小题库 / 快速预览 | 40 | 60 | 0.80 | 0.10 | 2 | 3 |
+| 标准生产环境默认值 | 80 | 120 | 0.85 | 0.08 | 4 | 3 |
+| 大题库 / 严格约束 | 140 | 220 | 0.88 | 0.06 | 6 | 4 |
+
+在需要可复现的测试运行时设置固定的 `randomSeed`，在正常生产组卷时保持为 `null`。
+
+## 11. 实现注意事项
+
+- 当前前端期望获取包含 `answer` 在内的完整试题内容。
+- 如果后端后续限制答案可见性，工作台客户端需要区分出题模式与考试分发模式。
+- 如果引入试卷持久化机制，前端应将组卷状态从组件内部的响应式状态迁移到 API 驱动的数据存储中。

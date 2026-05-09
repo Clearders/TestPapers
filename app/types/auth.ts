@@ -21,8 +21,6 @@ export interface AuthUser {
 }
 
 export interface AuthSession {
-  token: string
-  tokenType: 'bearer'
   expiresAt: string
   user: AuthUser
 }

@@ -1,20 +1,20 @@
 <template>
   <section>
-    <h1 class="page-title">Question Bank Workspace</h1>
-    <p class="page-sub">Search the bank, inspect answers, and assemble a paper in one page. Questions now load from the backend API.</p>
+    <h1 class="page-title">{{ $t('workspace.title') }}</h1>
+    <p class="page-sub">{{ $t('workspace.subtitle') }}</p>
 
     <div v-if="!canReadQuestions" class="card permission-card">
-      <h2>Login required</h2>
-      <p>You need question bank access before opening the workspace.</p>
-      <NuxtLink to="/login" class="btn btn-primary">Login</NuxtLink>
+      <h2>{{ $t('workspace.loginRequired') }}</h2>
+      <p>{{ $t('workspace.loginRequiredMessage') }}</p>
+      <NuxtLink to="/login" class="btn btn-primary">{{ $t('common.login') }}</NuxtLink>
     </div>
 
     <div v-else class="workspace-layout">
       <div class="bank-panel">
         <div class="panel-head">
           <div>
-            <h2>Question Bank</h2>
-            <p class="panel-sub">Loaded from the backend question service.</p>
+            <h2>{{ $t('workspace.questionBank') }}</h2>
+            <p class="panel-sub">{{ $t('workspace.bankSubtitle') }}</p>
           </div>
           <span class="tag count-tag">{{ currentQuestions.length }} / {{ activePagination.total }}</span>
         </div>
@@ -34,7 +34,7 @@
         </div>
 
         <div v-if="activeLoading" class="status-banner">
-          Loading questions...
+          {{ $t('workspace.loadingQuestions') }}
         </div>
 
         <TransitionGroup name="list" tag="div" class="q-list" v-if="currentQuestions.length">
@@ -60,8 +60,8 @@
 
         <Transition name="fade">
           <div v-if="!activeLoading && !currentQuestions.length" class="empty-state card">
-            <p>No questions match the current filters.</p>
-            <NuxtLink v-if="canCreateQuestions" to="/add-problem" class="btn btn-primary">Add a Problem</NuxtLink>
+            <p>{{ $t('common.noResults') }}</p>
+            <NuxtLink v-if="canCreateQuestions" to="/add-problem" class="btn btn-primary">{{ $t('index.createProblem') }}</NuxtLink>
           </div>
         </Transition>
       </div>
@@ -69,45 +69,111 @@
       <div class="paper-panel">
         <div class="panel-head">
           <div>
-            <h2>Paper Builder</h2>
-            <p class="panel-sub">Build directly from the filtered bank.</p>
+            <h2>{{ $t('workspace.paperBuilder') }}</h2>
+            <p class="panel-sub">{{ $t('workspace.paperSubtitle') }}</p>
           </div>
           <span class="badge tag-count">
-            {{ paper.questions.length }} question{{ paper.questions.length !== 1 ? 's' : '' }}
+            {{ $t('workspace.questions', paper.questions.length) }}
           </span>
         </div>
 
         <div class="card" style="margin-bottom:16px">
           <div class="form-group">
-            <label class="form-label">Paper Title</label>
-            <input v-model="paper.title" class="form-input" placeholder="e.g. Mid-term Examination 2026" />
+            <label class="form-label">{{ $t('workspace.paperTitle') }}</label>
+            <input v-model="paper.title" class="form-input" :placeholder="$t('workspace.paperTitlePlaceholder')" />
           </div>
           <div class="paper-meta-row">
             <div class="form-group" style="flex:1">
-              <label class="form-label">Subject</label>
-              <input v-model="paper.subject" class="form-input" placeholder="e.g. Mathematics" />
+              <label class="form-label">{{ $t('workspace.paperSubject') }}</label>
+              <input v-model="paper.subject" class="form-input" :placeholder="$t('workspace.paperSubjectPlaceholder')" />
             </div>
             <div class="form-group" style="flex:1">
-              <label class="form-label">Duration (min)</label>
+              <label class="form-label">{{ $t('workspace.duration') }}</label>
               <input v-model.number="paper.duration" type="number" min="1" class="form-input" placeholder="60" />
             </div>
             <div class="form-group" style="flex:1">
-              <label class="form-label">Total Marks</label>
+              <label class="form-label">{{ $t('workspace.totalMarks') }}</label>
               <input v-model.number="paper.totalMarks" type="number" min="1" class="form-input" placeholder="100" />
             </div>
           </div>
           <label v-if="canReadAnswers" class="export-toggle">
             <input v-model="includeAnswersInExport" type="checkbox" />
-            <span>Include answers in exported paper</span>
+            <span>{{ $t('workspace.includeAnswers') }}</span>
           </label>
         </div>
+
+        <form class="card generation-card" @submit.prevent="generatePaper">
+          <div class="panel-head">
+            <div>
+              <h2>{{ $t('workspace.autoGenerate') }}</h2>
+              <p class="panel-sub">{{ $t('workspace.generateSubtitle') }}</p>
+            </div>
+            <span v-if="generationDiagnostics" class="tag count-tag">fitness {{ generationDiagnostics.fitness }}</span>
+          </div>
+
+          <div class="generation-grid">
+            <div class="form-group compact-field">
+              <label class="form-label">{{ $t('workspace.numQuestions') }}</label>
+              <input v-model.number="generationForm.questionCount" class="form-input" type="number" min="1" max="100" />
+            </div>
+            <div class="form-group compact-field">
+              <label class="form-label">{{ $t('difficulty.easy') }}</label>
+              <input v-model.number="generationForm.easy" class="form-input" type="number" min="0" />
+            </div>
+            <div class="form-group compact-field">
+              <label class="form-label">{{ $t('difficulty.medium') }}</label>
+              <input v-model.number="generationForm.medium" class="form-input" type="number" min="0" />
+            </div>
+            <div class="form-group compact-field">
+              <label class="form-label">{{ $t('difficulty.hard') }}</label>
+              <input v-model.number="generationForm.hard" class="form-input" type="number" min="0" />
+            </div>
+            <div class="form-group compact-field">
+              <label class="form-label">{{ $t('workspace.population') }}</label>
+              <input v-model.number="generationForm.populationSize" class="form-input" type="number" min="20" max="500" />
+            </div>
+            <div class="form-group compact-field">
+              <label class="form-label">{{ $t('workspace.generations') }}</label>
+              <input v-model.number="generationForm.generations" class="form-input" type="number" min="10" max="1000" />
+            </div>
+            <div class="form-group compact-field">
+              <label class="form-label">{{ $t('workspace.crossover') }}</label>
+              <input v-model.number="generationForm.crossoverRate" class="form-input" type="number" min="0" max="1" step="0.01" />
+            </div>
+            <div class="form-group compact-field">
+              <label class="form-label">{{ $t('workspace.mutation') }}</label>
+              <input v-model.number="generationForm.mutationRate" class="form-input" type="number" min="0" max="1" step="0.01" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">{{ $t('workspace.requiredTags') }}</label>
+            <input v-model="generationForm.requiredTags" class="form-input" :placeholder="$t('workspace.requiredTagsPlaceholder')" />
+          </div>
+
+          <div class="paper-actions">
+            <button class="btn btn-primary" type="submit" :disabled="isGenerating || !paper.title || !paper.subject">
+              {{ isGenerating ? $t('workspace.generating') : $t('workspace.generatePaper') }}
+            </button>
+            <span class="form-hint">{{ $t('workspace.generateHint') }}</span>
+          </div>
+
+          <div v-if="generationError" class="status-banner status-banner--error">
+            {{ generationError }}
+          </div>
+          <div v-if="generationDiagnostics" class="generation-summary">
+            <span>Difficulty: {{ formatDistribution(generationDiagnostics.difficultyActual) }}</span>
+            <span>Types: {{ formatDistribution(generationDiagnostics.typeActual) }}</span>
+            <span>{{ $t('workspace.candidates') }}: {{ generationDiagnostics.candidateCount }}</span>
+          </div>
+        </form>
 
         <Transition name="fade" mode="out-in">
           <TransitionGroup name="list" tag="div" class="paper-question-list" v-if="paper.questions.length">
             <div v-for="(q, idx) in paper.questions" :key="q.id" class="paper-q-item card">
               <div class="paper-q-controls">
-                <button class="icon-btn" :disabled="idx === 0" @click="moveUp(idx)" title="Move up">Up</button>
-                <button class="icon-btn" :disabled="idx === paper.questions.length - 1" @click="moveDown(idx)" title="Move down">Down</button>
+                <button class="icon-btn" :disabled="idx === 0" @click="moveUp(idx)" :title="$t('workspace.moveUp')">{{ $t('workspace.moveUp') }}</button>
+                <button class="icon-btn" :disabled="idx === paper.questions.length - 1" @click="moveDown(idx)" :title="$t('workspace.moveDown')">{{ $t('workspace.moveDown') }}</button>
               </div>
               <div class="paper-q-body">
                 <div class="paper-q-num">Q{{ idx + 1 }}</div>
@@ -125,20 +191,20 @@
                   </div>
                 </div>
               </div>
-              <button class="btn btn-danger btn-sm remove-btn" @click="removeQuestion(q.id)">Remove</button>
+              <button class="btn btn-danger btn-sm remove-btn" @click="removeQuestion(q.id)">{{ $t('common.remove') }}</button>
             </div>
           </TransitionGroup>
           <div v-else class="empty-paper card">
-            <p>No questions added yet. Add them from the bank on the left.</p>
+            <p>{{ $t('workspace.noQuestionsInPaper') }}</p>
           </div>
         </Transition>
 
         <div class="paper-actions" style="margin-top:20px">
           <button class="btn btn-success" :disabled="!paper.questions.length || !paper.title" @click="exportPaper">
-            Export Paper
+            {{ $t('workspace.exportPaper') }}
           </button>
           <button class="btn btn-outline" :disabled="!paper.questions.length" @click="clearPaper">
-            Clear All
+            {{ $t('workspace.clearAll') }}
           </button>
         </div>
 
@@ -148,9 +214,9 @@
               <div>
                 <h3>{{ paper.title }}</h3>
                 <p>
-                  Subject: {{ paper.subject || '-' }} |
-                  Duration: {{ paper.duration }} min |
-                  Total: {{ paper.totalMarks }} marks
+                  {{ $t('workspace.exportSubject') }}: {{ paper.subject || '-' }} |
+                  {{ $t('workspace.exportDuration') }}: {{ paper.duration }} {{ $t('workspace.units.min') }} |
+                  {{ $t('workspace.exportTotal') }}: {{ paper.totalMarks }} {{ $t('workspace.units.marks') }}
                 </p>
               </div>
               <div class="export-mode-actions" aria-label="Export question order">
@@ -159,21 +225,19 @@
                   :class="exportMode === 'paper' ? 'btn-primary' : 'btn-outline'"
                   @click="exportMode = 'paper'"
                 >
-                  Paper Order
+                  {{ $t('workspace.paperOrder') }}
                 </button>
                 <button
                   class="btn btn-sm"
                   :class="exportMode === 'categorized' ? 'btn-primary' : 'btn-outline'"
                   @click="exportMode = 'categorized'"
                 >
-                  By Type
+                  {{ $t('workspace.byType') }}
                 </button>
               </div>
             </div>
             <p style="color:var(--color-muted);font-size:.875rem;margin-bottom:16px">
-              {{ exportMode === 'categorized'
-                ? 'Questions are grouped as multiple-choice, fill-in-the-blank, and essay, with forward numbering across sections.'
-                : 'Questions follow the order from the paper builder.' }}
+              {{ exportMode === 'categorized' ? $t('workspace.categorizedDesc') : $t('workspace.paperOrderDesc') }}
             </p>
             <section v-for="section in exportSections" :key="section.key" class="export-section">
               <h4 v-if="section.title" class="export-section-title">{{ section.title }}</h4>
@@ -216,7 +280,7 @@
                   </div>
 
                   <div v-if="includeAnswersInExport && canReadAnswers" class="export-answer">
-                    <strong>Answer:</strong>
+                    <strong>{{ $t('common.answer') }}:</strong>
                     <template v-for="(part, i) in parseLatexParts(q.answer)" :key="i">
                       <LatexRenderer v-if="part.isLatex" :formula="part.content" />
                       <span v-else>{{ part.content }}</span>
@@ -236,7 +300,27 @@
 import PaginationControls from '~/components/questions/PaginationControls.vue'
 import QuestionBankCard from '~/components/questions/QuestionBankCard.vue'
 import QuestionBankToolbar from '~/components/questions/QuestionBankToolbar.vue'
-import { DEFAULT_ESSAY_BLANK_SPACE, QUESTION_TYPE_LABELS, type Question } from '~/composables/useQuestionBank'
+import { DEFAULT_ESSAY_BLANK_SPACE, type Question } from '~/composables/useQuestionBank'
+
+interface GenerationDiagnostics {
+  fitness: number
+  candidateCount: number
+  difficultyActual: Record<string, number>
+  typeActual: Record<string, number>
+}
+
+interface GeneratedPaperResponse {
+  paper: {
+    id: number
+    title: string
+    subject: string
+    duration: number
+    totalMarks: number
+    questions: Question[]
+  }
+  diagnostics: GenerationDiagnostics
+}
+
 const {
   canCreateQuestions,
   canReadAnswers,
@@ -251,6 +335,8 @@ const {
   myQuestionPagination
 } = useQuestionBank()
 const { hasPermission, isAuthReady } = useAuth()
+const { apiFetch } = useApi()
+const { t } = useI18n()
 
 type ExportMode = 'paper' | 'categorized'
 type QuestionType = Question['type']
@@ -264,6 +350,9 @@ const exportMode = ref<ExportMode>('paper')
 const includeAnswersInExport = ref(false)
 const bankMode = ref<BankMode>('all')
 const pageSize = ref(20)
+const isGenerating = ref(false)
+const generationError = ref('')
+const generationDiagnostics = ref<GenerationDiagnostics | null>(null)
 
 const paper = reactive({
   title: '',
@@ -277,6 +366,18 @@ const exported = ref(false)
 const questionTypeOrder: QuestionType[] = ['choice', 'true_false', 'blank', 'short_answer', 'essay']
 
 const canReadQuestions = computed(() => hasPermission('questions:read'))
+
+const generationForm = reactive({
+  questionCount: 5,
+  easy: 2,
+  medium: 2,
+  hard: 1,
+  populationSize: 80,
+  generations: 120,
+  crossoverRate: 0.85,
+  mutationRate: 0.08,
+  requiredTags: ''
+})
 
 const currentQuestions = computed(() => bankMode.value === 'mine' ? myQuestions.value : questions.value)
 const activePagination = computed(() => bankMode.value === 'mine' ? myQuestionPagination.value : questionPagination.value)
@@ -328,7 +429,7 @@ function goToPage (page: number) {
 }
 
 function typeLabel (type: Question['type']) {
-  return QUESTION_TYPE_LABELS[type] || type
+  return t(`questionTypes.${type}`) || type
 }
 
 const subjects = computed(() => [...new Set(currentQuestions.value.map(question => question.subject))].sort())
@@ -337,7 +438,7 @@ const exportSections = computed(() => {
   const rawSections = exportMode.value === 'categorized'
     ? questionTypeOrder.map(type => ({
         key: type,
-        title: QUESTION_TYPE_LABELS[type],
+        title: t(`questionTypes.${type}`),
         questions: paper.questions.filter(question => question.type === type)
       })).filter(section => section.questions.length)
     : [{
@@ -406,6 +507,61 @@ function exportPaper () {
   exported.value = true
 }
 
+async function generatePaper () {
+  generationError.value = ''
+  generationDiagnostics.value = null
+  isGenerating.value = true
+
+  try {
+    const response = await apiFetch<GeneratedPaperResponse>('/papers/generate', {
+      method: 'POST',
+      body: {
+        title: paper.title,
+        subject: paper.subject,
+        duration: paper.duration,
+        totalMarks: paper.totalMarks,
+        questionCount: generationForm.questionCount,
+        difficultyTargets: {
+          easy: generationForm.easy,
+          medium: generationForm.medium,
+          hard: generationForm.hard
+        },
+        requiredTags: generationForm.requiredTags
+          .split(',')
+          .map(tag => tag.trim())
+          .filter(Boolean),
+        subjectStrict: true,
+        algorithm: {
+          populationSize: generationForm.populationSize,
+          generations: generationForm.generations,
+          crossoverRate: generationForm.crossoverRate,
+          mutationRate: generationForm.mutationRate,
+          elitismCount: 4,
+          tournamentSize: 3
+        }
+      }
+    })
+
+    paper.title = response.data.paper.title
+    paper.subject = response.data.paper.subject
+    paper.duration = response.data.paper.duration
+    paper.totalMarks = response.data.paper.totalMarks
+    paper.questions = response.data.paper.questions
+    generationDiagnostics.value = response.data.diagnostics
+    exported.value = false
+  } catch (error) {
+    generationError.value = error instanceof Error ? error.message : 'Failed to generate paper.'
+  } finally {
+    isGenerating.value = false
+  }
+}
+
+function formatDistribution (distribution: Record<string, number>) {
+  return Object.entries(distribution)
+    .map(([key, value]) => `${key} ${value}`)
+    .join(', ') || '-'
+}
+
 function toggleAnswer (id: number) {
   const next = new Set(shown.value)
   if (next.has(id)) next.delete(id)
@@ -435,6 +591,9 @@ function getEssayBlankStyle (question: Question) {
   .workspace-layout {
     grid-template-columns: 1fr;
   }
+  .generation-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .panel-head {
@@ -453,6 +612,44 @@ function getEssayBlankStyle (question: Question) {
   color: var(--color-muted);
   font-size: .82rem;
   margin-top: 4px;
+}
+.generation-card {
+  margin-bottom: 16px;
+}
+.generation-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+.compact-field {
+  margin-bottom: 0;
+}
+.generation-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin-top: 12px;
+  color: var(--color-muted);
+  font-size: .82rem;
+}
+.status-banner {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: #f8fafc;
+  color: var(--color-muted);
+  padding: 10px 12px;
+  margin-bottom: 14px;
+  font-size: .875rem;
+}
+.status-banner--error {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #b91c1c;
+}
+@media (max-width: 900px) {
+  .generation-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 .count-tag,
 .tag-count {

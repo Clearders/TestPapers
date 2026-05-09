@@ -1,41 +1,47 @@
 <template>
   <section class="login-page">
     <div class="login-card card">
-      <h1 class="page-title">Login</h1>
-      <p class="page-sub">Sign in to access the question bank and protected authoring tools.</p>
+      <h1 class="page-title">{{ $t('login.title') }}</h1>
+      <p class="page-sub">{{ $t('login.subtitle') }}</p>
 
       <form @submit.prevent="submitLogin">
         <div class="form-group">
-          <label class="form-label">Username</label>
+          <label class="form-label">{{ $t('login.username') }}</label>
           <input v-model="username" class="form-input" autocomplete="username" required />
         </div>
         <div class="form-group">
-          <label class="form-label">Password</label>
+          <label class="form-label">{{ $t('login.password') }}</label>
           <input v-model="password" class="form-input" type="password" autocomplete="current-password" required />
         </div>
         <button class="btn btn-primary" type="submit" :disabled="isSubmitting">
-          {{ isSubmitting ? 'Signing in...' : 'Sign In' }}
+          {{ isSubmitting ? $t('login.signingIn') : $t('login.signIn') }}
         </button>
         <p v-if="errorMessage" class="login-error">{{ errorMessage }}</p>
       </form>
 
       <div class="demo-users">
-        <span class="form-hint">Demo accounts</span>
-        <button class="btn btn-outline btn-sm" type="button" @click="fillDemo('admin', 'admin123')">Admin</button>
-        <button class="btn btn-outline btn-sm" type="button" @click="fillDemo('teacher', 'teacher123')">Teacher</button>
-        <button class="btn btn-outline btn-sm" type="button" @click="fillDemo('viewer', 'viewer123')">Viewer</button>
+        <span class="form-hint">{{ $t('login.demoAccounts') }}</span>
+        <button class="btn btn-outline btn-sm" type="button" @click="fillDemo('admin', 'admin123')">{{ $t('login.admin') }}</button>
+        <button class="btn btn-outline btn-sm" type="button" @click="fillDemo('teacher', 'teacher123')">{{ $t('login.teacher') }}</button>
+        <button class="btn btn-outline btn-sm" type="button" @click="fillDemo('viewer', 'viewer123')">{{ $t('login.viewer') }}</button>
       </div>
 
       <p class="register-prompt">
-        Need a teacher account?
-        <NuxtLink to="/register">Create one</NuxtLink>
+        {{ $t('login.noAccount') }}
+        <NuxtLink to="/register">{{ $t('login.createOne') }}</NuxtLink>
       </p>
     </div>
   </section>
 </template>
 
 <script setup lang="ts">
+definePageMeta({
+  guestOnly: true
+})
+
 const { login } = useAuth()
+const { t } = useI18n()
+const route = useRoute()
 
 const username = ref('')
 const password = ref('')
@@ -43,7 +49,7 @@ const errorMessage = ref('')
 const isSubmitting = ref(false)
 
 useHead({
-  title: 'Login | TestPapers'
+  title: computed(() => `${t('login.title')} | TestPapers`)
 })
 
 function fillDemo (name: string, pass: string) {
@@ -57,9 +63,9 @@ async function submitLogin () {
 
   try {
     await login(username.value, password.value)
-    await navigateTo('/questions')
+    await navigateTo(typeof route.query.redirect === 'string' ? route.query.redirect : '/questions')
   } catch (error) {
-    errorMessage.value = error instanceof Error ? error.message : 'Login failed.'
+    errorMessage.value = error instanceof Error ? error.message : t('login.loginFailed')
   } finally {
     isSubmitting.value = false
   }
