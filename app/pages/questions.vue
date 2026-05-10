@@ -8,9 +8,7 @@ definePageMeta({
   permissions: ['questions:read']
 })
 
-const { t } = useI18n()
-
 useHead({
-  title: computed(() => `${t('common.workspace')} | TestPapers`)
+  title: 'Workspace | TestPapers'
 })
 </script>

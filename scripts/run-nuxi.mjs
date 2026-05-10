@@ -7,6 +7,7 @@ const rootDir = resolve(__dirname, '..')
 const nuxiEntry = resolve(rootDir, 'node_modules', '@nuxt', 'cli', 'bin', 'nuxi.mjs')
 const ignoredWarnings = [
   '[DEP0155] DeprecationWarning: Use of deprecated trailing slash pattern mapping',
+  'Duplicated imports "useAppConfig"',
   '(Use `node --trace-deprecation ...` to show where the warning was created)'
 ]
 

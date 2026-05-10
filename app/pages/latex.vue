@@ -1,7 +1,7 @@
 <template>
   <section>
-    <h1 class="page-title">{{ $t('latex.title') }}</h1>
-    <p class="page-sub">{{ $t('latex.subtitle') }}</p>
+    <h1 class="page-title">Real-time LaTeX Preview</h1>
+    <p class="page-sub">Type a LaTeX expression below and see it rendered instantly.</p>
 
     <div class="demo-box card" style="margin-top:20px">
       <div class="demo-editor">
@@ -12,9 +12,9 @@
           spellcheck="false"
         />
         <div class="demo-preview card">
-          <span class="form-hint" style="display:block;margin-bottom:8px">{{ $t('latex.preview') }}:</span>
+          <span class="form-hint" style="display:block;margin-bottom:8px">Preview:</span>
           <LatexRenderer v-if="demoFormula" :formula="demoFormula" :block="true" />
-          <span v-else class="form-hint" style="font-style:italic">{{ $t('latex.startTyping') }}</span>
+          <span v-else class="form-hint" style="font-style:italic">Start typing above…</span>
         </div>
       </div>
     </div>

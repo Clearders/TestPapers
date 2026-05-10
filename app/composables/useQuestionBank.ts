@@ -16,6 +16,15 @@ export const QUESTION_TYPE_LABELS: Record<Question['type'], string> = {
   essay: 'Essay'
 }
 
+// Module-level regex to avoid recompilation
+const LATEX_DETECT_RE = /(\$\$[^$]+\$\$|\$[^$]+\$)/
+
+function hasLatexContent (question: Partial<QuestionEntity>) {
+  if (LATEX_DETECT_RE.test(question.text || '') || LATEX_DETECT_RE.test(question.answer || '')) return true
+  if (!Array.isArray(question.options)) return false
+  return question.options.some(option => LATEX_DETECT_RE.test(option || ''))
+}
+
 function normalizeQuestion (question: Partial<QuestionEntity> & { id: number }): Question {
   const shouldUseEssayBlankSpace = question.type === 'essay'
   const essayBlankSpace = shouldUseEssayBlankSpace
@@ -25,16 +34,28 @@ function normalizeQuestion (question: Partial<QuestionEntity> & { id: number }):
       }
     : undefined
 
+  const tags = Array.isArray(question.tags) ? question.tags : []
+  const options = Array.isArray(question.options) ? question.options : undefined
+  const images = Array.isArray(question.images) ? question.images : []
+
+  const hasLatex = typeof question.hasLatex === 'boolean'
+    ? question.hasLatex
+    : hasLatexContent(question)
+
   return {
-    ...question,
+    id: question.id,
+    type: question.type as Question['type'],
+    subject: question.subject || '',
+    difficulty: question.difficulty as Question['difficulty'] || 'medium',
+    text: question.text || '',
     answer: question.answer || '',
-    tags: Array.isArray(question.tags) ? question.tags : [],
-    options: Array.isArray(question.options) ? question.options : undefined,
-    images: Array.isArray(question.images) ? question.images : [],
+    source: question.source,
+    tags,
+    options,
+    images,
     essayBlankSpace,
-    hasLatex: typeof question.hasLatex === 'boolean'
-      ? question.hasLatex
-      : /(\$\$[^$]+\$\$|\$[^$]+\$)/.test(`${question.text || ''}${question.answer || ''}${question.options?.join('') || ''}`)
+    hasLatex,
+    ownerId: question.ownerId ?? null
   }
 }
 
@@ -43,9 +64,9 @@ function toPayload (input: QuestionFormInput) {
     type: input.type,
     subject: input.subject.trim(),
     difficulty: input.difficulty,
-    tags: [...input.tags],
+    tags: input.tags,
     text: input.text.trim(),
-    options: (input.type === 'choice' || input.type === 'true_false') ? [...(input.options || [])] : undefined,
+    options: (input.type === 'choice' || input.type === 'true_false') ? input.options || [] : undefined,
     answer: input.answer.trim(),
     source: input.source?.trim() || undefined,
     essayBlankSpace: input.type === 'essay'
@@ -57,6 +78,22 @@ function toPayload (input: QuestionFormInput) {
     images: input.images || [],
     hasLatex: input.hasLatex
   }
+}
+
+function upsertQuestion (state: { value: Question[] }, question: Question) {
+  const existingIndex = state.value.findIndex(item => item.id === question.id)
+  if (existingIndex !== -1) state.value.splice(existingIndex, 1)
+  state.value.unshift(question)
+}
+
+function replaceQuestion (state: { value: Question[] }, question: Question) {
+  const existingIndex = state.value.findIndex(item => item.id === question.id)
+  if (existingIndex !== -1) state.value.splice(existingIndex, 1, question)
+}
+
+function removeQuestionById (state: { value: Question[] }, id: number) {
+  const existingIndex = state.value.findIndex(question => question.id === id)
+  if (existingIndex !== -1) state.value.splice(existingIndex, 1)
 }
 
 export function useQuestionBank () {
@@ -71,7 +108,7 @@ export function useQuestionBank () {
   const { apiFetch } = useApi()
 
   const loadQuestions = async (params: QuestionQueryParams = {}) => {
-    if (isLoading.value) return questions.value
+    if (isLoading.value) return
 
     isLoading.value = true
     error.value = ''
@@ -131,8 +168,8 @@ export function useQuestionBank () {
     })
 
     const normalized = normalizeQuestion(response.data)
-    questions.value = [normalized, ...questions.value.filter(question => question.id !== normalized.id)]
-    myQuestions.value = [normalized, ...myQuestions.value.filter(question => question.id !== normalized.id)]
+    upsertQuestion(questions, normalized)
+    upsertQuestion(myQuestions, normalized)
     return normalized
   }
 
@@ -143,8 +180,8 @@ export function useQuestionBank () {
     })
 
     const normalized = normalizeQuestion(response.data)
-    questions.value = questions.value.map(question => question.id === id ? normalized : question)
-    myQuestions.value = myQuestions.value.map(question => question.id === id ? normalized : question)
+    replaceQuestion(questions, normalized)
+    replaceQuestion(myQuestions, normalized)
     return normalized
   }
 
@@ -152,14 +189,17 @@ export function useQuestionBank () {
     await apiFetch(`/questions/${id}`, {
       method: 'DELETE'
     })
-    questions.value = questions.value.filter(question => question.id !== id)
-    myQuestions.value = myQuestions.value.filter(question => question.id !== id)
+    removeQuestionById(questions, id)
+    removeQuestionById(myQuestions, id)
   }
 
   const uploadImage = async (file: File): Promise<string> => {
     const base64 = await new Promise<string>((resolve, reject) => {
       const reader = new FileReader()
-      reader.onload = () => resolve((reader.result as string).split(',')[1])
+      reader.onload = () => {
+        const result = reader.result as string
+        resolve(result.slice(result.indexOf(',') + 1))
+      }
       reader.onerror = () => reject(new Error('Failed to read file'))
       reader.readAsDataURL(file)
     })

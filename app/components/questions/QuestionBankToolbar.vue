@@ -6,14 +6,14 @@
         :class="bankMode === 'all' ? 'btn-primary' : 'btn-outline'"
         @click="$emit('switch-bank-mode', 'all')"
       >
-        {{ $t('common.allQuestions') }}
+        All Questions
       </button>
       <button
         class="btn btn-sm"
         :class="bankMode === 'mine' ? 'btn-primary' : 'btn-outline'"
         @click="$emit('switch-bank-mode', 'mine')"
       >
-        {{ $t('common.myQuestions') }}
+        My Questions
       </button>
     </div>
 
@@ -21,7 +21,7 @@
       <input
         :value="search"
         class="form-input search-input"
-        :placeholder="$t('common.search')"
+        placeholder="Search questions"
         @input="$emit('update:search', ($event.target as HTMLInputElement).value)"
       />
       <select
@@ -29,20 +29,20 @@
         class="form-input"
         @change="$emit('update:filterSubject', ($event.target as HTMLSelectElement).value)"
       >
-        <option value="">{{ $t('common.allSubjects') }}</option>
+        <option value="">All subjects</option>
         <option v-for="subject in subjects" :key="subject" :value="subject">{{ subject }}</option>
       </select>
       <select
         :value="filterDifficulty"
         class="form-input"
-        @change="$emit('update:filterDifficulty', ($event.target as HTMLSelectElement).value)"
+        @change="onDifficultyChange"
       >
-        <option value="">{{ $t('common.allDifficulties') }}</option>
-        <option value="easy">{{ $t('difficulty.easy') }}</option>
-        <option value="medium">{{ $t('difficulty.medium') }}</option>
-        <option value="hard">{{ $t('difficulty.hard') }}</option>
+        <option value="">All difficulties</option>
+        <option value="easy">Easy</option>
+        <option value="medium">Medium</option>
+        <option value="hard">Hard</option>
       </select>
-      <NuxtLink v-if="canCreateQuestions" to="/add-problem" class="btn btn-primary">{{ $t('common.addProblem') }}</NuxtLink>
+      <NuxtLink v-if="canCreateQuestions" to="/add-problem" class="btn btn-primary">+ Add Problem</NuxtLink>
     </div>
   </div>
 </template>
@@ -59,12 +59,26 @@ defineProps<{
   canCreateQuestions: boolean
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
   'switch-bank-mode': [mode: 'all' | 'mine']
   'update:search': [value: string]
   'update:filterSubject': [value: string]
   'update:filterDifficulty': [value: QuestionDifficulty | '']
 }>()
+
+const difficultyOptions = new Set<QuestionDifficulty>(['easy', 'medium', 'hard'])
+
+function isQuestionDifficulty(value: string): value is QuestionDifficulty {
+  return difficultyOptions.has(value as QuestionDifficulty)
+}
+
+function onDifficultyChange(event: Event) {
+  const value = (event.target as HTMLSelectElement).value
+
+  if (value === '' || isQuestionDifficulty(value)) {
+    emit('update:filterDifficulty', value)
+  }
+}
 </script>
 
 <style scoped>

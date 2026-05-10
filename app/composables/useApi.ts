@@ -4,7 +4,7 @@ import type { AuthSession } from '~/types/auth'
 export interface ApiRequestOptions {
   method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE'
   query?: Record<string, unknown>
-  body?: unknown
+  body?: BodyInit | Record<string, any> | null
   headers?: Record<string, string>
   auth?: boolean
   retryOnUnauthorized?: boolean
@@ -68,33 +68,28 @@ export function useApi () {
       ...fetchOptions
     } = options
 
+    // Only fetch request headers on server side
     const requestHeaders = import.meta.server ? useRequestHeaders(['cookie']) : {}
 
+    const makeRequest = () => $fetch<ApiEnvelope<T>>(path, {
+      baseURL: getApiBase(),
+      credentials: 'include',
+      ...fetchOptions,
+      headers: {
+        ...requestHeaders,
+        ...headers
+      }
+    })
+
     try {
-      return await $fetch<ApiEnvelope<T>>(path, {
-        baseURL: getApiBase(),
-        credentials: 'include',
-        ...fetchOptions,
-        headers: {
-          ...requestHeaders,
-          ...headers
-        }
-      })
+      return await makeRequest()
     } catch (error) {
       const shouldRefresh = import.meta.client && auth && retryOnUnauthorized && path !== '/auth/refresh' && getStatusCode(error) === 401
       if (!shouldRefresh || !(await refreshSessionCookie())) {
         throw error
       }
 
-      return await $fetch<ApiEnvelope<T>>(path, {
-        baseURL: getApiBase(),
-        credentials: 'include',
-        ...fetchOptions,
-        headers: {
-          ...requestHeaders,
-          ...headers
-        }
-      })
+      return await makeRequest()
     }
   }
 

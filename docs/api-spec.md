@@ -1,9 +1,9 @@
 # TestPapers 前后端 API 接口文档
 
-> **版本**: v3  
+> **版本**: v4  
 > **后端框架**: FastAPI (Python)  
 > **前端框架**: Nuxt 3 (TypeScript)  
-> **最后更新**: 2026-05-08
+> **最后更新**: 2026-05-10
 
 ---
 
@@ -200,7 +200,41 @@ POST /api/v1/auth/login
 | `teacher` | `teacher123` | 教师    |
 | `viewer`  | `viewer123`  | 观察者  |
 
-### 2.3 获取当前用户信息
+### 2.3 注册
+
+```http
+POST /api/v1/auth/register
+```
+
+**请求体**：
+
+| 字段          | 类型   | 必填 | 说明                                 |
+| ------------- | ------ | :--: | ------------------------------------ |
+| `username`    | string |  是  | 用户名，3–64 字符，自动转为小写        |
+| `displayName` | string |  是  | 显示名称，1–120 字符                  |
+| `password`    | string |  是  | 明文密码，6–128 字符                  |
+
+请求示例：
+
+```json
+{
+  "username": "teacher_zhang",
+  "displayName": "张老师",
+  "password": "secure_password"
+}
+```
+
+**成功响应** (200)：注册成功后自动登录，返回 `AuthSession`，同时设置 HttpOnly `testpapers_session` Cookie。`data` 结构与登录响应相同。
+
+**错误响应**：
+
+| HTTP 状态码 | 错误码               | 说明         |
+| ----------- | -------------------- | ------------ |
+| 409         | `USER_ALREADY_EXISTS` | 用户名已存在 |
+
+> 公开注册创建的账户角色为 `teacher`，默认为激活状态。
+
+### 2.4 获取当前用户信息
 
 ```http
 GET /api/v1/auth/me
@@ -212,7 +246,7 @@ GET /api/v1/auth/me
 
 前端在页面加载时调用此接口恢复登录会话。
 
-### 2.4 登出
+### 2.5 登出
 
 ```http
 POST /api/v1/auth/logout
@@ -224,7 +258,7 @@ POST /api/v1/auth/logout
 
 调用后会话立即失效，后续使用同一 Cookie 或兼容 Bearer token 的请求将返回 `401 INVALID_TOKEN`。
 
-### 2.5 刷新会话
+### 2.6 刷新会话
 
 ```http
 POST /api/v1/auth/refresh
@@ -234,7 +268,7 @@ POST /api/v1/auth/refresh
 
 **成功响应** (200)：刷新服务端会话、轮换 Cookie，并返回 `AuthSession`。
 
-### 2.6 实时 WebSocket
+### 2.7 实时 WebSocket
 
 ```http
 WS /api/v1/ws
@@ -958,27 +992,26 @@ POST /api/v1/papers/generate
 
 ```typescript
 interface PaperGenerateRequest {
-  title: string
-  description?: string
-  subject: string
-  totalMarks: number
-  durationMinutes: number
-  questionCount: number
-  difficultyTargets?: Partial<Record<'easy' | 'medium' | 'hard', number>>
-  typeTargets?: Partial<Record<'choice' | 'blank' | 'short' | 'programming', number>>
-  requiredTags?: string[]
-  subjectStrict?: boolean
+  title: string                     // 试卷标题
+  subject: string                   // 学科
+  duration: number                  // 考试时长（分钟），> 0
+  totalMarks: number                // 试卷总分，> 0，且 ≥ questionCount
+  questionCount: number             // 试题数量，1–100
+  difficultyTargets?: Record<'easy' | 'medium' | 'hard', number>  // 难度分布目标（值 > 0 的键有效）
+  typeTargets?: Record<'choice' | 'true_false' | 'blank' | 'short_answer' | 'essay', number>  // 题型分布目标
+  requiredTags?: string[]           // 必选标签列表
+  subjectStrict?: boolean           // 是否严格按学科筛选（默认 true）
   algorithm?: GeneticAlgorithmOptions
 }
 
 interface GeneticAlgorithmOptions {
-  populationSize?: number
-  generations?: number
-  crossoverRate?: number
-  mutationRate?: number
-  elitismCount?: number
-  tournamentSize?: number
-  randomSeed?: number | null
+  populationSize?: number           // 种群规模，20–500（默认 80）
+  generations?: number              // 迭代代数，10–1000（默认 120）
+  crossoverRate?: number            // 交叉率，0–1（默认 0.85）
+  mutationRate?: number             // 变异率，0–1（默认 0.08）
+  elitismCount?: number             // 精英保留数，1–50（默认 4）
+  tournamentSize?: number           // 锦标赛规模，2–20（默认 3）
+  randomSeed?: number | null        // 随机种子，null 为不固定（默认 null）
 }
 ```
 
@@ -986,11 +1019,10 @@ interface GeneticAlgorithmOptions {
 
 ```json
 {
-  "title": "JavaScript 期中考试",
-  "description": "覆盖课程前半部分的均衡试卷",
-  "subject": "JavaScript",
+  "title": "2026 年期中考试",
+  "subject": "数学",
+  "duration": 60,
   "totalMarks": 100,
-  "durationMinutes": 120,
   "questionCount": 20,
   "difficultyTargets": {
     "easy": 6,
@@ -1000,10 +1032,10 @@ interface GeneticAlgorithmOptions {
   "typeTargets": {
     "choice": 8,
     "blank": 4,
-    "short": 5,
-    "programming": 3
+    "short_answer": 5,
+    "essay": 3
   },
-  "requiredTags": ["closure", "async"],
+  "requiredTags": ["代数", "几何"],
   "subjectStrict": true,
   "algorithm": {
     "populationSize": 80,
@@ -1017,24 +1049,22 @@ interface GeneticAlgorithmOptions {
 }
 ```
 
-成功响应：
+成功响应 (201)：
 
 ```typescript
 interface PaperGenerateResponse {
-  paper: PaperDetail
+  paper: PaperEntity                // 创建的试卷对象（含展开试题）
   diagnostics: {
-    fitness: number
-    candidateCount: number
-    questionCount: number
-    difficultyTargets: Record<string, number>
-    difficultyActual: Record<string, number>
-    typeTargets: Record<string, number>
-    typeActual: Record<string, number>
-    requiredTags: string[]
-    coveredRequiredTags: string[]
-    algorithm: Required<Omit<GeneticAlgorithmOptions, 'randomSeed'>> & {
-      randomSeed: number | null
-    }
+    fitness: number                 // 适应度得分
+    candidateCount: number          // 候选池试题数
+    questionCount: number           // 实际组卷试题数
+    difficultyTargets: Record<string, number>   // 目标难度分布
+    difficultyActual: Record<string, number>    // 实际难度分布
+    typeTargets: Record<string, number>         // 目标题型分布
+    typeActual: Record<string, number>          // 实际题型分布
+    requiredTags: string[]                      // 必选标签
+    coveredRequiredTags: string[]               // 已覆盖的必选标签
+    algorithm: GeneticAlgorithmOptions & { randomSeed: number | null }
   }
 }
 ```
@@ -1043,16 +1073,16 @@ interface PaperGenerateResponse {
 
 | HTTP 状态码 | 错误码 | 含义 |
 | --- | --- | --- |
-| `401` | `UNAUTHORIZED`、`INVALID_TOKEN`、`TOKEN_EXPIRED` | 会话缺失、无效或已过期。 |
-| `403` | `FORBIDDEN` | 用户没有 `papers:write` 权限。 |
-| `422` | `VALIDATION_ERROR` | 请求体无效，包括不可能的分数/数量约束。 |
-| `422` | `INSUFFICIENT_QUESTIONS` | 筛选后的候选池规模小于 `questionCount`。 |
+| `401` | `UNAUTHORIZED`、`INVALID_TOKEN`、`TOKEN_EXPIRED` | 会话缺失、无效或已过期 |
+| `403` | `FORBIDDEN` | 用户没有 `papers:write` 权限 |
+| `422` | `VALIDATION_ERROR` | 请求体无效，如 `totalMarks < questionCount` |
+| `422` | `INSUFFICIENT_QUESTIONS` | 筛选后的候选池规模小于 `questionCount` |
 
 推荐的默认调参：
 
 | 场景 | 种群规模 | 迭代代数 | 交叉率 | 变异率 | 精英保留数 | 锦标赛规模 |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| 小题库 / 快速预览 | 40 | 60 | 0.80 | 0.10 | 2 | 3 |
+| 快速预览 | 40 | 60 | 0.80 | 0.10 | 2 | 3 |
 | 标准生产环境默认值 | 80 | 120 | 0.85 | 0.08 | 4 | 3 |
 | 大题库 / 严格约束 | 140 | 220 | 0.88 | 0.06 | 6 | 4 |
 
@@ -1060,6 +1090,40 @@ interface PaperGenerateResponse {
 
 ## 11. 实现注意事项
 
-- 当前前端期望获取包含 `answer` 在内的完整试题内容。
-- 如果后端后续限制答案可见性，工作台客户端需要区分出题模式与考试分发模式。
-- 如果引入试卷持久化机制，前端应将组卷状态从组件内部的响应式状态迁移到 API 驱动的数据存储中。
+### 11.1 认证与会话
+
+- 前端使用 HttpOnly Cookie（`testpapers_session`）进行认证，JavaScript 不直接读写令牌。
+- Nuxt 服务端渲染（SSR）时通过 `useRequestHeaders(['cookie'])` 转发 Cookie 到后端。
+- 客户端收到 `401 TOKEN_EXPIRED` 时，API 客户端自动调用 `POST /api/v1/auth/refresh` 刷新，成功则重放原始请求。
+- 非浏览器客户端可使用 `Authorization: Bearer <token>` 作为兼容降级方案。
+
+### 11.2 答案可见性
+
+- `answers:read` 权限控制是否返回试题/试卷中的 `answer` 字段。
+- `viewer` 角色无此权限，即使请求参数 `includeAnswer=true`，响应中也不包含答案。
+- 前端工作台默认请求答案，但后端根据权限自动过滤。
+
+### 11.3 WebSocket 实时通信
+
+- 连接握手使用与 HTTP API 相同的 Cookie 认证。
+- 连接成功后服务端发送 `auth.connected` 事件。
+- 试题和试卷的增删改操作会广播 WebSocket 事件给所有已连接客户端。
+- 前端通过 `useRealtime.ts` composable 管理 WebSocket 连接生命周期。
+
+### 11.4 图片上传
+
+- 图片通过 Base64 编码以 data URL 格式存储。
+- 支持的格式：PNG、JPEG、GIF、WebP、SVG。
+- 返回的 `url` 为 data URL，可直接放入试题的 `images` 数组。
+
+### 11.5 遗传算法组卷
+
+- `PaperGenerateRequest` 继承 `PaperBase`（含 `title`、`subject`、`duration`、`totalMarks`）。
+- `totalMarks` 必须 ≥ `questionCount`（每道题至少 1 分）。
+- 不传 `difficultyTargets` / `typeTargets` 时，算法不会对对应维度施加约束。
+- `algorithm` 参数全部可选，有合理默认值。
+
+### 11.6 数据库迁移
+
+- 数据库表由 Alembic 迁移管理，不会在应用启动时自动创建。
+- 运行 `alembic upgrade head` 即可创建所有表并填充种子数据。

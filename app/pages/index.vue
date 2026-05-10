@@ -2,13 +2,13 @@
   <div class="home-wrapper">
     <section class="hero-section">
       <div class="hero-content">
-        <div class="badge-pill bounce-in">{{ $t('index.badge') }}</div>
-        <h1 class="hero-title slide-up">{{ $t('index.title') }} <span class="text-gradient">TestPapers</span></h1>
-        <p class="hero-sub slide-up-delay">{{ $t('index.subtitle') }}</p>
+        <div class="badge-pill bounce-in">Welcome to the new standard</div>
+        <h1 class="hero-title slide-up">Craft Perfect <span class="text-gradient">TestPapers</span></h1>
+        <p class="hero-sub slide-up-delay">Create, manage, and export professional exams and assignments seamlessly with live LaTeX rendering.</p>
         <div class="hero-actions slide-up-delay-2">
-          <NuxtLink v-if="hasPermission('questions:write')" to="/add-problem" class="btn btn-primary btn-lg shine-effect">{{ $t('index.createProblem') }}</NuxtLink>
-          <NuxtLink v-if="hasPermission('questions:read')" to="/questions" class="btn btn-glass btn-lg">{{ $t('index.openWorkspace') }}</NuxtLink>
-          <NuxtLink v-if="!isAuthenticated" to="/login" class="btn btn-primary btn-lg shine-effect">{{ $t('index.login') }}</NuxtLink>
+          <NuxtLink v-if="hasPermission('questions:write')" to="/add-problem" class="btn btn-primary btn-lg shine-effect">Create a Problem</NuxtLink>
+          <NuxtLink v-if="hasPermission('questions:read')" to="/questions" class="btn btn-glass btn-lg">Open Workspace</NuxtLink>
+          <NuxtLink v-if="!isAuthenticated" to="/login" class="btn btn-primary btn-lg shine-effect">Login</NuxtLink>
         </div>
       </div>
     </section>
@@ -22,9 +22,9 @@
               <line x1="16" y1="16" x2="21" y2="21"></line>
             </svg>
           </div>
-          <h2>{{ $t('index.features.workspace.title') }}</h2>
-          <p>{{ $t('index.features.workspace.description') }}</p>
-          <span class="btn-text" style="margin-top:auto">{{ $t('index.features.workspace.action') }}</span>
+          <h2>Question Workspace</h2>
+          <p>Search the bank, inspect answers, and build a paper in the same workspace.</p>
+          <span class="btn-text" style="margin-top:auto">Open Workspace →</span>
         </NuxtLink>
 
         <NuxtLink v-if="hasPermission('questions:write')" to="/add-problem" class="feature-card card-glass" style="--i:1">
@@ -35,9 +35,9 @@
               <line x1="8" y1="12" x2="16" y2="12"></line>
             </svg>
           </div>
-          <h2>{{ $t('index.features.addProblem.title') }}</h2>
-          <p>{{ $t('index.features.addProblem.description') }}</p>
-          <span class="btn-text highlight" style="margin-top:auto">{{ $t('index.features.addProblem.action') }}</span>
+          <h2>Add Problem</h2>
+          <p>Compose a new problem and instantly check formatting with a live LaTeX preview as you type.</p>
+          <span class="btn-text highlight" style="margin-top:auto">Compose Now →</span>
         </NuxtLink>
 
         <NuxtLink to="/latex" class="feature-card card-glass" style="--i:2">
@@ -49,9 +49,9 @@
               <path d="M21 10l-3 2 3 2"></path>
             </svg>
           </div>
-          <h2>{{ $t('index.features.latex.title') }}</h2>
-          <p>{{ $t('index.features.latex.description') }}</p>
-          <span class="btn-text" style="margin-top:auto">{{ $t('index.features.latex.action') }}</span>
+          <h2>LaTeX Preview</h2>
+          <p>A quick sandbox. Type any LaTeX expression and see it rendered to verify math syntax.</p>
+          <span class="btn-text" style="margin-top:auto">Try Sandbox →</span>
         </NuxtLink>
       </div>
     </section>

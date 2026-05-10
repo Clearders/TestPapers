@@ -1,7 +1,7 @@
 <template>
   <div class="preview-panel">
     <div class="panel-head">
-      <h2>{{ $t('preview.livePreview') }}</h2>
+      <h2>Live Preview</h2>
     </div>
 
     <div class="preview-card card">
@@ -15,14 +15,14 @@
       </div>
 
       <div class="preview-section">
-        <span class="preview-label">{{ $t('preview.question') }}</span>
+        <span class="preview-label">Question</span>
         <div v-if="form.questionText" class="preview-content">
           <template v-for="(part, i) in parseLatexParts(form.questionText)" :key="'q' + i">
             <LatexRenderer v-if="part.isLatex" :formula="part.content" :block="part.block" />
             <span v-else>{{ part.content }}</span>
           </template>
         </div>
-        <span v-else class="placeholder-text">{{ $t('preview.placeholder') }}</span>
+        <span v-else class="placeholder-text">Your question will appear here.</span>
 
         <div v-if="form.images.length" class="preview-images">
           <figure v-for="(img, imgIdx) in form.images" :key="imgIdx" class="preview-image">
@@ -53,7 +53,7 @@
       </div>
 
       <div v-if="form.answer" class="preview-section">
-        <span class="preview-label">{{ $t('preview.answer') }}</span>
+        <span class="preview-label">Answer</span>
         <div class="preview-content">
           <template v-if="form.type === 'choice' || form.type === 'true_false'">
             <strong>{{ form.answer }}</strong>
@@ -67,10 +67,10 @@
     </div>
 
     <div class="cheatsheet card">
-      <h3>{{ $t('cheatsheet.title') }}</h3>
+      <h3>LaTeX Quick Reference</h3>
       <table class="cheat-table">
         <thead>
-          <tr><th>{{ $t('cheatsheet.type') }}</th><th>{{ $t('cheatsheet.syntax') }}</th><th>{{ $t('cheatsheet.result') }}</th></tr>
+          <tr><th>Type</th><th>Syntax</th><th>Result</th></tr>
         </thead>
         <tbody>
           <tr v-for="row in cheatSheet" :key="row.label">

@@ -11,21 +11,20 @@
 
     <header class="site-header">
       <div class="header-inner">
-        <NuxtLink to="/" class="logo">{{ $t('common.siteName') }}</NuxtLink>
+        <NuxtLink to="/" class="logo">TestPapers</NuxtLink>
         <nav class="site-nav">
-          <NuxtLink to="/" class="nav-link">{{ $t('common.home') }}</NuxtLink>
-          <NuxtLink v-if="isAuthenticated" to="/questions" class="nav-link">{{ $t('common.workspace') }}</NuxtLink>
-          <NuxtLink to="/latex" class="nav-link">{{ $t('common.latexPreview') }}</NuxtLink>
-          <NuxtLink v-if="hasPermission('questions:write')" to="/add-problem" class="nav-link nav-link--highlight">{{ $t('common.addProblem') }}</NuxtLink>
-          <NuxtLink v-if="hasPermission('users:manage')" to="/users" class="nav-link">{{ $t('common.users') }}</NuxtLink>
+          <NuxtLink to="/" class="nav-link">Home</NuxtLink>
+          <NuxtLink v-if="isAuthenticated" to="/questions" class="nav-link">Workspace</NuxtLink>
+          <NuxtLink to="/latex" class="nav-link">LaTeX Preview</NuxtLink>
+          <NuxtLink v-if="hasPermission('questions:write')" to="/add-problem" class="nav-link nav-link--highlight">+ Add Problem</NuxtLink>
+          <NuxtLink v-if="hasPermission('users:manage')" to="/users" class="nav-link">Users</NuxtLink>
           <button v-if="isAuthenticated" class="nav-link nav-button" type="button" @click="logout">
-            {{ user?.displayName || user?.username }} · {{ $t('common.logout') }}
+            {{ user?.displayName || user?.username }} · Logout
           </button>
           <template v-else>
-            <NuxtLink to="/register" class="nav-link">{{ $t('common.register') }}</NuxtLink>
-            <NuxtLink to="/login" class="nav-link nav-link--highlight">{{ $t('common.login') }}</NuxtLink>
+            <NuxtLink to="/register" class="nav-link">Register</NuxtLink>
+            <NuxtLink to="/login" class="nav-link nav-link--highlight">Login</NuxtLink>
           </template>
-          <LanguageSwitcher />
         </nav>
       </div>
     </header>
@@ -35,7 +34,7 @@
     </main>
 
     <footer class="site-footer">
-      <p>{{ $t('common.footer', { year: new Date().getFullYear() }) }}</p>
+      <p>© {{ new Date().getFullYear() }} TestPapers | Create, manage and export test papers with ease.</p>
     </footer>
   </div>
 </template>

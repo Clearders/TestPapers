@@ -1,13 +1,13 @@
 <template>
   <div v-if="pagination.totalPages > 1" class="pagination-controls">
     <button class="btn btn-outline btn-sm" :disabled="loading || pagination.page <= 1" @click="$emit('change', pagination.page - 1)">
-      {{ $t('common.previous') }}
+      Previous
     </button>
     <span class="pagination-status">
-      {{ $t('common.pageOf', { page: pagination.page, total: pagination.totalPages }) }}
+      Page {{ pagination.page }} of {{ pagination.totalPages }}
     </span>
     <button class="btn btn-outline btn-sm" :disabled="loading || pagination.page >= pagination.totalPages" @click="$emit('change', pagination.page + 1)">
-      {{ $t('common.next') }}
+      Next
     </button>
   </div>
 </template>

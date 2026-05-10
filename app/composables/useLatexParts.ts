@@ -4,15 +4,18 @@ export interface LatexPart {
   block: boolean
 }
 
-export function parseLatexParts (text: string): LatexPart[] {
-  const parts: LatexPart[] = []
-  if (!text) return parts
+// Module-level regex to avoid recompilation on every call
+const LATEX_RE = /\$\$([^$]+)\$\$|\$([^$]+)\$/g
 
-  const re = /\$\$([^$]+)\$\$|\$([^$]+)\$/g
+export function parseLatexParts (text: string): LatexPart[] {
+  if (!text) return []
+
+  LATEX_RE.lastIndex = 0
+  const parts: LatexPart[] = []
   let last = 0
   let match: RegExpExecArray | null
 
-  while ((match = re.exec(text)) !== null) {
+  while ((match = LATEX_RE.exec(text)) !== null) {
     if (match.index > last) {
       parts.push({ isLatex: false, content: text.slice(last, match.index), block: false })
     }
