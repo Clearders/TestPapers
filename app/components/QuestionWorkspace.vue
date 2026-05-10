@@ -151,6 +151,57 @@
             <input v-model="generationForm.requiredTags" class="form-input" placeholder="comma-separated tags, optional" />
           </div>
 
+          <div class="form-group">
+            <label class="form-label">Optional Tags</label>
+            <div class="tag-picker">
+              <div class="tag-search-row">
+                <input
+                  v-model="tagSearch"
+                  class="form-input"
+                  placeholder="Search optional tags"
+                />
+                <button
+                  v-if="generationForm.optionalTags.length"
+                  class="btn btn-outline btn-sm"
+                  type="button"
+                  @click="clearOptionalTags"
+                >
+                  Clear
+                </button>
+              </div>
+
+              <div v-if="generationForm.optionalTags.length" class="tag-button-row">
+                <button
+                  v-for="tag in generationForm.optionalTags"
+                  :key="tag"
+                  class="tag tag-button tag-button--selected"
+                  type="button"
+                  :title="`Remove ${tag}`"
+                  @click="removeOptionalTag(tag)"
+                >
+                  {{ tag }} <span aria-hidden="true">x</span>
+                </button>
+              </div>
+
+              <div v-if="filteredOptionalTagOptions.length" class="tag-button-row">
+                <button
+                  v-for="tag in filteredOptionalTagOptions"
+                  :key="tag"
+                  class="tag tag-button"
+                  type="button"
+                  :title="`Prefer ${tag}`"
+                  @click="addOptionalTag(tag)"
+                >
+                  {{ tag }}
+                </button>
+              </div>
+
+              <span v-else-if="isLoadingTags" class="form-hint">Loading tags...</span>
+              <span v-else-if="tagError" class="form-hint form-hint--error">{{ tagError }}</span>
+              <span v-else class="form-hint">No matching optional tags.</span>
+            </div>
+          </div>
+
           <div class="paper-actions">
             <button class="btn btn-primary" type="submit" :disabled="isGenerating || !paper.title || !paper.subject">
               {{ isGenerating ? 'Generating...' : 'Generate Paper' }}
@@ -164,6 +215,9 @@
           <div v-if="generationDiagnostics" class="generation-summary">
             <span>Difficulty: {{ formatDistribution(generationDiagnostics.difficultyActual) }}</span>
             <span>Types: {{ formatDistribution(generationDiagnostics.typeActual) }}</span>
+            <span v-if="generationDiagnostics.optionalTags?.length">
+              Optional tags: {{ formatTagCoverage(generationDiagnostics.coveredOptionalTags, generationDiagnostics.optionalTags) }}
+            </span>
             <span>Candidates: {{ generationDiagnostics.candidateCount }}</span>
           </div>
         </form>
@@ -307,6 +361,8 @@ interface GenerationDiagnostics {
   candidateCount: number
   difficultyActual: Record<string, number>
   typeActual: Record<string, number>
+  optionalTags?: string[]
+  coveredOptionalTags?: string[]
 }
 
 interface GeneratedPaperResponse {
@@ -354,6 +410,10 @@ const pageSize = ref(20)
 const isGenerating = ref(false)
 const generationError = ref('')
 const generationDiagnostics = ref<GenerationDiagnostics | null>(null)
+const tagOptions = ref<string[]>([])
+const tagSearch = ref('')
+const isLoadingTags = ref(false)
+const tagError = ref('')
 
 const paper = reactive({
   title: '',
@@ -377,7 +437,8 @@ const generationForm = reactive({
   generations: 120,
   crossoverRate: 0.85,
   mutationRate: 0.08,
-  requiredTags: ''
+  requiredTags: '',
+  optionalTags: [] as string[]
 })
 
 const currentQuestions = computed(() => bankMode.value === 'mine' ? myQuestions.value : questions.value)
@@ -387,7 +448,10 @@ const activeLoading = computed(() => bankMode.value === 'mine' ? isLoadingMine.v
 watch(
   [isAuthReady, canReadQuestions],
   ([ready, allowed]) => {
-    if (ready && allowed) void loadCurrentPage(1)
+    if (ready && allowed) {
+      void loadCurrentPage(1)
+      void loadTagOptions()
+    }
   },
   { immediate: true }
 )
@@ -437,6 +501,20 @@ const subjects = computed(() => {
   const seen = new Set<string>()
   for (const q of currentQuestions.value) seen.add(q.subject)
   return [...seen].sort()
+})
+
+const selectedOptionalTagKeys = computed(() => {
+  return new Set(generationForm.optionalTags.map(tag => tag.toLowerCase()))
+})
+
+const filteredOptionalTagOptions = computed(() => {
+  const keyword = tagSearch.value.trim().toLowerCase()
+  return tagOptions.value
+    .filter((tag) => {
+      const tagKey = tag.toLowerCase()
+      return !selectedOptionalTagKeys.value.has(tagKey) && (!keyword || tagKey.includes(keyword))
+    })
+    .slice(0, 12)
 })
 
 const exportSections = computed(() => {
@@ -511,6 +589,37 @@ function exportPaper () {
   exported.value = true
 }
 
+async function loadTagOptions () {
+  if (isLoadingTags.value || tagOptions.value.length) return
+
+  isLoadingTags.value = true
+  tagError.value = ''
+  try {
+    const response = await apiFetch<string[]>('/meta/tags', { method: 'GET' })
+    tagOptions.value = Array.from(new Set((response.data || []).filter(Boolean))).sort((a, b) => a.localeCompare(b))
+  } catch (error) {
+    tagError.value = error instanceof Error ? error.message : 'Failed to load tags.'
+  } finally {
+    isLoadingTags.value = false
+  }
+}
+
+function addOptionalTag (tag: string) {
+  const normalized = tag.trim()
+  if (!normalized || selectedOptionalTagKeys.value.has(normalized.toLowerCase())) return
+  generationForm.optionalTags.push(normalized)
+  tagSearch.value = ''
+}
+
+function removeOptionalTag (tag: string) {
+  const index = generationForm.optionalTags.findIndex(item => item.toLowerCase() === tag.toLowerCase())
+  if (index !== -1) generationForm.optionalTags.splice(index, 1)
+}
+
+function clearOptionalTags () {
+  generationForm.optionalTags.length = 0
+}
+
 async function generatePaper () {
   generationError.value = ''
   generationDiagnostics.value = null
@@ -534,6 +643,7 @@ async function generatePaper () {
           .split(',')
           .map(tag => tag.trim())
           .filter(Boolean),
+        optionalTags: [...generationForm.optionalTags],
         subjectStrict: true,
         algorithm: {
           populationSize: generationForm.populationSize,
@@ -564,6 +674,10 @@ function formatDistribution (distribution: Record<string, number>) {
   return Object.entries(distribution)
     .map(([key, value]) => `${key} ${value}`)
     .join(', ') || '-'
+}
+
+function formatTagCoverage (covered: string[] = [], requested: string[] = []) {
+  return `${covered.length}/${requested.length} covered`
 }
 
 function toggleAnswer (id: number) {
@@ -633,6 +747,46 @@ function getEssayBlankStyle (question: Question) {
   margin-top: 12px;
   color: var(--color-muted);
   font-size: .82rem;
+}
+.tag-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.tag-search-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.tag-search-row .form-input {
+  flex: 1;
+  min-width: 0;
+}
+.tag-button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.tag-button {
+  border: 1px solid #c7d2fe;
+  cursor: pointer;
+  transition: background .2s ease, border-color .2s ease, color .2s ease;
+}
+.tag-button:hover {
+  background: #dbe4ff;
+  border-color: var(--color-primary);
+}
+.tag-button--selected {
+  background: #dcfce7;
+  border-color: #86efac;
+  color: #15803d;
+}
+.tag-button--selected:hover {
+  background: #bbf7d0;
+  border-color: #22c55e;
+}
+.form-hint--error {
+  color: #b91c1c;
 }
 .status-banner {
   border: 1px solid var(--color-border);

@@ -1000,6 +1000,7 @@ interface PaperGenerateRequest {
   difficultyTargets?: Record<'easy' | 'medium' | 'hard', number>  // 难度分布目标（值 > 0 的键有效）
   typeTargets?: Record<'choice' | 'true_false' | 'blank' | 'short_answer' | 'essay', number>  // 题型分布目标
   requiredTags?: string[]           // 必选标签列表
+  optionalTags?: string[]           // 可选偏好标签列表（覆盖会提高适应度，不强制）
   subjectStrict?: boolean           // 是否严格按学科筛选（默认 true）
   algorithm?: GeneticAlgorithmOptions
 }
@@ -1036,6 +1037,7 @@ interface GeneticAlgorithmOptions {
     "essay": 3
   },
   "requiredTags": ["代数", "几何"],
+  "optionalTags": ["函数", "综合"],
   "subjectStrict": true,
   "algorithm": {
     "populationSize": 80,
@@ -1064,6 +1066,8 @@ interface PaperGenerateResponse {
     typeActual: Record<string, number>          // 实际题型分布
     requiredTags: string[]                      // 必选标签
     coveredRequiredTags: string[]               // 已覆盖的必选标签
+    optionalTags: string[]                      // 可选偏好标签
+    coveredOptionalTags: string[]               // 已覆盖的可选偏好标签
     algorithm: GeneticAlgorithmOptions & { randomSeed: number | null }
   }
 }
