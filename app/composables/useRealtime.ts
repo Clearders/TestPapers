@@ -1,3 +1,5 @@
+import { buildRealtimeUrl } from '~/utils/apiEndpoint'
+
 type RealtimeStatus = 'idle' | 'connecting' | 'connected' | 'disconnected'
 type RealtimeHandler = (payload: unknown) => void
 
@@ -9,14 +11,7 @@ const handlers = new Map<string, Set<RealtimeHandler>>()
 
 function getRealtimeUrl () {
   const config = useRuntimeConfig()
-  const configuredUrl = config.public.wsBase
-  if (configuredUrl) return configuredUrl
-
-  const apiUrl = new URL(config.public.apiBase || 'http://127.0.0.1:8010/api/v1')
-  apiUrl.protocol = apiUrl.protocol === 'https:' ? 'wss:' : 'ws:'
-  apiUrl.pathname = apiUrl.pathname.replace(/\/api\/v1\/?$/, '/api/v1/ws')
-  apiUrl.search = ''
-  return apiUrl.toString()
+  return buildRealtimeUrl(config.public.apiBase, config.public.wsBase)
 }
 
 function emit (event: string, payload: unknown) {
@@ -75,6 +70,7 @@ export function useRealtime () {
     socket.onopen = () => {
       status.value = 'connected'
       reconnectAttempts = 0
+      if (heartbeatTimer) clearInterval(heartbeatTimer)
       heartbeatTimer = setInterval(() => {
         if (socket?.readyState === WebSocket.OPEN) {
           socket.send(JSON.stringify({ event: 'ping' }))

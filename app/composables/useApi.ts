@@ -1,5 +1,6 @@
 import type { ApiEnvelope } from '~/types/api'
 import type { AuthSession } from '~/types/auth'
+import { DEFAULT_API_BASE, normalizeEndpoint } from '~/utils/apiEndpoint'
 
 export interface ApiRequestOptions {
   method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE'
@@ -7,20 +8,34 @@ export interface ApiRequestOptions {
   body?: BodyInit | Record<string, any> | null
   headers?: Record<string, string>
   auth?: boolean
+  retry?: number
   retryOnUnauthorized?: boolean
+  timeoutMs?: number
 }
 
 let refreshPromise: Promise<boolean> | null = null
+const DEFAULT_TIMEOUT_MS = 15_000
+const RETRYABLE_STATUS_CODES = new Set([408, 429, 500, 502, 503, 504])
 
 function getApiBase () {
   const config = useRuntimeConfig()
-  return config.public.apiBase || 'http://127.0.0.1:8010/api/v1'
+  return normalizeEndpoint(config.public.apiBase, DEFAULT_API_BASE)
 }
 
 function getStatusCode (error: unknown) {
   if (typeof error !== 'object' || error === null) return 0
   const candidate = error as { status?: number, statusCode?: number, response?: { status?: number } }
   return candidate.statusCode || candidate.status || candidate.response?.status || 0
+}
+
+function shouldRetryRequest (error: unknown, method: ApiRequestOptions['method']) {
+  if (method && method !== 'GET') return false
+  const statusCode = getStatusCode(error)
+  return statusCode === 0 || RETRYABLE_STATUS_CODES.has(statusCode)
+}
+
+function waitForRetry (attempt: number) {
+  return new Promise(resolve => setTimeout(resolve, 250 * 2 ** attempt))
 }
 
 function syncAuthSession (session: AuthSession | null) {
@@ -40,6 +55,7 @@ async function refreshSessionCookie () {
         baseURL: getApiBase(),
         method: 'POST',
         credentials: 'include',
+        timeout: DEFAULT_TIMEOUT_MS,
         headers: requestHeaders
       })
       syncAuthSession(response.data)
@@ -65,16 +81,47 @@ export function useApi () {
       auth = true,
       retryOnUnauthorized = true,
       headers = {},
+      method = 'GET',
+      retry,
+      timeoutMs = DEFAULT_TIMEOUT_MS,
       ...fetchOptions
     } = options
+    const retryLimit = retry ?? (method === 'GET' ? 1 : 0)
 
     // Only fetch request headers on server side
     const requestHeaders = import.meta.server ? useRequestHeaders(['cookie']) : {}
 
-    const makeRequest = () => $fetch<ApiEnvelope<T>>(path, {
+    const makeRequest = async () => {
+      for (let attempt = 0; attempt <= retryLimit; attempt += 1) {
+        try {
+          return await $fetch<ApiEnvelope<T>>(path, {
+            baseURL: getApiBase(),
+            credentials: 'include',
+            method,
+            ...fetchOptions,
+            retry: 0,
+            timeout: timeoutMs,
+            headers: {
+              ...requestHeaders,
+              ...headers
+            }
+          })
+        } catch (error) {
+          if (attempt >= retryLimit || !shouldRetryRequest(error, method)) throw error
+          await waitForRetry(attempt)
+        }
+      }
+
+      throw new Error('API request failed')
+    }
+
+    const requestOnce = () => $fetch<ApiEnvelope<T>>(path, {
       baseURL: getApiBase(),
       credentials: 'include',
+      method,
       ...fetchOptions,
+      retry: 0,
+      timeout: timeoutMs,
       headers: {
         ...requestHeaders,
         ...headers
@@ -89,7 +136,7 @@ export function useApi () {
         throw error
       }
 
-      return await makeRequest()
+      return await requestOnce()
     }
   }
 

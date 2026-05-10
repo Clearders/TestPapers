@@ -131,13 +131,13 @@ npm run preview
 
 | 变量 | 默认值 | 说明 |
 |------|------|------|
-| `NUXT_PUBLIC_API_BASE` | `http://127.0.0.1:8010/api/v1` | 后端 API 基础路径 |
+| `NUXT_PUBLIC_API_BASE` | `http://127.0.0.1:8000/api/v1` | 后端 API 基础路径 |
 | `NUXT_PUBLIC_WS_BASE` | (空) | WebSocket 连接地址 |
 
 在项目根目录创建 `.env` 文件进行配置：
 
 ```bash
-NUXT_PUBLIC_API_BASE=http://127.0.0.1:8010/api/v1
+NUXT_PUBLIC_API_BASE=http://127.0.0.1:8000/api/v1
 ```
 
 ## LaTeX 支持

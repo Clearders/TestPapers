@@ -1,3 +1,5 @@
+import { DEFAULT_API_BASE } from './app/utils/apiEndpoint'
+
 // https://nuxt.com/docs/api/configuration/nuxt-config
 const env = (globalThis as typeof globalThis & {
   process?: {
@@ -11,7 +13,7 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     public: {
-      apiBase: env.NUXT_PUBLIC_API_BASE || 'http://127.0.0.1:8010/api/v1',
+      apiBase: env.NUXT_PUBLIC_API_BASE || DEFAULT_API_BASE,
       wsBase: env.NUXT_PUBLIC_WS_BASE || ''
     }
   },
