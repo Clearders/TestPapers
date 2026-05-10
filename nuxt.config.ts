@@ -1,4 +1,4 @@
-import { DEFAULT_API_BASE } from './app/utils/apiEndpoint'
+import { DEFAULT_API_BASE, DEFAULT_SERVER_API_BASE } from './app/utils/apiEndpoint'
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 const env = (globalThis as typeof globalThis & {
@@ -12,6 +12,7 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
 
   runtimeConfig: {
+    apiBase: env.NUXT_API_BASE || env.NUXT_SERVER_API_BASE || DEFAULT_SERVER_API_BASE,
     public: {
       apiBase: env.NUXT_PUBLIC_API_BASE || DEFAULT_API_BASE,
       wsBase: env.NUXT_PUBLIC_WS_BASE || ''

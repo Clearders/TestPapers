@@ -19,7 +19,8 @@ const RETRYABLE_STATUS_CODES = new Set([408, 429, 500, 502, 503, 504])
 
 function getApiBase () {
   const config = useRuntimeConfig()
-  return normalizeEndpoint(config.public.apiBase, DEFAULT_API_BASE)
+  const apiBase = import.meta.server ? config.apiBase : config.public.apiBase
+  return normalizeEndpoint(apiBase, DEFAULT_API_BASE)
 }
 
 function getStatusCode (error: unknown) {
