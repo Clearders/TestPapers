@@ -275,9 +275,16 @@
           <button class="btn btn-success" :disabled="!paper.questions.length || !paper.title" @click="exportPaper">
             Export Paper
           </button>
+          <button class="btn btn-primary" :disabled="!canDownloadDocx" @click="downloadDocx">
+            {{ isDownloadingDocx ? 'Preparing DOCX...' : 'Download DOCX' }}
+          </button>
           <button class="btn btn-outline" :disabled="!paper.questions.length" @click="clearPaper">
             Clear All
           </button>
+        </div>
+
+        <div v-if="downloadError" class="status-banner status-banner--error" style="margin-top:14px">
+          {{ downloadError }}
         </div>
 
         <Transition name="fade">
@@ -401,6 +408,14 @@ interface GeneratedPaperResponse {
   diagnostics: GenerationDiagnostics
 }
 
+interface PaperEntityResponse {
+  id: number
+  title: string
+  subject: string
+  duration: number
+  totalMarks: number
+}
+
 const {
   canCreateQuestions,
   canReadAnswers,
@@ -415,7 +430,7 @@ const {
   myQuestionPagination
 } = useQuestionBank()
 const { hasPermission, isAuthReady } = useAuth()
-const { apiFetch } = useApi()
+const { apiFetch, getApiBase, refreshSessionCookie } = useApi()
 type ExportMode = 'paper' | 'categorized'
 type QuestionType = Question['type']
 type QuestionDifficulty = Question['difficulty']
@@ -439,6 +454,10 @@ const tagOptions = ref<string[]>([])
 const tagSearch = ref('')
 const isLoadingTags = ref(false)
 const tagError = ref('')
+const savedPaperId = ref<number | null>(null)
+const savedPaperSignature = ref('')
+const isDownloadingDocx = ref(false)
+const downloadError = ref('')
 
 const paper = reactive({
   title: '',
@@ -470,6 +489,11 @@ const generationForm = reactive({
 const currentQuestions = computed(() => bankMode.value === 'mine' ? myQuestions.value : questions.value)
 const activePagination = computed(() => bankMode.value === 'mine' ? myQuestionPagination.value : questionPagination.value)
 const activeLoading = computed(() => bankMode.value === 'mine' ? isLoadingMine.value : isLoading.value)
+const canDownloadDocx = computed(() => {
+  if (!paper.questions.length || !paper.title.trim() || !paper.subject.trim() || isDownloadingDocx.value) return false
+  if (!hasPermission('papers:read')) return false
+  return hasPermission('papers:write') || (savedPaperId.value !== null && savedPaperSignature.value === getPaperSignature())
+})
 
 watch(
   [isAuthReady, canReadQuestions],
@@ -609,10 +633,111 @@ function clearPaper () {
   paper.questions.length = 0
   exported.value = false
   exportMode.value = 'paper'
+  savedPaperId.value = null
+  savedPaperSignature.value = ''
+  downloadError.value = ''
 }
 
 function exportPaper () {
   exported.value = true
+}
+
+function getPaperPayload () {
+  return {
+    title: paper.title.trim(),
+    subject: paper.subject.trim(),
+    duration: Number(paper.duration) || 60,
+    totalMarks: Number(paper.totalMarks) || 100,
+    questions: paper.questions.map((question, index) => ({
+      questionId: question.id,
+      orderNo: index + 1,
+      marks: question.marks
+    }))
+  }
+}
+
+function getPaperSignature () {
+  return JSON.stringify(getPaperPayload())
+}
+
+async function ensureDownloadablePaper () {
+  const signature = getPaperSignature()
+  if (savedPaperId.value !== null && savedPaperSignature.value === signature) {
+    return savedPaperId.value
+  }
+
+  const response = await apiFetch<PaperEntityResponse>('/papers', {
+    method: 'POST',
+    body: getPaperPayload()
+  })
+  savedPaperId.value = response.data.id
+  savedPaperSignature.value = signature
+  return response.data.id
+}
+
+async function requestDocxDownload (paperId: number) {
+  const params = new URLSearchParams({
+    format: 'docx',
+    questionOrder: exportMode.value,
+    includeAnswer: String(includeAnswersInExport.value && canReadAnswers.value)
+  })
+  const response = await fetch(`${getApiBase()}/papers/${paperId}/download?${params.toString()}`, {
+    method: 'GET',
+    credentials: 'include'
+  })
+
+  if (response.status !== 401 || !(await refreshSessionCookie())) {
+    return response
+  }
+
+  return await fetch(`${getApiBase()}/papers/${paperId}/download?${params.toString()}`, {
+    method: 'GET',
+    credentials: 'include'
+  })
+}
+
+function filenameFromDisposition (disposition: string | null) {
+  if (!disposition) return `${paper.title.trim() || 'examination-paper'}.docx`
+
+  const encodedMatch = disposition.match(/filename\*=UTF-8''([^;]+)/i)
+  if (encodedMatch?.[1]) {
+    try {
+      return decodeURIComponent(encodedMatch[1])
+    } catch {
+      return encodedMatch[1]
+    }
+  }
+
+  const quotedMatch = disposition.match(/filename="([^"]+)"/i)
+  return quotedMatch?.[1] || `${paper.title.trim() || 'examination-paper'}.docx`
+}
+
+async function downloadDocx () {
+  if (isDownloadingDocx.value) return
+
+  downloadError.value = ''
+  isDownloadingDocx.value = true
+  try {
+    const paperId = await ensureDownloadablePaper()
+    const response = await requestDocxDownload(paperId)
+    if (!response.ok) {
+      throw new Error(await response.text() || 'Failed to download DOCX.')
+    }
+
+    const blob = await response.blob()
+    const objectUrl = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = objectUrl
+    link.download = filenameFromDisposition(response.headers.get('Content-Disposition'))
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    URL.revokeObjectURL(objectUrl)
+  } catch (error) {
+    downloadError.value = error instanceof Error ? error.message : 'Failed to download DOCX.'
+  } finally {
+    isDownloadingDocx.value = false
+  }
 }
 
 async function loadTagOptions () {
@@ -688,8 +813,11 @@ async function generatePaper () {
     paper.duration = response.data.paper.duration
     paper.totalMarks = response.data.paper.totalMarks
     paper.questions = response.data.paper.questions
+    savedPaperId.value = response.data.paper.id
+    savedPaperSignature.value = getPaperSignature()
     generationDiagnostics.value = response.data.diagnostics
     exported.value = false
+    downloadError.value = ''
   } catch (error) {
     generationError.value = error instanceof Error ? error.message : 'Failed to generate paper.'
   } finally {
