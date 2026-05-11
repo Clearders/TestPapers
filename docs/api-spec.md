@@ -15,9 +15,10 @@
 - [4. 试题管理](#4-试题管理)
 - [5. 试卷管理](#5-试卷管理)
 - [6. 元数据](#6-元数据)
-- [7. 数据模型](#7-数据模型)
-- [8. 错误码](#8-错误码)
-- [9. 前端页面与 API 对应关系](#9-前端页面与-api-对应关系)
+- [7. 异步任务](#7-异步任务)
+- [8. 数据模型](#8-数据模型)
+- [9. 错误码](#9-错误码)
+- [10. 前端页面与 API 对应关系](#10-前端页面与-api-对应关系)
 
 ---
 
@@ -121,7 +122,7 @@
 | ------------------- | ---------------- | :---: | :-----: | :----: |
 | `questions:read`    | 查看试题列表/详情 |   ✓   |    ✓    |   ✓   |
 | `questions:write`   | 创建/编辑试题     |   ✓   |    ✓    |   ✗   |
-| `questions:delete`  | 删除试题          |   ✓   |    ✓    |   ✗   |
+| `questions:delete`  | 删除试题          |   ✓   |    ✗    |   ✗   |
 | `answers:read`      | 查看答案          |   ✓   |    ✓    |   ✗   |
 | `papers:read`       | 查看试卷          |   ✓   |    ✓    |   ✓   |
 | `papers:write`      | 创建/编辑试卷     |   ✓   |    ✓    |   ✗   |
@@ -380,7 +381,7 @@ GET /api/v1/questions
 GET /api/v1/questions?q=微积分&subject=数学&difficulty=hard&page=1&pageSize=20
 ```
 
-**成功响应** (200)：`data` 为分页结构，`items` 数组中每项为试题对象（除答案外详见 [7.1 试题模型](#71-试题-question)）。
+**成功响应** (200)：`data` 为分页结构，`items` 数组中每项为试题对象（除答案外详见 [8.1 试题模型](#81-试题-question)）。
 
 ### 4.2 获取试题详情
 
@@ -751,6 +752,24 @@ POST /api/v1/papers/{paper_id}/export-preview
 }
 ```
 
+### 5.8 下载 DOCX 试卷
+
+```http
+GET /api/v1/papers/{paper_id}/download
+```
+
+> **所需权限**：`papers:read`
+
+**查询参数**：
+
+| 参数             | 类型    | 默认值     | 说明                                                    |
+| ---------------- | ------- | ---------- | ------------------------------------------------------- |
+| `format`         | string  | `"docx"`  | 导出格式（当前仅支持 `docx`）                             |
+| `includeAnswer`  | boolean | `true`     | 是否包含答案（需 `answers:read` 权限，否则强制为 `false`） |
+| `questionOrder`  | string  | `"paper"`   | 排序方式：`paper`（编排顺序）/ `categorized`（题型分组）   |
+
+**成功响应** (200)：返回 `.docx` 文件的二进制内容，`Content-Type` 为 `application/vnd.openxmlformats-officedocument.wordprocessingml.document`，响应头包含 `Content-Disposition: attachment`。
+
 ---
 
 ## 6. 元数据
@@ -791,9 +810,154 @@ GET /api/v1/meta/tags
 
 ---
 
-## 7. 数据模型
+## 7. 异步任务
 
-### 7.1 试题 (Question)
+> 异步任务通过 Celery 任务队列执行，结果存储在 Redis 中。客户端通过轮询任务状态获取结果。
+
+### 7.1 Celery Worker 健康检查
+
+```http
+POST /api/v1/tasks/ping
+```
+
+> **所需权限**：`questions:read`
+
+**成功响应** (200)：
+
+```json
+{
+  "success": true,
+  "data": { "result": "pong" }
+}
+```
+
+### 7.2 查询任务状态与结果
+
+```http
+GET /api/v1/tasks/{task_id}
+```
+
+> **所需权限**：`questions:read`
+
+**成功响应** (200)：
+
+```json
+{
+  "success": true,
+  "data": {
+    "taskId": "a1b2c3d4-...",
+    "status": "SUCCESS",
+    "result": { },
+    "completedAt": "2026-05-11T12:00:00Z"
+  }
+}
+```
+
+`status` 可能值：`PENDING`、`STARTED`、`SUCCESS`、`FAILURE`、`RETRY`。
+
+### 7.3 异步导出试卷
+
+```http
+POST /api/v1/tasks/export-paper/{paper_id}
+```
+
+> **所需权限**：`papers:read`
+
+**查询参数**：
+
+| 参数             | 类型    | 默认值     | 说明                                                    |
+| ---------------- | ------- | ---------- | ------------------------------------------------------- |
+| `format`         | string  | `"json"`   | 导出格式：`json` / `csv` / `txt`                         |
+| `includeAnswer`  | boolean | `true`     | 是否包含答案（需 `answers:read` 权限）                    |
+| `questionOrder`  | string  | `"paper"`   | 排序方式：`paper`（编排顺序）/ `categorized`（题型分组）   |
+
+**成功响应** (202)：返回 `taskId`，客户端随后可通过 `GET /api/v1/tasks/{task_id}` 轮询结果。
+
+### 7.4 验证全部试题
+
+```http
+POST /api/v1/tasks/validate-questions
+```
+
+> **所需权限**：`questions:read`
+
+**成功响应** (202)：返回 `taskId`，任务完成后 `result` 中包含每道试题的验证状态和问题列表。
+
+### 7.5 验证单个试题
+
+```http
+POST /api/v1/tasks/validate-question/{question_id}
+```
+
+> **所需权限**：`questions:read`
+
+**成功响应** (202)：返回 `taskId`，任务完成后 `result` 中包含该试题的验证结果。
+
+### 7.6 清理过期认证令牌
+
+```http
+POST /api/v1/tasks/cleanup-expired-sessions
+```
+
+> **所需权限**：`users:manage`
+
+清理所有已过期的 `auth_tokens` 记录。
+
+**成功响应** (200)：返回清理的令牌数量。
+
+### 7.7 试题统计信息
+
+```http
+GET /api/v1/tasks/stats/questions
+```
+
+> **所需权限**：`questions:read`
+
+**成功响应** (200)：
+
+```json
+{
+  "success": true,
+  "data": {
+    "total": 150,
+    "byType": { "choice": 60, "blank": 30, "short_answer": 30, "essay": 20, "true_false": 10 },
+    "byDifficulty": { "easy": 45, "medium": 75, "hard": 30 },
+    "bySubject": { "数学": 80, "物理": 50, "化学": 20 },
+    "withLatex": 45,
+    "topTags": [["代数", 30], ["几何", 25]],
+    "computedAt": "2026-05-11T12:00:00Z"
+  }
+}
+```
+
+### 6.3 Redis 健康检查
+
+```http
+GET /api/v1/health/redis
+```
+
+> 无需认证，用于运维监控。
+
+**成功响应** (200)：
+
+```json
+{
+  "success": true,
+  "data": {
+    "status": "connected",
+    "redisVersion": "7.0.15",
+    "latencyMs": 1.23
+  }
+}
+```
+
+**错误响应**：Redis 不可达时返回 `503 REDIS_UNAVAILABLE`。
+
+---
+
+## 8. 数据模型
+
+### 8.1 试题 (Question)
 
 ```typescript
 interface Question {
@@ -822,7 +986,7 @@ interface Question {
 }
 ```
 
-### 7.2 试卷 (Paper)
+### 8.2 试卷 (Paper)
 
 ```typescript
 interface Paper {
@@ -844,7 +1008,7 @@ interface PaperQuestion {
 }
 ```
 
-### 7.3 用户 (User)
+### 8.3 用户 (User)
 
 ```typescript
 interface User {
@@ -868,7 +1032,7 @@ type Permission =
   | 'users:manage'
 ```
 
-### 7.4 认证会话 (AuthSession)
+### 8.4 认证会话 (AuthSession)
 
 ```typescript
 interface AuthSession {
@@ -879,7 +1043,7 @@ interface AuthSession {
 
 ---
 
-## 8. 错误码
+## 9. 错误码
 
 | HTTP 状态码 | 错误码                      | 说明                         |
 | ----------- | --------------------------- | ---------------------------- |
@@ -901,7 +1065,7 @@ interface AuthSession {
 
 ---
 
-## 9. 前端页面与 API 对应关系
+## 10. 前端页面与 API 对应关系
 
 | 前端页面 / 组件                              | 功能             | 调用的 API                                                                                                                                                            |
 | -------------------------------------------- | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -947,10 +1111,19 @@ interface AuthSession {
 | `DELETE` | `/api/v1/papers/{id}/questions/{qid}`       | `papers:write`       | 从试卷移除试题   |
 | `PUT`    | `/api/v1/papers/{id}/questions/order`       | `papers:write`       | 调整试题排序     |
 | `POST`   | `/api/v1/papers/{id}/export-preview`        | `papers:read`        | 导出预览         |
+| `GET`    | `/api/v1/papers/{id}/download`              | `papers:read`        | 下载 DOCX 试卷   |
+| `POST`   | `/api/v1/tasks/ping`                        | `questions:read`     | Worker 健康检查  |
+| `GET`    | `/api/v1/tasks/{task_id}`                   | `questions:read`     | 查询任务状态     |
+| `POST`   | `/api/v1/tasks/export-paper/{id}`           | `papers:read`        | 异步导出试卷     |
+| `POST`   | `/api/v1/tasks/validate-questions`          | `questions:read`     | 验证全部试题     |
+| `POST`   | `/api/v1/tasks/validate-question/{id}`      | `questions:read`     | 验证单个试题     |
+| `POST`   | `/api/v1/tasks/cleanup-expired-sessions`    | `users:manage`       | 清理过期会话     |
+| `GET`    | `/api/v1/tasks/stats/questions`             | `questions:read`     | 试题统计信息     |
+| `GET`    | `/api/v1/health/redis`                      | 无                   | Redis 健康检查   |
 
-## 10. API 更新 (2026-05-09)
+## 11. API 更新 (2026-05-11)
 
-### 10.1 基于 Cookie 的认证
+### 11.1 基于 Cookie 的认证
 
 认证现在通过 HttpOnly 会话 Cookie 持久化。
 
@@ -971,11 +1144,11 @@ interface AuthSession {
 }
 ```
 
-### 10.2 自动会话验证与刷新
+### 11.2 自动会话验证与刷新
 
 Nuxt 路由中间件应仅在 `/api/v1/auth/me` 成功后，才将受保护页面视为已认证。当请求收到 `401 TOKEN_EXPIRED` 时，API 客户端应使用 `POST /api/v1/auth/refresh` 重试一次，刷新成功后再重放原始请求。如果刷新失败，则清除客户端认证状态并重定向到登录页。
 
-### 10.3 WebSocket 实时通道
+### 11.3 WebSocket 实时通道
 
 ```http
 WS /api/v1/ws
@@ -983,7 +1156,7 @@ WS /api/v1/ws
 
 WebSocket 端点使用相同的 HttpOnly Cookie 进行认证。连接成功后，服务端会发送 `auth.connected` 事件，包含已认证用户信息和服务器时间戳。客户端可发送 `{ "event": "ping" }` 并接收 `{ "event": "pong" }`。
 
-### 10.4 遗传算法自动组卷
+### 11.4 遗传算法自动组卷
 
 ```http
 POST /api/v1/papers/generate
