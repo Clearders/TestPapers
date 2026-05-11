@@ -24,6 +24,7 @@ export interface Question {
   source?: string
   essayBlankSpace?: EssayBlankSpace
   images?: QuestionImage[]
+  scoreWeight: number
   ownerId?: number | null
 }
 

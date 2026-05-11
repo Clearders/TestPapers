@@ -9,6 +9,7 @@
         <div class="preview-meta">
           <span v-if="form.difficulty" class="badge" :class="`badge-${form.difficulty}`">{{ form.difficulty }}</span>
           <span v-if="form.subject" class="tag">{{ form.subject }}</span>
+          <span class="tag">weight {{ form.scoreWeight }}</span>
           <span v-for="tag in form.tags" :key="tag" class="tag">{{ tag }}</span>
         </div>
         <span v-if="form.source" class="form-hint">{{ form.source }}</span>
@@ -98,6 +99,7 @@ interface ProblemFormPreview {
   source: string
   essayBlankSpace: EssayBlankSpace
   images: QuestionImage[]
+  scoreWeight: number
 }
 
 defineProps<{

@@ -4,6 +4,7 @@
       <div class="q-meta">
         <span class="badge" :class="`badge-${question.difficulty}`">{{ question.difficulty }}</span>
         <span class="tag">{{ question.subject }}</span>
+        <span class="tag">weight {{ formatScoreWeight(question.scoreWeight) }}</span>
         <span v-for="tag in question.tags" :key="tag" class="tag">{{ tag }}</span>
       </div>
       <span class="q-id">#{{ question.id }}</span>
@@ -85,6 +86,10 @@ defineEmits<{
   'toggle-answer': [id: number]
   'toggle-question': [question: Question]
 }>()
+
+function formatScoreWeight (weight: number) {
+  return Number.isInteger(weight) ? String(weight) : weight.toFixed(1)
+}
 </script>
 
 <style scoped>

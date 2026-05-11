@@ -113,8 +113,22 @@
 
           <div class="generation-grid">
             <div class="form-group compact-field">
+              <label class="form-label">Allocation</label>
+              <select v-model="generationForm.allocationMode" class="form-input">
+                <option value="question_count">By Question Count</option>
+                <option value="total_score">By Total Marks</option>
+              </select>
+            </div>
+            <div class="form-group compact-field">
               <label class="form-label">Questions</label>
-              <input v-model.number="generationForm.questionCount" class="form-input" type="number" min="1" max="100" />
+              <input
+                v-model.number="generationForm.questionCount"
+                class="form-input"
+                type="number"
+                min="1"
+                max="100"
+                :disabled="generationForm.allocationMode === 'total_score'"
+              />
             </div>
             <div class="form-group compact-field">
               <label class="form-label">Easy</label>
@@ -215,6 +229,8 @@
           <div v-if="generationDiagnostics" class="generation-summary">
             <span>Difficulty: {{ formatDistribution(generationDiagnostics.difficultyActual) }}</span>
             <span>Types: {{ formatDistribution(generationDiagnostics.typeActual) }}</span>
+            <span v-if="generationDiagnostics.marksActual">Marks: {{ generationDiagnostics.marksActual }}</span>
+            <span v-if="generationDiagnostics.scoreWeightActual">Weight: {{ generationDiagnostics.scoreWeightActual }}</span>
             <span v-if="generationDiagnostics.optionalTags?.length">
               Optional tags: {{ formatTagCoverage(generationDiagnostics.coveredOptionalTags, generationDiagnostics.optionalTags) }}
             </span>
@@ -235,6 +251,8 @@
                   <div class="q-meta">
                     <span class="badge" :class="`badge-${q.difficulty}`">{{ q.difficulty }}</span>
                     <span class="tag">{{ q.subject }}</span>
+                    <span class="tag">weight {{ formatScoreWeight(q.scoreWeight) }}</span>
+                    <span v-if="q.marks" class="tag">{{ q.marks }} mark{{ q.marks !== 1 ? 's' : '' }}</span>
                     <span v-for="tag in q.tags" :key="tag" class="tag">{{ tag }}</span>
                   </div>
                   <div class="q-text-wrap">
@@ -297,6 +315,7 @@
               <h4 v-if="section.title" class="export-section-title">{{ section.title }}</h4>
               <ol class="export-q-list" :start="section.start">
                 <li v-for="q in section.questions" :key="q.id" class="export-question">
+                  <span v-if="q.marks" class="export-mark">{{ q.marks }} mark{{ q.marks !== 1 ? 's' : '' }}</span>
                   <div class="export-q-text">
                     <template v-for="(part, i) in parseLatexParts(q.text)" :key="i">
                       <LatexRenderer v-if="part.isLatex" :formula="part.content" :block="part.block" />
@@ -363,7 +382,12 @@ interface GenerationDiagnostics {
   typeActual: Record<string, number>
   optionalTags?: string[]
   coveredOptionalTags?: string[]
+  allocationMode?: string
+  scoreWeightActual?: number
+  marksActual?: number
 }
+
+type PaperQuestion = Question & { marks?: number; orderNo?: number }
 
 interface GeneratedPaperResponse {
   paper: {
@@ -372,7 +396,7 @@ interface GeneratedPaperResponse {
     subject: string
     duration: number
     totalMarks: number
-    questions: Question[]
+    questions: PaperQuestion[]
   }
   diagnostics: GenerationDiagnostics
 }
@@ -396,6 +420,7 @@ type ExportMode = 'paper' | 'categorized'
 type QuestionType = Question['type']
 type QuestionDifficulty = Question['difficulty']
 type BankMode = 'all' | 'mine'
+type AllocationMode = 'question_count' | 'total_score'
 
 const search = ref('')
 const filterSubject = ref('')
@@ -420,7 +445,7 @@ const paper = reactive({
   subject: '',
   duration: 60,
   totalMarks: 100,
-  questions: [] as Question[]
+  questions: [] as PaperQuestion[]
 })
 
 const exported = ref(false)
@@ -429,6 +454,7 @@ const questionTypeOrder: QuestionType[] = ['choice', 'true_false', 'blank', 'sho
 const canReadQuestions = computed(() => hasPermission('questions:read'))
 
 const generationForm = reactive({
+  allocationMode: 'question_count' as AllocationMode,
   questionCount: 5,
   easy: 2,
   medium: 2,
@@ -523,14 +549,14 @@ const exportSections = computed(() => {
   }
 
   // Single pass categorization - avoid multiple filter() calls
-  const byType = new Map<QuestionType, Question[]>()
+  const byType = new Map<QuestionType, PaperQuestion[]>()
   for (const q of paper.questions) {
     const list = byType.get(q.type)
     if (list) list.push(q)
     else byType.set(q.type, [q])
   }
 
-  const sections: { key: string; title: string; questions: Question[]; start: number }[] = []
+  const sections: { key: string; title: string; questions: PaperQuestion[]; start: number }[] = []
   let start = 1
   for (const type of questionTypeOrder) {
     const questions = byType.get(type)
@@ -633,7 +659,8 @@ async function generatePaper () {
         subject: paper.subject,
         duration: paper.duration,
         totalMarks: paper.totalMarks,
-        questionCount: generationForm.questionCount,
+        allocationMode: generationForm.allocationMode,
+        questionCount: generationForm.allocationMode === 'question_count' ? generationForm.questionCount : undefined,
         difficultyTargets: {
           easy: generationForm.easy,
           medium: generationForm.medium,
@@ -678,6 +705,10 @@ function formatDistribution (distribution: Record<string, number>) {
 
 function formatTagCoverage (covered: string[] = [], requested: string[] = []) {
   return `${covered.length}/${requested.length} covered`
+}
+
+function formatScoreWeight (weight: number) {
+  return Number.isInteger(weight) ? String(weight) : weight.toFixed(1)
 }
 
 function toggleAnswer (id: number) {
@@ -1017,6 +1048,12 @@ function getEssayBlankStyle (question: Question) {
 }
 .export-q-text {
   display: inline;
+}
+.export-mark {
+  display: inline-block;
+  margin-right: 8px;
+  color: var(--color-muted);
+  font-size: .82rem;
 }
 .export-options {
   margin-top: 10px;

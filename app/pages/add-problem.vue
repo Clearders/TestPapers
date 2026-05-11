@@ -39,6 +39,18 @@
                 <option value="hard">Hard</option>
               </select>
             </div>
+            <div class="form-group" style="flex:1">
+              <label class="form-label">Score Weight <span class="required">*</span></label>
+              <input
+                v-model.number="form.scoreWeight"
+                class="form-input"
+                type="number"
+                min="0.01"
+                max="100"
+                step="0.1"
+                required
+              />
+            </div>
           </div>
 
           <div class="form-group">
@@ -210,6 +222,7 @@ const form = reactive({
   answer: '',
   source: '',
   essayBlankSpace: { ...DEFAULT_ESSAY_BLANK_SPACE },
+  scoreWeight: 1,
   images: [] as QuestionImage[]
 })
 
@@ -286,6 +299,7 @@ async function submitProblem () {
         : undefined,
       answer: form.answer.trim(),
       source: form.source.trim() || undefined,
+      scoreWeight: Math.max(0.01, Math.min(100, Number(form.scoreWeight) || 1)),
       essayBlankSpace: form.type === 'essay'
         ? {
             lines: form.essayBlankSpace.lines,
@@ -316,6 +330,7 @@ function resetForm (clearBanner = true) {
     answer: '',
     source: '',
     essayBlankSpace: { ...DEFAULT_ESSAY_BLANK_SPACE },
+    scoreWeight: 1,
     images: []
   })
   tagInput.value = ''

@@ -37,6 +37,7 @@ function normalizeQuestion (question: Partial<QuestionEntity> & { id: number }):
   const tags = Array.isArray(question.tags) ? question.tags : []
   const options = Array.isArray(question.options) ? question.options : undefined
   const images = Array.isArray(question.images) ? question.images : []
+  const scoreWeight = Math.max(0.01, Math.min(100, Number(question.scoreWeight) || 1))
 
   const hasLatex = typeof question.hasLatex === 'boolean'
     ? question.hasLatex
@@ -53,6 +54,7 @@ function normalizeQuestion (question: Partial<QuestionEntity> & { id: number }):
     tags,
     options,
     images,
+    scoreWeight,
     essayBlankSpace,
     hasLatex,
     ownerId: question.ownerId ?? null
@@ -76,6 +78,7 @@ function toPayload (input: QuestionFormInput) {
         }
       : undefined,
     images: input.images || [],
+    scoreWeight: Math.max(0.01, Math.min(100, Number(input.scoreWeight) || 1)),
     hasLatex: input.hasLatex
   }
 }
