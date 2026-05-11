@@ -1,9 +1,9 @@
 # TestPapers 前后端 API 接口文档
 
-> **版本**: v4  
+> **版本**: v5  
 > **后端框架**: FastAPI (Python)  
-> **前端框架**: Nuxt 3 (TypeScript)  
-> **最后更新**: 2026-05-10
+> **前端框架**: Nuxt 4 (TypeScript)  
+> **最后更新**: 2026-05-11
 
 ---
 
@@ -224,7 +224,7 @@ POST /api/v1/auth/register
 }
 ```
 
-**成功响应** (200)：注册成功后自动登录，返回 `AuthSession`，同时设置 HttpOnly `testpapers_session` Cookie。`data` 结构与登录响应相同。
+**成功响应** (201)：注册成功后自动登录，返回 `AuthSession`，同时设置 HttpOnly `testpapers_session` Cookie。`data` 结构与登录响应相同。
 
 **错误响应**：
 
@@ -232,7 +232,7 @@ POST /api/v1/auth/register
 | ----------- | -------------------- | ------------ |
 | 409         | `USER_ALREADY_EXISTS` | 用户名已存在 |
 
-> 公开注册创建的账户角色为 `teacher`，默认为激活状态。
+> 公开注册创建的账户角色为 `viewer`，默认为激活状态。
 
 ### 2.4 获取当前用户信息
 
@@ -427,6 +427,7 @@ POST /api/v1/questions
 | `essayBlankSpace` | object        | 条件 | 答题区域配置。**仅当 `type=essay` 时有效**，不传则默认 `{"lines":6,"lineHeight":28}` |
 | `images`          | object[]      |  否  | 图片列表，每项包含 `url`（必填）和 `caption`（选填），默认为空数组 `[]` |
 | `ownerId`         | integer       |  否  | 题目所属用户 ID。不传时后端自动赋值为当前登录用户 ID                   |
+| `scoreWeight`     | number        |  否  | 分值权重，默认 `1.0`，范围 (0, 100]。遗传算法组卷时用于分配分值         |
 
 `essayBlankSpace` 子字段：
 
@@ -529,7 +530,7 @@ POST /api/v1/images/upload
 | ---------- | ------ | :--: | ----------------------------------------- |
 | `filename` | string |  是  | 原始文件名                                |
 | `data`     | string |  是  | Base64 编码的图片数据                      |
-| `mimeType` | string |  否  | MIME 类型，默认 `image/png`，支持 `image/png`、`image/jpeg`、`image/gif`、`image/webp`、`image/svg+xml` |
+| `mimeType` | string |  否  | MIME 类型，默认 `image/png`，当前仅支持 `image/png` |
 
 **成功响应** (200)：
 
@@ -711,7 +712,7 @@ POST /api/v1/papers/{paper_id}/export-preview
 
 | 字段             | 类型    | 默认值    | 说明                                                              |
 | ---------------- | ------- | --------- | ----------------------------------------------------------------- |
-| `format`         | string  | `"json"`  | 导出格式（当前仅支持 `json`）                                        |
+| `format`         | string  | `"json"`  | 导出格式（当前仅支持 `json`；异步导出 `/api/v1/tasks/export-paper/{id}` 支持 `json`/`csv`/`txt`） |
 | `includeAnswer`  | boolean | `true`    | 是否包含答案（需 `answers:read` 权限）                               |
 | `questionOrder`  | string  | `"paper"` | 试题排序方式：`paper`（按编排顺序）/ `categorized`（按题型分组：选择→填空→解答） |
 
@@ -743,7 +744,8 @@ POST /api/v1/papers/{paper_id}/export-preview
       "format": "json",
       "questionOrder": "paper",
       "includeAnswer": false
-    }
+    },
+    "exportedAt": "2026-05-11T12:00:00Z"
   },
   "meta": { "requestId": "..." }
 }
@@ -814,6 +816,7 @@ interface Question {
     caption?: string            // 图片说明（可选）
   }[]
   ownerId?: number | null       // 出题人用户 ID，null 表示系统内置题目
+  scoreWeight: number           // 分值权重（默认 1.0），遗传算法组卷时使用
   createdAt: string             // ISO 8601 UTC
   updatedAt: string             // ISO 8601 UTC
 }
@@ -892,7 +895,7 @@ interface AuthSession {
 | 404         | `USER_NOT_FOUND`            | 用户不存在                   |
 | 409         | `QUESTION_ALREADY_IN_PAPER` | 试题已在试卷中               |
 | 409         | `USER_ALREADY_EXISTS`       | 用户名已存在                 |
-| 422         | `VALIDATION_ERROR`          | 请求参数校验失败             |
+| 413         | `PAYLOAD_TOO_LARGE`        | 图片上传超过 30MB 限制       |\n| 422         | `VALIDATION_ERROR`          | 请求参数校验失败             |
 | 422         | `INSUFFICIENT_QUESTIONS`    | 自动组卷候选题数量不足       |
 | 500         | `INTERNAL_ERROR`            | 服务器内部错误               |
 
@@ -918,7 +921,7 @@ interface AuthSession {
 | 方法     | 路径                                        | 所需权限             | 说明             |
 | -------- | ------------------------------------------- | -------------------- | ---------------- |
 | `POST`   | `/api/v1/auth/login`                        | 无                   | 登录             |
-| `POST`   | `/api/v1/auth/register`                     | 无                   | 注册并写入会话 Cookie |
+| `POST`   | `/api/v1/auth/register`                     | 无                   | 注册并登录（默认 viewer 角色） |
 | `POST`   | `/api/v1/auth/refresh`                      | 登录即可             | 刷新会话 Cookie  |
 | `GET`    | `/api/v1/auth/me`                           | 登录即可             | 获取当前用户     |
 | `POST`   | `/api/v1/auth/logout`                       | 登录即可             | 登出             |
@@ -996,7 +999,8 @@ interface PaperGenerateRequest {
   subject: string                   // 学科
   duration: number                  // 考试时长（分钟），> 0
   totalMarks: number                // 试卷总分，> 0，且 ≥ questionCount
-  questionCount: number             // 试题数量，1–100
+  allocationMode?: 'question_count' | 'total_score'  // 组卷模式（默认 question_count）
+  questionCount?: number            // 试题数量，1–100（allocationMode=question_count 时必填）
   difficultyTargets?: Record<'easy' | 'medium' | 'hard', number>  // 难度分布目标（值 > 0 的键有效）
   typeTargets?: Record<'choice' | 'true_false' | 'blank' | 'short_answer' | 'essay', number>  // 题型分布目标
   requiredTags?: string[]           // 必选标签列表
@@ -1060,6 +1064,9 @@ interface PaperGenerateResponse {
     fitness: number                 // 适应度得分
     candidateCount: number          // 候选池试题数
     questionCount: number           // 实际组卷试题数
+    allocationMode: string          // 组卷模式
+    scoreWeightActual: number       // 实际总权重
+    marksActual: number             // 实际总分值
     difficultyTargets: Record<string, number>   // 目标难度分布
     difficultyActual: Record<string, number>    // 实际难度分布
     typeTargets: Record<string, number>         // 目标题型分布
@@ -1117,15 +1124,17 @@ interface PaperGenerateResponse {
 ### 11.4 图片上传
 
 - 图片通过 Base64 编码以 data URL 格式存储。
-- 支持的格式：PNG、JPEG、GIF、WebP、SVG。
+- 当前仅支持 PNG 格式，单文件最大 30MB。
 - 返回的 `url` 为 data URL，可直接放入试题的 `images` 数组。
 
 ### 11.5 遗传算法组卷
 
 - `PaperGenerateRequest` 继承 `PaperBase`（含 `title`、`subject`、`duration`、`totalMarks`）。
+- `allocationMode` 控制组卷模式：`question_count`（按题目数量）或 `total_score`（按总分值，根据 `scoreWeight` 自动估算题目数）。
 - `totalMarks` 必须 ≥ `questionCount`（每道题至少 1 分）。
 - 不传 `difficultyTargets` / `typeTargets` 时，算法不会对对应维度施加约束。
 - `algorithm` 参数全部可选，有合理默认值。
+- 分值分配会根据试题的 `scoreWeight` 字段进行加权计算。
 
 ### 11.6 数据库迁移
 
