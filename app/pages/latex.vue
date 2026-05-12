@@ -28,7 +28,7 @@ const demoFormula = ref('\\int_0^\\infty e^{-x^2}\\,dx = \\frac{\\sqrt{\\pi}}{2}
 </script>
 
 <style scoped>
-.demo-editor { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.demo-editor { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
 .demo-textarea {
   width: 100%; min-height: 200px; resize: vertical; font-family: monospace;
   transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
@@ -40,6 +40,8 @@ const demoFormula = ref('\\int_0^\\infty e^{-x^2}\\,dx = \\frac{\\sqrt{\\pi}}{2}
 .demo-preview {
   min-height: 200px; display: flex; flex-direction: column;
   transition: transform 0.4s ease, box-shadow 0.4s ease;
+  min-width: 0;
+  overflow-x: auto;
 }
 .demo-preview:hover {
   box-shadow: 0 8px 24px rgba(0,0,0,0.1);
@@ -47,5 +49,6 @@ const demoFormula = ref('\\int_0^\\infty e^{-x^2}\\,dx = \\frac{\\sqrt{\\pi}}{2}
 }
 @media (max-width: 640px) {
   .demo-editor { grid-template-columns: 1fr; }
+  .demo-box { margin-inline: -2px; }
 }
 </style>

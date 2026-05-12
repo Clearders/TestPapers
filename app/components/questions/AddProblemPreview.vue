@@ -124,6 +124,7 @@ defineProps<{
   display: flex;
   flex-direction: column;
   gap: 16px;
+  min-width: 0;
 }
 .preview-header {
   display: flex;
@@ -152,6 +153,7 @@ defineProps<{
 .preview-content {
   font-size: .95rem;
   line-height: 1.8;
+  overflow-wrap: anywhere;
 }
 .placeholder-text {
   color: var(--color-muted);
@@ -167,6 +169,8 @@ defineProps<{
 .preview-option {
   display: flex;
   gap: 8px;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .preview-images {
   display: flex;
@@ -196,6 +200,7 @@ defineProps<{
 .cheatsheet {
   margin-top: 20px;
   font-size: .85rem;
+  overflow-x: auto;
 }
 .cheatsheet h3 {
   margin-bottom: 10px;
@@ -221,5 +226,22 @@ code {
   padding: 1px 5px;
   border-radius: 4px;
   font-size: .82rem;
+}
+:deep(.katex-display),
+:deep(.latex-block) {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+@media (max-width: 560px) {
+  .preview-header,
+  .preview-option {
+    flex-direction: column;
+  }
+
+  .preview-image {
+    max-width: 100%;
+    width: 100%;
+  }
 }
 </style>

@@ -161,7 +161,7 @@ async function deleteUser (id: number) {
 }
 .users-layout {
   display: grid;
-  grid-template-columns: 320px minmax(0, 1fr);
+  grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
   gap: 24px;
   align-items: start;
 }
@@ -174,6 +174,7 @@ async function deleteUser (id: number) {
   display: flex;
   flex-direction: column;
   gap: 14px;
+  min-width: 0;
 }
 .user-meta,
 .form-message {
@@ -188,12 +189,31 @@ async function deleteUser (id: number) {
   align-items: center;
   gap: 10px;
 }
+.user-controls .form-input {
+  flex: 1 1 180px;
+}
 .active-toggle {
   font-size: .875rem;
 }
 @media (max-width: 820px) {
   .users-layout {
     grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 560px) {
+  .user-controls {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .user-controls .btn,
+  .user-controls .form-input {
+    width: 100%;
+  }
+
+  .permission-list .tag {
+    max-width: 100%;
+    overflow-wrap: anywhere;
   }
 }
 </style>

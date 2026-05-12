@@ -12,7 +12,19 @@
     <header class="site-header">
       <div class="header-inner">
         <NuxtLink to="/" class="logo">TestPapers</NuxtLink>
-        <nav class="site-nav">
+        <button
+          class="nav-toggle"
+          type="button"
+          :aria-expanded="isNavOpen"
+          aria-controls="site-navigation"
+          aria-label="Toggle navigation"
+          @click="toggleNav"
+        >
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+        <nav id="site-navigation" class="site-nav" :class="{ 'is-open': isNavOpen }" @click="closeNav">
           <NuxtLink to="/" class="nav-link">Home</NuxtLink>
           <NuxtLink v-if="isAuthenticated" to="/questions" class="nav-link">Workspace</NuxtLink>
           <NuxtLink to="/latex" class="nav-link">LaTeX Preview</NuxtLink>
@@ -41,6 +53,18 @@
 
 <script setup lang="ts">
 const { hasPermission, isAuthenticated, logout, user } = useAuth()
+const route = useRoute()
+const isNavOpen = ref(false)
+
+function toggleNav () {
+  isNavOpen.value = !isNavOpen.value
+}
+
+function closeNav () {
+  isNavOpen.value = false
+}
+
+watch(() => route.fullPath, closeNav)
 </script>
 
 <style>
@@ -59,6 +83,8 @@ const { hasPermission, isAuthenticated, logout, user } = useAuth()
   --radius: 8px;
   --shadow: 0 2px 12px rgba(0,0,0,.08);
   --header-h: 60px;
+  --site-max-w: 1180px;
+  --site-gutter: clamp(14px, 3vw, 32px);
   font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
   color: var(--color-text);
   background: var(--color-bg);
@@ -66,9 +92,17 @@ const { hasPermission, isAuthenticated, logout, user } = useAuth()
 
 a { color: inherit; text-decoration: none; }
 button { cursor: pointer; font: inherit; }
-input, textarea, select { font: inherit; }
+input, textarea, select { font: inherit; max-width: 100%; }
+img, svg, canvas, video { max-width: 100%; }
 
-.site-wrapper { display: flex; flex-direction: column; min-height: 100vh; position: relative; overflow: hidden; }
+.site-wrapper {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+  position: relative;
+  overflow-x: clip;
+}
 .dynamic-bg {
   position: fixed;
   top: 0;
@@ -161,27 +195,49 @@ input, textarea, select { font: inherit; }
   position: sticky;
   top: 0;
   z-index: 100;
-  height: var(--header-h);
+  min-height: var(--header-h);
   background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
   box-shadow: 0 1px 4px rgba(0,0,0,.06);
   animation: slideDown 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .header-inner {
-  max-width: 1100px;
+  max-width: var(--site-max-w);
   margin: 0 auto;
-  padding: 0 24px;
+  padding: 0 var(--site-gutter);
   height: 100%;
+  min-height: var(--header-h);
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 16px;
+  position: relative;
 }
 .logo {
   font-size: 1.25rem;
   font-weight: 700;
   color: var(--color-primary);
+  white-space: nowrap;
 }
 .site-nav { display: flex; align-items: center; gap: 4px; }
+.nav-toggle {
+  display: none;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 4px;
+}
+.nav-toggle span {
+  width: 18px;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--color-text);
+}
 .nav-link {
   padding: 6px 14px;
   border-radius: var(--radius);
@@ -224,10 +280,10 @@ input, textarea, select { font: inherit; }
 }
 .site-main {
   flex: 1;
-  max-width: 1100px;
+  max-width: var(--site-max-w);
   width: 100%;
   margin: 0 auto;
-  padding: 32px 24px;
+  padding: clamp(20px, 4vw, 36px) var(--site-gutter);
   animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 .site-footer {
@@ -245,6 +301,7 @@ input, textarea, select { font: inherit; }
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   padding: 20px;
+  min-width: 0;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 .card:hover {
@@ -315,6 +372,7 @@ input, textarea, select { font: inherit; }
 .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 18px; }
 .form-label { font-size: .875rem; font-weight: 600; }
 .form-input {
+  width: 100%;
   padding: 9px 12px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
@@ -334,4 +392,96 @@ input, textarea, select { font: inherit; }
 .list-leave-active { position: absolute; }
 .fade-enter-active, .fade-leave-active { transition: opacity 0.3s ease, transform 0.3s ease; }
 .fade-enter-from, .fade-leave-to { opacity: 0; transform: translateY(-10px); }
+
+@media (min-width: 1440px) {
+  :root {
+    --site-max-w: 1320px;
+  }
+}
+
+@media (max-width: 960px) {
+  :root {
+    --header-h: 56px;
+  }
+
+  .nav-toggle {
+    display: inline-flex;
+  }
+
+  .site-nav {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: var(--site-gutter);
+    left: var(--site-gutter);
+    display: none;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    padding: 10px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.12);
+  }
+
+  .site-nav.is-open {
+    display: flex;
+  }
+
+  .nav-link,
+  .nav-button {
+    width: 100%;
+    min-height: 40px;
+    text-align: left;
+  }
+
+  .nav-link--highlight {
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .shape {
+    filter: blur(60px);
+    opacity: 0.22;
+  }
+
+  .site-main {
+    padding-top: 20px;
+  }
+
+  .card {
+    padding: 16px;
+  }
+
+  .page-title {
+    font-size: 1.45rem;
+  }
+
+  .page-sub {
+    margin-bottom: 18px;
+  }
+
+  .btn {
+    justify-content: center;
+  }
+}
+
+@media (hover: none) {
+  .card:hover,
+  .nav-link--highlight:hover {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
 </style>

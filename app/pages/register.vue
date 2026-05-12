@@ -94,6 +94,7 @@ async function submitRegister () {
   display: grid;
   place-items: center;
   min-height: calc(100vh - 180px);
+  min-height: calc(100dvh - 180px);
 }
 .register-card {
   width: min(100%, 460px);
@@ -114,5 +115,10 @@ async function submitRegister () {
 .login-prompt a {
   color: var(--color-primary);
   font-weight: 600;
+}
+@media (max-width: 480px) {
+  .register-card .btn-primary {
+    width: 100%;
+  }
 }
 </style>

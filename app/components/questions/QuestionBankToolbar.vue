@@ -84,6 +84,7 @@ function onDifficultyChange(event: Event) {
 <style scoped>
 .bank-mode-tabs {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 12px;
 }
@@ -97,5 +98,16 @@ function onDifficultyChange(event: Event) {
 .search-input {
   flex: 1;
   min-width: 180px;
+}
+.toolbar > .form-input,
+.toolbar > .btn {
+  flex: 1 1 180px;
+}
+@media (max-width: 560px) {
+  .bank-mode-tabs .btn,
+  .toolbar > .form-input,
+  .toolbar > .btn {
+    width: 100%;
+  }
 }
 </style>

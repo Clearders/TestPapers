@@ -104,6 +104,7 @@ async function submitLogin () {
   display: grid;
   place-items: center;
   min-height: calc(100vh - 180px);
+  min-height: calc(100dvh - 180px);
 }
 .login-card {
   width: min(100%, 440px);
@@ -128,5 +129,11 @@ async function submitLogin () {
 .register-prompt a {
   color: var(--color-primary);
   font-weight: 600;
+}
+@media (max-width: 480px) {
+  .demo-users .btn,
+  .login-card .btn-primary {
+    width: 100%;
+  }
 }
 </style>

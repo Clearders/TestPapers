@@ -67,12 +67,12 @@ const { hasPermission, isAuthenticated } = useAuth()
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 40px;
-  padding: 20px 0 60px;
+  gap: clamp(28px, 6vh, 48px);
+  padding: 12px 0 56px;
 }
 .hero-section {
   text-align: center;
-  padding: 60px 20px 40px;
+  padding: 52px 20px 34px;
   position: relative;
   z-index: 2;
 }
@@ -95,12 +95,12 @@ const { hasPermission, isAuthenticated } = useAuth()
   margin-bottom: 24px;
 }
 .hero-title {
-  font-size: clamp(2.5rem, 5vw, 4rem);
+  font-size: 4rem;
   font-weight: 800;
   line-height: 1.1;
   color: var(--color-text);
   margin-bottom: 20px;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 }
 .text-gradient {
   background: linear-gradient(135deg, var(--color-primary), #bb86fc);
@@ -109,7 +109,7 @@ const { hasPermission, isAuthenticated } = useAuth()
   background-clip: text;
 }
 .hero-sub {
-  font-size: clamp(1.1rem, 2vw, 1.25rem);
+  font-size: 1.2rem;
   color: var(--color-muted);
   max-width: 600px;
   margin-bottom: 32px;
@@ -124,7 +124,7 @@ const { hasPermission, isAuthenticated } = useAuth()
 .btn-lg {
   padding: 12px 28px;
   font-size: 1rem;
-  border-radius: 12px;
+  border-radius: var(--radius);
   font-weight: 600;
 }
 .btn-glass {
@@ -167,7 +167,7 @@ const { hasPermission, isAuthenticated } = useAuth()
 }
 .feature-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
   gap: 24px;
 }
 .card-glass {
@@ -182,7 +182,7 @@ const { hasPermission, isAuthenticated } = useAuth()
   flex-direction: column;
   gap: 12px;
   padding: 32px 24px;
-  border-radius: 16px;
+  border-radius: var(--radius);
   transition: transform .3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow .3s ease, border-color .3s ease;
   color: var(--color-text);
   text-decoration: none;
@@ -286,6 +286,37 @@ const { hasPermission, isAuthenticated } = useAuth()
   .shine-effect::after {
     animation: none;
     transition: none;
+  }
+}
+@media (max-width: 900px) {
+  .hero-title {
+    font-size: 3rem;
+  }
+
+  .hero-sub {
+    font-size: 1.08rem;
+  }
+}
+@media (max-width: 560px) {
+  .home-wrapper {
+    padding-bottom: 36px;
+  }
+
+  .hero-section {
+    padding: 34px 4px 20px;
+  }
+
+  .hero-title {
+    font-size: 2.25rem;
+  }
+
+  .hero-actions,
+  .hero-actions .btn {
+    width: 100%;
+  }
+
+  .feature-card {
+    padding: 24px 18px;
   }
 }
 </style>

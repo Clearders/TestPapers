@@ -357,7 +357,7 @@ const cheatSheet = [
 <style scoped>
 .add-layout {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 24px;
   align-items: start;
 }
@@ -370,11 +370,15 @@ const cheatSheet = [
 .form-panel .card {
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 .form-row {
   display: flex;
   gap: 16px;
   flex-wrap: wrap;
+}
+.form-row > .form-group {
+  min-width: 180px;
 }
 .compact-field {
   flex: 1;
@@ -499,6 +503,7 @@ const cheatSheet = [
 }
 .cheatsheet {
   font-size: .85rem;
+  overflow-x: auto;
 }
 .cheat-table {
   width: 100%;
@@ -531,5 +536,32 @@ code {
 .permission-card p {
   color: var(--color-muted);
   margin-bottom: 16px;
+}
+@media (min-width: 1440px) {
+  .add-layout {
+    grid-template-columns: minmax(0, 1.08fr) minmax(420px, .92fr);
+  }
+}
+@media (max-width: 620px) {
+  .form-row > .form-group,
+  .compact-field {
+    min-width: 100%;
+  }
+
+  .tag-input-row,
+  .form-actions,
+  .option-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .tag-input-row .btn,
+  .form-actions .btn {
+    width: 100%;
+  }
+
+  .option-label {
+    width: auto;
+  }
 }
 </style>

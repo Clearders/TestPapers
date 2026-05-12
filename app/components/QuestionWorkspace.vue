@@ -103,7 +103,7 @@
         </div>
 
         <form class="card generation-card" @submit.prevent="generatePaper">
-          <div class="panel-head">
+          <div class="panel-head generation-card__head">
             <div>
               <h2>Auto Generate</h2>
               <p class="panel-sub">Use a genetic algorithm to compose a balanced paper from the question bank.</p>
@@ -111,130 +111,152 @@
             <span v-if="generationDiagnostics" class="tag count-tag">fitness {{ generationDiagnostics.fitness }}</span>
           </div>
 
-          <div class="generation-grid">
-            <div class="form-group compact-field">
-              <label class="form-label">Allocation</label>
-              <select v-model="generationForm.allocationMode" class="form-input">
-                <option value="question_count">By Question Count</option>
-                <option value="total_score">By Total Marks</option>
-              </select>
-            </div>
-            <div class="form-group compact-field">
-              <label class="form-label">Questions</label>
-              <input
-                v-model.number="generationForm.questionCount"
-                class="form-input"
-                type="number"
-                min="1"
-                max="100"
-                :disabled="generationForm.allocationMode === 'total_score'"
-              />
-            </div>
-            <div class="form-group compact-field">
-              <label class="form-label">Easy</label>
-              <input v-model.number="generationForm.easy" class="form-input" type="number" min="0" />
-            </div>
-            <div class="form-group compact-field">
-              <label class="form-label">Medium</label>
-              <input v-model.number="generationForm.medium" class="form-input" type="number" min="0" />
-            </div>
-            <div class="form-group compact-field">
-              <label class="form-label">Hard</label>
-              <input v-model.number="generationForm.hard" class="form-input" type="number" min="0" />
-            </div>
-            <div class="form-group compact-field">
-              <label class="form-label">Population</label>
-              <input v-model.number="generationForm.populationSize" class="form-input" type="number" min="20" max="500" />
-            </div>
-            <div class="form-group compact-field">
-              <label class="form-label">Generations</label>
-              <input v-model.number="generationForm.generations" class="form-input" type="number" min="10" max="1000" />
-            </div>
-            <div class="form-group compact-field">
-              <label class="form-label">Crossover</label>
-              <input v-model.number="generationForm.crossoverRate" class="form-input" type="number" min="0" max="1" step="0.01" />
-            </div>
-            <div class="form-group compact-field">
-              <label class="form-label">Mutation</label>
-              <input v-model.number="generationForm.mutationRate" class="form-input" type="number" min="0" max="1" step="0.01" />
-            </div>
+          <div class="generation-sections">
+            <section class="generation-section">
+              <div class="generation-section__head">
+                <h3>Paper Shape</h3>
+                <span class="form-hint">Match the paper size and difficulty mix.</span>
+              </div>
+              <div class="generation-grid generation-grid--shape">
+                <div class="form-group compact-field">
+                  <label class="form-label">Allocation</label>
+                  <select v-model="generationForm.allocationMode" class="form-input">
+                    <option value="question_count">By Question Count</option>
+                    <option value="total_score">By Total Marks</option>
+                  </select>
+                </div>
+                <div class="form-group compact-field">
+                  <label class="form-label">Questions</label>
+                  <input
+                    :value="generationForm.questionCount"
+                    class="form-input"
+                    type="number"
+                    min="1"
+                    max="100"
+                    :disabled="generationForm.allocationMode === 'total_score'"
+                    @input="updateGenerationNumber('questionCount', $event)"
+                  />
+                </div>
+                <div
+                  v-for="field in difficultyGenerationFields"
+                  :key="field.key"
+                  class="form-group compact-field"
+                >
+                  <label class="form-label">{{ field.label }}</label>
+                  <input
+                    :value="generationForm[field.key]"
+                    class="form-input"
+                    type="number"
+                    :min="field.min"
+                    :max="field.max"
+                    :step="field.step"
+                    @input="updateGenerationNumber(field.key, $event)"
+                  />
+                </div>
+              </div>
+            </section>
+
+            <section class="generation-section">
+              <div class="generation-section__head">
+                <h3>Algorithm</h3>
+                <span class="form-hint">Tune search breadth and variation.</span>
+              </div>
+              <div class="generation-grid generation-grid--algorithm">
+                <div
+                  v-for="field in algorithmGenerationFields"
+                  :key="field.key"
+                  class="form-group compact-field"
+                >
+                  <label class="form-label">{{ field.label }}</label>
+                  <input
+                    :value="generationForm[field.key]"
+                    class="form-input"
+                    type="number"
+                    :min="field.min"
+                    :max="field.max"
+                    :step="field.step"
+                    @input="updateGenerationNumber(field.key, $event)"
+                  />
+                </div>
+              </div>
+            </section>
+
+            <section class="generation-section generation-section--tags">
+              <div class="generation-section__head">
+                <h3>Tag Preferences</h3>
+                <span class="tag count-tag">{{ optionalTagCountLabel }}</span>
+              </div>
+              <div class="tag-picker">
+                <div class="tag-search-row">
+                  <input
+                    v-model="tagSearch"
+                    class="form-input"
+                    placeholder="Search optional tags"
+                  />
+                  <button
+                    v-if="generationForm.optionalTags.length"
+                    class="btn btn-outline btn-sm"
+                    type="button"
+                    @click="clearOptionalTags"
+                  >
+                    Clear
+                  </button>
+                </div>
+
+                <div v-if="generationForm.optionalTags.length" class="tag-button-row">
+                  <button
+                    v-for="tag in generationForm.optionalTags"
+                    :key="tag"
+                    class="tag tag-button tag-button--selected"
+                    type="button"
+                    :title="`Remove ${tag}`"
+                    @click="removeOptionalTag(tag)"
+                  >
+                    {{ tag }} <span aria-hidden="true">x</span>
+                  </button>
+                </div>
+
+                <div v-if="filteredOptionalTagOptions.length" class="tag-button-row">
+                  <button
+                    v-for="tag in filteredOptionalTagOptions"
+                    :key="tag"
+                    class="tag tag-button"
+                    type="button"
+                    :title="`Prefer ${tag}`"
+                    @click="addOptionalTag(tag)"
+                  >
+                    {{ tag }}
+                  </button>
+                </div>
+
+                <span v-else-if="isLoadingTags" class="form-hint">Loading tags...</span>
+                <span v-else-if="tagError" class="form-hint form-hint--error">{{ tagError }}</span>
+                <span v-else class="form-hint">No matching optional tags.</span>
+              </div>
+            </section>
           </div>
 
-          <div class="form-group">
-            <label class="form-label">Required Tags</label>
-            <input v-model="generationForm.requiredTags" class="form-input" placeholder="comma-separated tags, optional" />
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">Optional Tags</label>
-            <div class="tag-picker">
-              <div class="tag-search-row">
-                <input
-                  v-model="tagSearch"
-                  class="form-input"
-                  placeholder="Search optional tags"
-                />
-                <button
-                  v-if="generationForm.optionalTags.length"
-                  class="btn btn-outline btn-sm"
-                  type="button"
-                  @click="clearOptionalTags"
-                >
-                  Clear
-                </button>
-              </div>
-
-              <div v-if="generationForm.optionalTags.length" class="tag-button-row">
-                <button
-                  v-for="tag in generationForm.optionalTags"
-                  :key="tag"
-                  class="tag tag-button tag-button--selected"
-                  type="button"
-                  :title="`Remove ${tag}`"
-                  @click="removeOptionalTag(tag)"
-                >
-                  {{ tag }} <span aria-hidden="true">x</span>
-                </button>
-              </div>
-
-              <div v-if="filteredOptionalTagOptions.length" class="tag-button-row">
-                <button
-                  v-for="tag in filteredOptionalTagOptions"
-                  :key="tag"
-                  class="tag tag-button"
-                  type="button"
-                  :title="`Prefer ${tag}`"
-                  @click="addOptionalTag(tag)"
-                >
-                  {{ tag }}
-                </button>
-              </div>
-
-              <span v-else-if="isLoadingTags" class="form-hint">Loading tags...</span>
-              <span v-else-if="tagError" class="form-hint form-hint--error">{{ tagError }}</span>
-              <span v-else class="form-hint">No matching optional tags.</span>
+          <div class="generation-footer">
+            <div class="paper-actions">
+              <button class="btn btn-primary" type="submit" :disabled="isGenerating || !paper.title || !paper.subject">
+                {{ isGenerating ? 'Generating...' : 'Generate Paper' }}
+              </button>
+              <span class="form-hint">Uses the current paper title, subject, duration, and total marks.</span>
             </div>
-          </div>
-
-          <div class="paper-actions">
-            <button class="btn btn-primary" type="submit" :disabled="isGenerating || !paper.title || !paper.subject">
-              {{ isGenerating ? 'Generating...' : 'Generate Paper' }}
-            </button>
-            <span class="form-hint">Uses the current paper title, subject, duration, and total marks.</span>
           </div>
 
           <div v-if="generationError" class="status-banner status-banner--error">
             {{ generationError }}
           </div>
           <div v-if="generationDiagnostics" class="generation-summary">
-            <span>Difficulty: {{ formatDistribution(generationDiagnostics.difficultyActual) }}</span>
-            <span>Types: {{ formatDistribution(generationDiagnostics.typeActual) }}</span>
-            <span v-if="generationDiagnostics.marksActual">Marks: {{ generationDiagnostics.marksActual }}</span>
-            <span v-if="generationDiagnostics.scoreWeightActual">Weight: {{ generationDiagnostics.scoreWeightActual }}</span>
-            <span v-if="generationDiagnostics.optionalTags?.length">
+            <span class="summary-pill">Difficulty: {{ formatDistribution(generationDiagnostics.difficultyActual) }}</span>
+            <span class="summary-pill">Types: {{ formatDistribution(generationDiagnostics.typeActual) }}</span>
+            <span v-if="generationDiagnostics.marksActual" class="summary-pill">Marks: {{ generationDiagnostics.marksActual }}</span>
+            <span v-if="generationDiagnostics.scoreWeightActual" class="summary-pill">Weight: {{ generationDiagnostics.scoreWeightActual }}</span>
+            <span v-if="generationDiagnostics.optionalTags?.length" class="summary-pill">
               Optional tags: {{ formatTagCoverage(generationDiagnostics.coveredOptionalTags, generationDiagnostics.optionalTags) }}
             </span>
-            <span>Candidates: {{ generationDiagnostics.candidateCount }}</span>
+            <span class="summary-pill">Candidates: {{ generationDiagnostics.candidateCount }}</span>
           </div>
         </form>
 
@@ -436,6 +458,41 @@ type QuestionType = Question['type']
 type QuestionDifficulty = Question['difficulty']
 type BankMode = 'all' | 'mine'
 type AllocationMode = 'question_count' | 'total_score'
+interface GenerationFormState {
+  allocationMode: AllocationMode
+  questionCount: number
+  easy: number
+  medium: number
+  hard: number
+  populationSize: number
+  generations: number
+  crossoverRate: number
+  mutationRate: number
+  optionalTags: string[]
+}
+
+type NumericGenerationFieldKey = Exclude<keyof GenerationFormState, 'allocationMode' | 'optionalTags'>
+
+interface NumericGenerationField {
+  key: NumericGenerationFieldKey
+  label: string
+  min: number
+  max?: number
+  step?: number
+}
+
+const difficultyGenerationFields: readonly NumericGenerationField[] = [
+  { key: 'easy', label: 'Easy', min: 0 },
+  { key: 'medium', label: 'Medium', min: 0 },
+  { key: 'hard', label: 'Hard', min: 0 }
+] as const
+
+const algorithmGenerationFields: readonly NumericGenerationField[] = [
+  { key: 'populationSize', label: 'Population', min: 20, max: 500 },
+  { key: 'generations', label: 'Generations', min: 10, max: 1000 },
+  { key: 'crossoverRate', label: 'Crossover', min: 0, max: 1, step: 0.01 },
+  { key: 'mutationRate', label: 'Mutation', min: 0, max: 1, step: 0.01 }
+] as const
 
 const search = ref('')
 const filterSubject = ref('')
@@ -472,7 +529,7 @@ const questionTypeOrder: QuestionType[] = ['choice', 'true_false', 'blank', 'sho
 
 const canReadQuestions = computed(() => hasPermission('questions:read'))
 
-const generationForm = reactive({
+const generationForm = reactive<GenerationFormState>({
   allocationMode: 'question_count' as AllocationMode,
   questionCount: 5,
   easy: 2,
@@ -482,7 +539,6 @@ const generationForm = reactive({
   generations: 120,
   crossoverRate: 0.85,
   mutationRate: 0.08,
-  requiredTags: '',
   optionalTags: [] as string[]
 })
 
@@ -555,6 +611,11 @@ const subjects = computed(() => {
 
 const selectedOptionalTagKeys = computed(() => {
   return new Set(generationForm.optionalTags.map(tag => tag.toLowerCase()))
+})
+
+const optionalTagCountLabel = computed(() => {
+  const count = generationForm.optionalTags.length
+  return `${count} optional tag${count !== 1 ? 's' : ''}`
 })
 
 const filteredOptionalTagOptions = computed(() => {
@@ -771,6 +832,11 @@ function clearOptionalTags () {
   generationForm.optionalTags.length = 0
 }
 
+function updateGenerationNumber (key: NumericGenerationFieldKey, event: Event) {
+  const value = (event.target as HTMLInputElement).valueAsNumber
+  generationForm[key] = Number.isNaN(value) ? 0 : value
+}
+
 async function generatePaper () {
   generationError.value = ''
   generationDiagnostics.value = null
@@ -791,10 +857,6 @@ async function generatePaper () {
           medium: generationForm.medium,
           hard: generationForm.hard
         },
-        requiredTags: generationForm.requiredTags
-          .split(',')
-          .map(tag => tag.trim())
-          .filter(Boolean),
         optionalTags: [...generationForm.optionalTags],
         subjectStrict: true,
         algorithm: {
@@ -862,12 +924,13 @@ function getEssayBlankStyle (question: Question) {
   gap: 24px;
   align-items: start;
 }
+.bank-panel,
+.paper-panel {
+  min-width: 0;
+}
 @media (max-width: 900px) {
   .workspace-layout {
     grid-template-columns: 1fr;
-  }
-  .generation-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -889,28 +952,86 @@ function getEssayBlankStyle (question: Question) {
   margin-top: 4px;
 }
 .generation-card {
+  position: relative;
+  overflow: hidden;
   margin-bottom: 16px;
+  background:
+    linear-gradient(135deg, rgba(79, 110, 247, 0.08), rgba(34, 197, 94, 0.05)),
+    var(--color-surface);
+}
+.generation-card__head {
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--color-border);
+}
+.generation-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.generation-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.generation-section__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.generation-section__head h3 {
+  font-size: .9rem;
+  font-weight: 700;
+}
+.generation-section--tags {
+  padding-top: 2px;
 }
 .generation-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
 }
+.generation-grid--shape {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+.generation-grid--algorithm {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
 .compact-field {
   margin-bottom: 0;
+}
+.generation-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-top: 16px;
+  margin-top: 18px;
+  border-top: 1px solid var(--color-border);
 }
 .generation-summary {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 14px;
-  margin-top: 12px;
+  gap: 8px;
+  margin-top: 14px;
   color: var(--color-muted);
   font-size: .82rem;
+}
+.summary-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 4px 8px;
+  border: 1px solid rgba(79, 110, 247, 0.16);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.72);
 }
 .tag-picker {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 .tag-search-row {
   display: flex;
@@ -924,16 +1045,21 @@ function getEssayBlankStyle (question: Question) {
 .tag-button-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
 }
 .tag-button {
-  border: 1px solid #c7d2fe;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 26px;
+  border: 1px solid rgba(79, 110, 247, 0.28);
   cursor: pointer;
-  transition: background .2s ease, border-color .2s ease, color .2s ease;
+  transition: background .2s ease, border-color .2s ease, color .2s ease, transform .2s ease;
 }
 .tag-button:hover {
-  background: #dbe4ff;
+  background: #eff3fe;
   border-color: var(--color-primary);
+  transform: translateY(-1px);
 }
 .tag-button--selected {
   background: #dcfce7;
@@ -962,8 +1088,24 @@ function getEssayBlankStyle (question: Question) {
   color: #b91c1c;
 }
 @media (max-width: 900px) {
-  .generation-grid {
+  .generation-grid,
+  .generation-grid--shape,
+  .generation-grid--algorithm {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 560px) {
+  .generation-grid,
+  .generation-grid--shape,
+  .generation-grid--algorithm {
+    grid-template-columns: 1fr;
+  }
+
+  .tag-search-row,
+  .generation-footer,
+  .paper-actions {
+    align-items: stretch;
+    flex-direction: column;
   }
 }
 .count-tag,
@@ -1027,6 +1169,8 @@ function getEssayBlankStyle (question: Question) {
 .q-text-wrap {
   font-size: .95rem;
   line-height: 1.7;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .q-options {
   display: flex;
@@ -1037,6 +1181,7 @@ function getEssayBlankStyle (question: Question) {
   display: flex;
   gap: 8px;
   align-items: flex-start;
+  min-width: 0;
 }
 .q-option-label {
   font-weight: 700;
@@ -1053,6 +1198,9 @@ function getEssayBlankStyle (question: Question) {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+}
+.paper-meta-row > .form-group {
+  min-width: 150px;
 }
 .export-toggle {
   align-items: center;
@@ -1087,6 +1235,7 @@ function getEssayBlankStyle (question: Question) {
   display: flex;
   align-items: flex-start;
   gap: 12px;
+  min-width: 0;
 }
 .paper-q-controls {
   display: flex;
@@ -1114,6 +1263,7 @@ function getEssayBlankStyle (question: Question) {
   flex: 1;
   display: flex;
   gap: 10px;
+  min-width: 0;
 }
 .paper-q-num {
   min-width: 28px;
@@ -1122,6 +1272,7 @@ function getEssayBlankStyle (question: Question) {
 }
 .paper-q-content {
   flex: 1;
+  min-width: 0;
 }
 .remove-btn {
   white-space: nowrap;
@@ -1133,6 +1284,7 @@ function getEssayBlankStyle (question: Question) {
 }
 .export-preview {
   background: #fff;
+  overflow: hidden;
 }
 .export-preview-head {
   display: flex;
@@ -1173,6 +1325,7 @@ function getEssayBlankStyle (question: Question) {
 .export-q-list li {
   font-size: .95rem;
   line-height: 1.7;
+  overflow-wrap: anywhere;
 }
 .export-q-text {
   display: inline;
@@ -1193,6 +1346,7 @@ function getEssayBlankStyle (question: Question) {
   display: flex;
   gap: 8px;
   align-items: flex-start;
+  min-width: 0;
 }
 .export-essay-space {
   margin-top: 14px;
@@ -1239,6 +1393,62 @@ function getEssayBlankStyle (question: Question) {
 .bank-mode-tabs {
   display: flex;
   gap: 8px;
+  flex-wrap: wrap;
+}
+:deep(.katex-display),
+:deep(.latex-block) {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+@media (min-width: 1440px) {
+  .workspace-layout {
+    grid-template-columns: minmax(0, 1.05fr) minmax(420px, .95fr);
+  }
+}
+@media (max-width: 700px) {
+  .paper-q-item {
+    flex-direction: column;
+  }
+
+  .paper-q-controls {
+    flex-direction: row;
+    width: 100%;
+  }
+
+  .paper-q-body,
+  .remove-btn {
+    width: 100%;
+  }
+
+  .paper-q-num {
+    min-width: 24px;
+  }
+
+  .export-preview-head,
+  .export-mode-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+@media (max-width: 560px) {
+  .q-footer .btn,
+  .paper-actions .btn,
+  .tag-search-row .btn,
+  .generation-footer .btn,
+  .export-mode-actions .btn {
+    width: 100%;
+  }
+
+  .paper-meta-row > .form-group {
+    min-width: 100%;
+  }
+
+  .q-image-thumb,
+  .export-image-thumb {
+    max-width: 100%;
+    width: 100%;
+  }
 }
 </style>
 

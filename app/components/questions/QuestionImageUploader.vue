@@ -75,7 +75,9 @@ function updateCaption (index: number, caption: string) {
   border-radius: var(--radius);
   padding: 8px;
   background: var(--color-bg);
+  flex: 1 1 180px;
   max-width: 220px;
+  min-width: 0;
 }
 .preview-thumb {
   width: 100%;
@@ -92,5 +94,11 @@ function updateCaption (index: number, caption: string) {
 .form-input--sm {
   font-size: .8rem;
   padding: 4px 8px;
+}
+@media (max-width: 560px) {
+  .image-preview-item {
+    max-width: none;
+    width: 100%;
+  }
 }
 </style>

@@ -94,6 +94,7 @@ function formatScoreWeight (weight: number) {
 
 <style scoped>
 .q-card {
+  min-width: 0;
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .q-card:hover {
@@ -121,6 +122,8 @@ function formatScoreWeight (weight: number) {
 .q-text {
   font-size: .95rem;
   line-height: 1.7;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .q-options {
   display: flex;
@@ -131,6 +134,8 @@ function formatScoreWeight (weight: number) {
   display: flex;
   gap: 8px;
   align-items: flex-start;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .q-option-label {
   font-weight: 700;
@@ -189,5 +194,26 @@ function formatScoreWeight (weight: number) {
   object-fit: contain;
   border: 1px solid var(--color-border);
   border-radius: 6px;
+}
+:deep(.katex-display),
+:deep(.latex-block) {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+@media (max-width: 560px) {
+  .q-card-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .q-footer .btn,
+  .q-image-thumb {
+    width: 100%;
+  }
+
+  .q-image-thumb {
+    max-width: 100%;
+  }
 }
 </style>
