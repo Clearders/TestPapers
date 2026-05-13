@@ -19,13 +19,6 @@
         <p v-if="errorMessage" class="login-error">{{ errorMessage }}</p>
       </form>
 
-      <div class="demo-users">
-        <span class="form-hint">Demo accounts</span>
-        <button class="btn btn-outline btn-sm" type="button" @click="fillDemo('admin', 'admin123')">Admin</button>
-        <button class="btn btn-outline btn-sm" type="button" @click="fillDemo('teacher', 'teacher123')">Teacher</button>
-        <button class="btn btn-outline btn-sm" type="button" @click="fillDemo('viewer', 'viewer123')">Viewer</button>
-      </div>
-
       <p class="register-prompt">
         Need a teacher account?
         <NuxtLink to="/register">Create one</NuxtLink>
@@ -79,11 +72,6 @@ watchEffect(() => {
   })
 })
 
-function fillDemo (name: string, pass: string) {
-  username.value = name
-  password.value = pass
-}
-
 async function submitLogin () {
   errorMessage.value = ''
   isSubmitting.value = true
@@ -109,13 +97,6 @@ async function submitLogin () {
 .login-card {
   width: min(100%, 440px);
 }
-.demo-users {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  margin-top: 18px;
-}
 .login-error {
   color: var(--color-danger);
   font-size: .875rem;
@@ -131,7 +112,6 @@ async function submitLogin () {
   font-weight: 600;
 }
 @media (max-width: 480px) {
-  .demo-users .btn,
   .login-card .btn-primary {
     width: 100%;
   }

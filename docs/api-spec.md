@@ -147,8 +147,8 @@ POST /api/v1/auth/login
 
 ```json
 {
-  "username": "admin",
-  "password": "admin123"
+  "username": "teacher_zhang",
+  "password": "secure_password"
 }
 ```
 
@@ -192,14 +192,6 @@ POST /api/v1/auth/login
 | ----------- | -------------------- | -------------- |
 | 401         | `INVALID_CREDENTIALS` | 用户名或密码错误 |
 | 401         | `ACCOUNT_DISABLED`    | 账号已被禁用     |
-
-**预置演示账号**（数据库初始化后可用）：
-
-| 用户名    | 密码         | 角色    |
-| --------- | ------------ | ------- |
-| `admin`   | `admin123`   | 管理员  |
-| `teacher` | `teacher123` | 教师    |
-| `viewer`  | `viewer123`  | 观察者  |
 
 ### 2.3 注册
 

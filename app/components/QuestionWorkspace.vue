@@ -837,37 +837,73 @@ function updateGenerationNumber (key: NumericGenerationFieldKey, event: Event) {
   generationForm[key] = Number.isNaN(value) ? 0 : value
 }
 
+function boundedNumber (value: number, fallback: number, min: number, max?: number) {
+  if (!Number.isFinite(value)) return fallback
+  const upperBounded = typeof max === 'number' ? Math.min(value, max) : value
+  return Math.max(min, upperBounded)
+}
+
+function boundedInteger (value: number, fallback: number, min: number, max?: number) {
+  return Math.round(boundedNumber(value, fallback, min, max))
+}
+
+function generationDifficultyTargets () {
+  const targets = {
+    easy: boundedInteger(generationForm.easy, 0, 0),
+    medium: boundedInteger(generationForm.medium, 0, 0),
+    hard: boundedInteger(generationForm.hard, 0, 0)
+  }
+
+  return Object.fromEntries(Object.entries(targets).filter(([, value]) => value > 0))
+}
+
+function generationRequestBody () {
+  const title = paper.title.trim()
+  const subject = paper.subject.trim()
+  if (!title || !subject) {
+    generationError.value = 'Please enter a paper title and subject before generating.'
+    return null
+  }
+
+  const totalMarks = boundedInteger(paper.totalMarks, 100, 1)
+  const questionCount = boundedInteger(generationForm.questionCount, Math.min(10, totalMarks), 1, Math.min(100, totalMarks))
+  const body: Record<string, unknown> = {
+    title,
+    subject,
+    duration: boundedInteger(paper.duration, 60, 1),
+    totalMarks,
+    allocationMode: generationForm.allocationMode,
+    difficultyTargets: generationDifficultyTargets(),
+    optionalTags: [...generationForm.optionalTags],
+    subjectStrict: true,
+    algorithm: {
+      populationSize: boundedInteger(generationForm.populationSize, 80, 20, 500),
+      generations: boundedInteger(generationForm.generations, 120, 10, 1000),
+      crossoverRate: boundedNumber(generationForm.crossoverRate, 0.85, 0, 1),
+      mutationRate: boundedNumber(generationForm.mutationRate, 0.08, 0, 1),
+      elitismCount: 4,
+      tournamentSize: 3
+    }
+  }
+
+  if (generationForm.allocationMode === 'question_count') {
+    body.questionCount = questionCount
+  }
+
+  return body
+}
+
 async function generatePaper () {
   generationError.value = ''
   generationDiagnostics.value = null
+  const body = generationRequestBody()
+  if (!body) return
   isGenerating.value = true
 
   try {
     const response = await apiFetch<GeneratedPaperResponse>('/papers/generate', {
       method: 'POST',
-      body: {
-        title: paper.title,
-        subject: paper.subject,
-        duration: paper.duration,
-        totalMarks: paper.totalMarks,
-        allocationMode: generationForm.allocationMode,
-        questionCount: generationForm.allocationMode === 'question_count' ? generationForm.questionCount : undefined,
-        difficultyTargets: {
-          easy: generationForm.easy,
-          medium: generationForm.medium,
-          hard: generationForm.hard
-        },
-        optionalTags: [...generationForm.optionalTags],
-        subjectStrict: true,
-        algorithm: {
-          populationSize: generationForm.populationSize,
-          generations: generationForm.generations,
-          crossoverRate: generationForm.crossoverRate,
-          mutationRate: generationForm.mutationRate,
-          elitismCount: 4,
-          tournamentSize: 3
-        }
-      }
+      body
     })
 
     paper.title = response.data.paper.title
