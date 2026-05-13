@@ -875,7 +875,7 @@ function generationRequestBody () {
     allocationMode: generationForm.allocationMode,
     difficultyTargets: generationDifficultyTargets(),
     optionalTags: [...generationForm.optionalTags],
-    subjectStrict: true,
+    subjectStrict: false,
     algorithm: {
       populationSize: boundedInteger(generationForm.populationSize, 80, 20, 500),
       generations: boundedInteger(generationForm.generations, 120, 10, 1000),
@@ -891,6 +891,26 @@ function generationRequestBody () {
   }
 
   return body
+}
+
+function apiErrorMessage (error: unknown, fallback: string) {
+  if (typeof error !== 'object' || error === null) return fallback
+
+  const candidate = error as {
+    message?: string
+    data?: { detail?: unknown }
+  }
+  const detail = candidate.data?.detail
+  if (typeof detail === 'string' && detail.trim()) return detail
+  if (typeof detail === 'object' && detail !== null && 'message' in detail) {
+    const message = (detail as { message?: unknown }).message
+    if (typeof message === 'string' && message.trim()) return message
+  }
+  if (Array.isArray(detail) && detail.length) {
+    const firstMessage = (detail[0] as { msg?: unknown } | undefined)?.msg
+    if (typeof firstMessage === 'string' && firstMessage.trim()) return firstMessage
+  }
+  return candidate.message || fallback
 }
 
 async function generatePaper () {
@@ -917,7 +937,7 @@ async function generatePaper () {
     exported.value = false
     downloadError.value = ''
   } catch (error) {
-    generationError.value = error instanceof Error ? error.message : 'Failed to generate paper.'
+    generationError.value = apiErrorMessage(error, 'Failed to generate paper.')
   } finally {
     isGenerating.value = false
   }
