@@ -1163,27 +1163,13 @@ interface PaperGenerateRequest {
   title: string                     // 试卷标题
   subject: string                   // 学科
   duration: number                  // 考试时长（分钟），> 0
-  totalMarks: number                // 试卷总分，> 0，且 ≥ questionCount
-  allocationMode?: 'question_count' | 'total_score'  // 组卷模式（默认 question_count）
-  questionCount?: number            // 试题数量，1–100（allocationMode=question_count 时必填）
-  difficultyTargets?: Record<'easy' | 'medium' | 'hard', number>  // 难度分布目标（值 > 0 的键有效）
-  typeTargets?: Record<'choice' | 'true_false' | 'blank' | 'short_answer' | 'essay', number>  // 题型分布目标
-  requiredTags?: string[]           // 必选标签列表
-  optionalTags?: string[]           // 可选偏好标签列表（覆盖会提高适应度，不强制）
-  subjectStrict?: boolean           // 是否严格按学科筛选（默认 true）
-  algorithm?: GeneticAlgorithmOptions
-}
-
-interface GeneticAlgorithmOptions {
-  populationSize?: number           // 种群规模，20–500（默认 80）
-  generations?: number              // 迭代代数，10–1000（默认 120）
-  crossoverRate?: number            // 交叉率，0–1（默认 0.85）
-  mutationRate?: number             // 变异率，0–1（默认 0.08）
-  elitismCount?: number             // 精英保留数，1–50（默认 4）
-  tournamentSize?: number           // 锦标赛规模，2–20（默认 3）
-  randomSeed?: number | null        // 随机种子，null 为不固定（默认 null）
+  totalMarks: number                // 试卷总分，> 0；也是自动分配分值的目标总分
+  difficultyCoefficient: number     // 难度系数，0–1；后端保留两位小数
+  questionType: 'choice' | 'true_false' | 'blank' | 'short_answer' | 'essay'
 }
 ```
+
+除 `title`、`subject`、`duration` 这些试卷元数据外，当前自动组卷只接收 `totalMarks`、`difficultyCoefficient`、`questionType` 作为生成输入。候选题会按 `subject`（大小写不敏感精确匹配）和 `questionType` 筛选；题目数量由后端根据 `totalMarks` 与候选题 `scoreWeight` 自动估算，并限制在 `1–100`、`totalMarks`、候选池大小之间。
 
 示例：
 
@@ -1193,30 +1179,8 @@ interface GeneticAlgorithmOptions {
   "subject": "数学",
   "duration": 60,
   "totalMarks": 100,
-  "questionCount": 20,
-  "difficultyTargets": {
-    "easy": 6,
-    "medium": 10,
-    "hard": 4
-  },
-  "typeTargets": {
-    "choice": 8,
-    "blank": 4,
-    "short_answer": 5,
-    "essay": 3
-  },
-  "requiredTags": ["代数", "几何"],
-  "optionalTags": ["函数", "综合"],
-  "subjectStrict": true,
-  "algorithm": {
-    "populationSize": 80,
-    "generations": 120,
-    "crossoverRate": 0.85,
-    "mutationRate": 0.08,
-    "elitismCount": 4,
-    "tournamentSize": 3,
-    "randomSeed": null
-  }
+  "difficultyCoefficient": 0.65,
+  "questionType": "choice"
 }
 ```
 
@@ -1224,23 +1188,19 @@ interface GeneticAlgorithmOptions {
 
 ```typescript
 interface PaperGenerateResponse {
-  paper: PaperEntity                // 创建的试卷对象（含展开试题）
+  paper: PaperEntity                // 创建的试卷对象；questions 为展开后的试题详情并包含 orderNo / marks
   diagnostics: {
     fitness: number                 // 适应度得分
     candidateCount: number          // 候选池试题数
     questionCount: number           // 实际组卷试题数
-    allocationMode: string          // 组卷模式
+    difficultyCoefficient: number   // 请求使用的难度系数（已按后端规则保留两位小数）
     scoreWeightActual: number       // 实际总权重
     marksActual: number             // 实际总分值
     difficultyTargets: Record<string, number>   // 目标难度分布
     difficultyActual: Record<string, number>    // 实际难度分布
     typeTargets: Record<string, number>         // 目标题型分布
     typeActual: Record<string, number>          // 实际题型分布
-    requiredTags: string[]                      // 必选标签
-    coveredRequiredTags: string[]               // 已覆盖的必选标签
-    optionalTags: string[]                      // 可选偏好标签
-    coveredOptionalTags: string[]               // 已覆盖的可选偏好标签
-    algorithm: GeneticAlgorithmOptions & { randomSeed: number | null }
+    generationsRun: number          // 实际迭代代数；候选题数等于题目数时为 0
   }
 }
 ```
@@ -1251,18 +1211,8 @@ interface PaperGenerateResponse {
 | --- | --- | --- |
 | `401` | `UNAUTHORIZED`、`INVALID_TOKEN`、`TOKEN_EXPIRED` | 会话缺失、无效或已过期 |
 | `403` | `FORBIDDEN` | 用户没有 `papers:write` 权限 |
-| `422` | `VALIDATION_ERROR` | 请求体无效，如 `totalMarks < questionCount` |
-| `422` | `INSUFFICIENT_QUESTIONS` | 筛选后的候选池规模小于 `questionCount` |
-
-推荐的默认调参：
-
-| 场景 | 种群规模 | 迭代代数 | 交叉率 | 变异率 | 精英保留数 | 锦标赛规模 |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| 快速预览 | 40 | 60 | 0.80 | 0.10 | 2 | 3 |
-| 标准生产环境默认值 | 80 | 120 | 0.85 | 0.08 | 4 | 3 |
-| 大题库 / 严格约束 | 140 | 220 | 0.88 | 0.06 | 6 | 4 |
-
-在需要可复现的测试运行时设置固定的 `randomSeed`，在正常生产组卷时保持为 `null`。
+| `422` | `VALIDATION_ERROR` | 请求体无效，如必填字段缺失、`title` / `subject` 为空、`duration` / `totalMarks` 不大于 0、`difficultyCoefficient` 不在 `0–1` 范围内，或 `questionType` 不是支持的枚举值 |
+| `422` | `INSUFFICIENT_QUESTIONS` | 按 `subject` 与 `questionType` 筛选后没有可用候选题 |
 
 ## 11. 实现注意事项
 
@@ -1295,11 +1245,10 @@ interface PaperGenerateResponse {
 ### 11.5 遗传算法组卷
 
 - `PaperGenerateRequest` 继承 `PaperBase`（含 `title`、`subject`、`duration`、`totalMarks`）。
-- `allocationMode` 控制组卷模式：`question_count`（按题目数量）或 `total_score`（按总分值，根据 `scoreWeight` 自动估算题目数）。
-- `totalMarks` 必须 ≥ `questionCount`（每道题至少 1 分）。
-- 不传 `difficultyTargets` / `typeTargets` 时，算法不会对对应维度施加约束。
-- `algorithm` 参数全部可选，有合理默认值。
-- 分值分配会根据试题的 `scoreWeight` 字段进行加权计算。
+- 生成输入只包含 `totalMarks`、`difficultyCoefficient`、`questionType`；其他生成字段不再是公开契约。
+- 后端按 `subject` 与 `questionType` 构建候选池，并根据 `difficultyCoefficient` 自动推导 `easy` / `medium` / `hard` 的目标分布。
+- 题目数量根据 `totalMarks` 与候选题 `scoreWeight` 自动估算，并限制为不超过 `100`、`totalMarks` 和候选题数量。
+- 分值分配会根据试题的 `scoreWeight` 字段进行加权计算，最终 `marksActual` 应等于请求的 `totalMarks`。
 
 ### 11.6 数据库迁移
 
