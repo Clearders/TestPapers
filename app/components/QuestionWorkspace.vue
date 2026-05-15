@@ -91,10 +91,6 @@
               <label class="form-label">Duration (min)</label>
               <input v-model.number="paper.duration" type="number" min="1" class="form-input" placeholder="60" />
             </div>
-            <div class="form-group" style="flex:1">
-              <label class="form-label">Total Marks</label>
-              <input v-model.number="paper.totalMarks" type="number" min="1" class="form-input" placeholder="100" />
-            </div>
           </div>
           <label v-if="canReadAnswers" class="export-toggle">
             <input v-model="includeAnswersInExport" type="checkbox" />
@@ -114,124 +110,32 @@
           <div class="generation-sections">
             <section class="generation-section">
               <div class="generation-section__head">
-                <h3>Paper Shape</h3>
-                <span class="form-hint">Match the paper size and difficulty mix.</span>
+                <h3>Generation Settings</h3>
               </div>
-              <div class="generation-grid generation-grid--shape">
+              <div class="generation-grid generation-grid--simple">
                 <div class="form-group compact-field">
-                  <label class="form-label">Allocation</label>
-                  <select v-model="generationForm.allocationMode" class="form-input">
-                    <option value="question_count">By Question Count</option>
-                    <option value="total_score">By Total Marks</option>
+                  <label class="form-label">Total Score</label>
+                  <input v-model.number="paper.totalMarks" class="form-input" type="number" min="1" />
+                </div>
+                <div class="form-group compact-field">
+                  <label class="form-label">Difficulty Coefficient</label>
+                  <input
+                    v-model.number="generationForm.difficultyCoefficient"
+                    class="form-input"
+                    type="number"
+                    min="0"
+                    max="1"
+                    step="0.05"
+                  />
+                </div>
+                <div class="form-group compact-field">
+                  <label class="form-label">Question Type</label>
+                  <select v-model="generationForm.questionType" class="form-input">
+                    <option v-for="type in questionTypeOrder" :key="type" :value="type">
+                      {{ QUESTION_TYPE_LABELS[type] }}
+                    </option>
                   </select>
                 </div>
-                <div class="form-group compact-field">
-                  <label class="form-label">Questions</label>
-                  <input
-                    :value="generationForm.questionCount"
-                    class="form-input"
-                    type="number"
-                    min="1"
-                    max="100"
-                    :disabled="generationForm.allocationMode === 'total_score'"
-                    @input="updateGenerationNumber('questionCount', $event)"
-                  />
-                </div>
-                <div
-                  v-for="field in difficultyGenerationFields"
-                  :key="field.key"
-                  class="form-group compact-field"
-                >
-                  <label class="form-label">{{ field.label }}</label>
-                  <input
-                    :value="generationForm[field.key]"
-                    class="form-input"
-                    type="number"
-                    :min="field.min"
-                    :max="field.max"
-                    :step="field.step"
-                    @input="updateGenerationNumber(field.key, $event)"
-                  />
-                </div>
-              </div>
-            </section>
-
-            <section class="generation-section">
-              <div class="generation-section__head">
-                <h3>Algorithm</h3>
-                <span class="form-hint">Tune search breadth and variation.</span>
-              </div>
-              <div class="generation-grid generation-grid--algorithm">
-                <div
-                  v-for="field in algorithmGenerationFields"
-                  :key="field.key"
-                  class="form-group compact-field"
-                >
-                  <label class="form-label">{{ field.label }}</label>
-                  <input
-                    :value="generationForm[field.key]"
-                    class="form-input"
-                    type="number"
-                    :min="field.min"
-                    :max="field.max"
-                    :step="field.step"
-                    @input="updateGenerationNumber(field.key, $event)"
-                  />
-                </div>
-              </div>
-            </section>
-
-            <section class="generation-section generation-section--tags">
-              <div class="generation-section__head">
-                <h3>Tag Preferences</h3>
-                <span class="tag count-tag">{{ optionalTagCountLabel }}</span>
-              </div>
-              <div class="tag-picker">
-                <div class="tag-search-row">
-                  <input
-                    v-model="tagSearch"
-                    class="form-input"
-                    placeholder="Search optional tags"
-                  />
-                  <button
-                    v-if="generationForm.optionalTags.length"
-                    class="btn btn-outline btn-sm"
-                    type="button"
-                    @click="clearOptionalTags"
-                  >
-                    Clear
-                  </button>
-                </div>
-
-                <div v-if="generationForm.optionalTags.length" class="tag-button-row">
-                  <button
-                    v-for="tag in generationForm.optionalTags"
-                    :key="tag"
-                    class="tag tag-button tag-button--selected"
-                    type="button"
-                    :title="`Remove ${tag}`"
-                    @click="removeOptionalTag(tag)"
-                  >
-                    {{ tag }} <span aria-hidden="true">x</span>
-                  </button>
-                </div>
-
-                <div v-if="filteredOptionalTagOptions.length" class="tag-button-row">
-                  <button
-                    v-for="tag in filteredOptionalTagOptions"
-                    :key="tag"
-                    class="tag tag-button"
-                    type="button"
-                    :title="`Prefer ${tag}`"
-                    @click="addOptionalTag(tag)"
-                  >
-                    {{ tag }}
-                  </button>
-                </div>
-
-                <span v-else-if="isLoadingTags" class="form-hint">Loading tags...</span>
-                <span v-else-if="tagError" class="form-hint form-hint--error">{{ tagError }}</span>
-                <span v-else class="form-hint">No matching optional tags.</span>
               </div>
             </section>
           </div>
@@ -241,7 +145,7 @@
               <button class="btn btn-primary" type="submit" :disabled="isGenerating || !paper.title || !paper.subject">
                 {{ isGenerating ? 'Generating...' : 'Generate Paper' }}
               </button>
-              <span class="form-hint">Uses the current paper title, subject, duration, and total marks.</span>
+              <span class="form-hint">Uses the current paper title, subject, and duration.</span>
             </div>
           </div>
 
@@ -253,9 +157,6 @@
             <span class="summary-pill">Types: {{ formatDistribution(generationDiagnostics.typeActual) }}</span>
             <span v-if="generationDiagnostics.marksActual" class="summary-pill">Marks: {{ generationDiagnostics.marksActual }}</span>
             <span v-if="generationDiagnostics.scoreWeightActual" class="summary-pill">Weight: {{ generationDiagnostics.scoreWeightActual }}</span>
-            <span v-if="generationDiagnostics.optionalTags?.length" class="summary-pill">
-              Optional tags: {{ formatTagCoverage(generationDiagnostics.coveredOptionalTags, generationDiagnostics.optionalTags) }}
-            </span>
             <span class="summary-pill">Candidates: {{ generationDiagnostics.candidateCount }}</span>
           </div>
         </form>
@@ -409,9 +310,7 @@ interface GenerationDiagnostics {
   candidateCount: number
   difficultyActual: Record<string, number>
   typeActual: Record<string, number>
-  optionalTags?: string[]
-  coveredOptionalTags?: string[]
-  allocationMode?: string
+  difficultyCoefficient?: number
   scoreWeightActual?: number
   marksActual?: number
 }
@@ -457,42 +356,10 @@ type ExportMode = 'paper' | 'categorized'
 type QuestionType = Question['type']
 type QuestionDifficulty = Question['difficulty']
 type BankMode = 'all' | 'mine'
-type AllocationMode = 'question_count' | 'total_score'
 interface GenerationFormState {
-  allocationMode: AllocationMode
-  questionCount: number
-  easy: number
-  medium: number
-  hard: number
-  populationSize: number
-  generations: number
-  crossoverRate: number
-  mutationRate: number
-  optionalTags: string[]
+  difficultyCoefficient: number
+  questionType: QuestionType
 }
-
-type NumericGenerationFieldKey = Exclude<keyof GenerationFormState, 'allocationMode' | 'optionalTags'>
-
-interface NumericGenerationField {
-  key: NumericGenerationFieldKey
-  label: string
-  min: number
-  max?: number
-  step?: number
-}
-
-const difficultyGenerationFields: readonly NumericGenerationField[] = [
-  { key: 'easy', label: 'Easy', min: 0 },
-  { key: 'medium', label: 'Medium', min: 0 },
-  { key: 'hard', label: 'Hard', min: 0 }
-] as const
-
-const algorithmGenerationFields: readonly NumericGenerationField[] = [
-  { key: 'populationSize', label: 'Population', min: 20, max: 500 },
-  { key: 'generations', label: 'Generations', min: 10, max: 1000 },
-  { key: 'crossoverRate', label: 'Crossover', min: 0, max: 1, step: 0.01 },
-  { key: 'mutationRate', label: 'Mutation', min: 0, max: 1, step: 0.01 }
-] as const
 
 const search = ref('')
 const filterSubject = ref('')
@@ -507,10 +374,6 @@ const pageSize = ref(20)
 const isGenerating = ref(false)
 const generationError = ref('')
 const generationDiagnostics = ref<GenerationDiagnostics | null>(null)
-const tagOptions = ref<string[]>([])
-const tagSearch = ref('')
-const isLoadingTags = ref(false)
-const tagError = ref('')
 const savedPaperId = ref<number | null>(null)
 const savedPaperSignature = ref('')
 const isDownloadingDocx = ref(false)
@@ -530,16 +393,8 @@ const questionTypeOrder: QuestionType[] = ['choice', 'true_false', 'blank', 'sho
 const canReadQuestions = computed(() => hasPermission('questions:read'))
 
 const generationForm = reactive<GenerationFormState>({
-  allocationMode: 'question_count' as AllocationMode,
-  questionCount: 5,
-  easy: 2,
-  medium: 2,
-  hard: 1,
-  populationSize: 80,
-  generations: 120,
-  crossoverRate: 0.85,
-  mutationRate: 0.08,
-  optionalTags: [] as string[]
+  difficultyCoefficient: 0.5,
+  questionType: 'choice'
 })
 
 const currentQuestions = computed(() => bankMode.value === 'mine' ? myQuestions.value : questions.value)
@@ -556,7 +411,6 @@ watch(
   ([ready, allowed]) => {
     if (ready && allowed) {
       void loadCurrentPage(1)
-      void loadTagOptions()
     }
   },
   { immediate: true }
@@ -607,25 +461,6 @@ const subjects = computed(() => {
   const seen = new Set<string>()
   for (const q of currentQuestions.value) seen.add(q.subject)
   return [...seen].sort()
-})
-
-const selectedOptionalTagKeys = computed(() => {
-  return new Set(generationForm.optionalTags.map(tag => tag.toLowerCase()))
-})
-
-const optionalTagCountLabel = computed(() => {
-  const count = generationForm.optionalTags.length
-  return `${count} optional tag${count !== 1 ? 's' : ''}`
-})
-
-const filteredOptionalTagOptions = computed(() => {
-  const keyword = tagSearch.value.trim().toLowerCase()
-  return tagOptions.value
-    .filter((tag) => {
-      const tagKey = tag.toLowerCase()
-      return !selectedOptionalTagKeys.value.has(tagKey) && (!keyword || tagKey.includes(keyword))
-    })
-    .slice(0, 12)
 })
 
 const exportSections = computed(() => {
@@ -801,42 +636,6 @@ async function downloadDocx () {
   }
 }
 
-async function loadTagOptions () {
-  if (isLoadingTags.value || tagOptions.value.length) return
-
-  isLoadingTags.value = true
-  tagError.value = ''
-  try {
-    const response = await apiFetch<string[]>('/meta/tags', { method: 'GET' })
-    tagOptions.value = Array.from(new Set((response.data || []).filter(Boolean))).sort((a, b) => a.localeCompare(b))
-  } catch (error) {
-    tagError.value = error instanceof Error ? error.message : 'Failed to load tags.'
-  } finally {
-    isLoadingTags.value = false
-  }
-}
-
-function addOptionalTag (tag: string) {
-  const normalized = tag.trim()
-  if (!normalized || selectedOptionalTagKeys.value.has(normalized.toLowerCase())) return
-  generationForm.optionalTags.push(normalized)
-  tagSearch.value = ''
-}
-
-function removeOptionalTag (tag: string) {
-  const index = generationForm.optionalTags.findIndex(item => item.toLowerCase() === tag.toLowerCase())
-  if (index !== -1) generationForm.optionalTags.splice(index, 1)
-}
-
-function clearOptionalTags () {
-  generationForm.optionalTags.length = 0
-}
-
-function updateGenerationNumber (key: NumericGenerationFieldKey, event: Event) {
-  const value = (event.target as HTMLInputElement).valueAsNumber
-  generationForm[key] = Number.isNaN(value) ? 0 : value
-}
-
 function boundedNumber (value: number, fallback: number, min: number, max?: number) {
   if (!Number.isFinite(value)) return fallback
   const upperBounded = typeof max === 'number' ? Math.min(value, max) : value
@@ -845,16 +644,6 @@ function boundedNumber (value: number, fallback: number, min: number, max?: numb
 
 function boundedInteger (value: number, fallback: number, min: number, max?: number) {
   return Math.round(boundedNumber(value, fallback, min, max))
-}
-
-function generationDifficultyTargets () {
-  const targets = {
-    easy: boundedInteger(generationForm.easy, 0, 0),
-    medium: boundedInteger(generationForm.medium, 0, 0),
-    hard: boundedInteger(generationForm.hard, 0, 0)
-  }
-
-  return Object.fromEntries(Object.entries(targets).filter(([, value]) => value > 0))
 }
 
 function generationRequestBody () {
@@ -866,31 +655,14 @@ function generationRequestBody () {
   }
 
   const totalMarks = boundedInteger(paper.totalMarks, 100, 1)
-  const questionCount = boundedInteger(generationForm.questionCount, Math.min(10, totalMarks), 1, Math.min(100, totalMarks))
-  const body: Record<string, unknown> = {
+  return {
     title,
     subject,
     duration: boundedInteger(paper.duration, 60, 1),
     totalMarks,
-    allocationMode: generationForm.allocationMode,
-    difficultyTargets: generationDifficultyTargets(),
-    optionalTags: [...generationForm.optionalTags],
-    subjectStrict: false,
-    algorithm: {
-      populationSize: boundedInteger(generationForm.populationSize, 80, 20, 500),
-      generations: boundedInteger(generationForm.generations, 120, 10, 1000),
-      crossoverRate: boundedNumber(generationForm.crossoverRate, 0.85, 0, 1),
-      mutationRate: boundedNumber(generationForm.mutationRate, 0.08, 0, 1),
-      elitismCount: 4,
-      tournamentSize: 3
-    }
+    difficultyCoefficient: boundedNumber(generationForm.difficultyCoefficient, 0.5, 0, 1),
+    questionType: generationForm.questionType
   }
-
-  if (generationForm.allocationMode === 'question_count') {
-    body.questionCount = questionCount
-  }
-
-  return body
 }
 
 function apiErrorMessage (error: unknown, fallback: string) {
@@ -947,10 +719,6 @@ function formatDistribution (distribution: Record<string, number>) {
   return Object.entries(distribution)
     .map(([key, value]) => `${key} ${value}`)
     .join(', ') || '-'
-}
-
-function formatTagCoverage (covered: string[] = [], requested: string[] = []) {
-  return `${covered.length}/${requested.length} covered`
 }
 
 function formatScoreWeight (weight: number) {
@@ -1048,11 +816,8 @@ function getEssayBlankStyle (question: Question) {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
 }
-.generation-grid--shape {
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-}
-.generation-grid--algorithm {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+.generation-grid--simple {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 .compact-field {
   margin-bottom: 0;
@@ -1084,51 +849,6 @@ function getEssayBlankStyle (question: Question) {
   border-radius: 6px;
   background: rgba(255, 255, 255, 0.72);
 }
-.tag-picker {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.tag-search-row {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-.tag-search-row .form-input {
-  flex: 1;
-  min-width: 0;
-}
-.tag-button-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-.tag-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  min-height: 26px;
-  border: 1px solid rgba(79, 110, 247, 0.28);
-  cursor: pointer;
-  transition: background .2s ease, border-color .2s ease, color .2s ease, transform .2s ease;
-}
-.tag-button:hover {
-  background: #eff3fe;
-  border-color: var(--color-primary);
-  transform: translateY(-1px);
-}
-.tag-button--selected {
-  background: #dcfce7;
-  border-color: #86efac;
-  color: #15803d;
-}
-.tag-button--selected:hover {
-  background: #bbf7d0;
-  border-color: #22c55e;
-}
-.form-hint--error {
-  color: #b91c1c;
-}
 .status-banner {
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
@@ -1145,19 +865,16 @@ function getEssayBlankStyle (question: Question) {
 }
 @media (max-width: 900px) {
   .generation-grid,
-  .generation-grid--shape,
-  .generation-grid--algorithm {
+  .generation-grid--simple {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 @media (max-width: 560px) {
   .generation-grid,
-  .generation-grid--shape,
-  .generation-grid--algorithm {
+  .generation-grid--simple {
     grid-template-columns: 1fr;
   }
 
-  .tag-search-row,
   .generation-footer,
   .paper-actions {
     align-items: stretch;
@@ -1490,7 +1207,6 @@ function getEssayBlankStyle (question: Question) {
 @media (max-width: 560px) {
   .q-footer .btn,
   .paper-actions .btn,
-  .tag-search-row .btn,
   .generation-footer .btn,
   .export-mode-actions .btn {
     width: 100%;

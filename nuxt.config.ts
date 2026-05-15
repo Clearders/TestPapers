@@ -6,18 +6,29 @@ const env = (globalThis as typeof globalThis & {
     env?: Record<string, string | undefined>
   }
 }).process?.env ?? {}
+const serverApiBase = (env.NUXT_API_BASE || env.NUXT_SERVER_API_BASE || DEFAULT_SERVER_API_BASE).replace(/\/+$/, '')
+const publicApiBase = (env.NUXT_PUBLIC_API_BASE || DEFAULT_API_BASE).replace(/\/+$/, '')
+const apiRouteRules = publicApiBase.startsWith('/')
+  ? {
+      [`${publicApiBase}/**`]: {
+        proxy: `${serverApiBase}/**`
+      }
+    }
+  : {}
 
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
 
   runtimeConfig: {
-    apiBase: env.NUXT_API_BASE || env.NUXT_SERVER_API_BASE || DEFAULT_SERVER_API_BASE,
+    apiBase: serverApiBase,
     public: {
-      apiBase: env.NUXT_PUBLIC_API_BASE || DEFAULT_API_BASE,
+      apiBase: publicApiBase,
       wsBase: env.NUXT_PUBLIC_WS_BASE || ''
     }
   },
+
+  routeRules: apiRouteRules,
 
   css: ['katex/dist/katex.min.css'],
 
