@@ -2,7 +2,7 @@
   <section class="register-page">
     <form class="register-card card" @submit.prevent="submitRegister">
       <h1 class="page-title">Create Account</h1>
-      <p class="page-sub">Register a teacher account for question authoring and test paper tools.</p>
+      <p class="page-sub">Register a viewer account for browsing shared question and paper resources.</p>
 
       <div class="form-group">
         <label class="form-label">Username</label>

@@ -18,6 +18,7 @@ export const QUESTION_TYPE_LABELS: Record<Question['type'], string> = {
 
 // Module-level regex to avoid recompilation
 const LATEX_DETECT_RE = /(\$\$[^$]+\$\$|\$[^$]+\$)/
+const MAX_IMAGE_UPLOAD_BYTES = 30 * 1024 * 1024
 
 function hasLatexContent (question: Partial<QuestionEntity>) {
   if (LATEX_DETECT_RE.test(question.text || '') || LATEX_DETECT_RE.test(question.answer || '')) return true
@@ -108,7 +109,7 @@ export function useQuestionBank () {
   const questionPagination = useState<ApiPagination>('question-bank-pagination', () => ({ page: 1, pageSize: 20, total: 0, totalPages: 0 }))
   const myQuestionPagination = useState<ApiPagination>('my-question-bank-pagination', () => ({ page: 1, pageSize: 20, total: 0, totalPages: 0 }))
   const { hasPermission } = useAuth()
-  const { apiFetch } = useApi()
+  const { apiFetch, getApiBase } = useApi()
 
   const loadQuestions = async (params: QuestionQueryParams = {}) => {
     if (isLoading.value) return
@@ -197,6 +198,14 @@ export function useQuestionBank () {
   }
 
   const uploadImage = async (file: File): Promise<string> => {
+    const isPng = file.type === 'image/png' || file.name.toLowerCase().endsWith('.png')
+    if (!isPng) {
+      throw new Error('Only PNG images are supported.')
+    }
+    if (file.size > MAX_IMAGE_UPLOAD_BYTES) {
+      throw new Error('PNG image must be 30MB or smaller.')
+    }
+
     const base64 = await new Promise<string>((resolve, reject) => {
       const reader = new FileReader()
       reader.onload = () => {
@@ -216,7 +225,8 @@ export function useQuestionBank () {
       }
     })
 
-    return response.data.url
+    if (response.data.url.startsWith('data:')) return response.data.url
+    return new URL(response.data.url, new URL(getApiBase(), window.location.origin)).toString()
   }
 
   return {

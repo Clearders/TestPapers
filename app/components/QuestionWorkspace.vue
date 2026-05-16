@@ -98,7 +98,7 @@
           </label>
         </div>
 
-        <form class="card generation-card" @submit.prevent="generatePaper">
+        <form v-if="canWritePapers" class="card generation-card" @submit.prevent="generatePaper">
           <div class="panel-head generation-card__head">
             <div>
               <h2>Auto Generate</h2>
@@ -160,6 +160,14 @@
             <span class="summary-pill">Candidates: {{ generationDiagnostics.candidateCount }}</span>
           </div>
         </form>
+        <div v-else class="card generation-card">
+          <div class="panel-head generation-card__head">
+            <div>
+              <h2>Auto Generate</h2>
+              <p class="panel-sub">Paper generation requires papers:write permission.</p>
+            </div>
+          </div>
+        </div>
 
         <Transition name="fade" mode="out-in">
           <TransitionGroup name="list" tag="div" class="paper-question-list" v-if="paper.questions.length">
@@ -391,6 +399,7 @@ const exported = ref(false)
 const questionTypeOrder: QuestionType[] = ['choice', 'true_false', 'blank', 'short_answer', 'essay']
 
 const canReadQuestions = computed(() => hasPermission('questions:read'))
+const canWritePapers = computed(() => hasPermission('papers:write'))
 
 const generationForm = reactive<GenerationFormState>({
   difficultyCoefficient: 0.5,
@@ -670,8 +679,27 @@ function apiErrorMessage (error: unknown, fallback: string) {
 
   const candidate = error as {
     message?: string
-    data?: { detail?: unknown }
+    data?: {
+      detail?: unknown
+      error?: {
+        message?: unknown
+        details?: unknown
+      }
+    }
   }
+  const envelopeError = candidate.data?.error
+  if (envelopeError && typeof envelopeError.message === 'string' && envelopeError.message.trim()) {
+    const details = envelopeError.details
+    if (Array.isArray(details) && details.length) {
+      const firstDetail = details[0] as { field?: unknown, reason?: unknown } | undefined
+      if (firstDetail && typeof firstDetail.reason === 'string' && firstDetail.reason.trim()) {
+        const field = typeof firstDetail.field === 'string' && firstDetail.field.trim() ? `${firstDetail.field}: ` : ''
+        return `${field}${firstDetail.reason}`
+      }
+    }
+    return envelopeError.message
+  }
+
   const detail = candidate.data?.detail
   if (typeof detail === 'string' && detail.trim()) return detail
   if (typeof detail === 'object' && detail !== null && 'message' in detail) {
@@ -688,6 +716,10 @@ function apiErrorMessage (error: unknown, fallback: string) {
 async function generatePaper () {
   generationError.value = ''
   generationDiagnostics.value = null
+  if (!canWritePapers.value) {
+    generationError.value = 'You do not have permission to generate papers.'
+    return
+  }
   const body = generationRequestBody()
   if (!body) return
   isGenerating.value = true

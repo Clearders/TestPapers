@@ -20,7 +20,7 @@
       </form>
 
       <p class="register-prompt">
-        Need a teacher account?
+        Need an account?
         <NuxtLink to="/register">Create one</NuxtLink>
       </p>
     </div>

@@ -5,7 +5,7 @@
       <input
         ref="imageInput"
         type="file"
-        accept="image/*"
+        accept="image/png"
         class="form-input image-input"
         @change="handleSelected"
       />

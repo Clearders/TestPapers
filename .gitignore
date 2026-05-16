@@ -12,6 +12,8 @@ node_modules
 # Logs
 logs
 *.log
+*.pid
+*-job.id
 
 # Misc
 .DS_Store

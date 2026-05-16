@@ -13,7 +13,11 @@ const props = defineProps<{
 const el = ref<HTMLElement | null>(null)
 
 async function render () {
-  if (!el.value || !props.formula.trim()) return
+  if (!el.value) return
+  if (!props.formula.trim()) {
+    el.value.textContent = ''
+    return
+  }
   try {
     const katex = await import('katex')
     katex.default.render(props.formula, el.value, {
@@ -26,7 +30,7 @@ async function render () {
 }
 
 onMounted(render)
-watch(() => props.formula, render)
+watch(() => [props.formula, props.block], render)
 </script>
 
 <style scoped>
