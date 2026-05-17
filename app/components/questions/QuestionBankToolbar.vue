@@ -49,7 +49,7 @@
 
 <script setup lang="ts">
 import type { QuestionDifficulty } from '~/types/question'
-import { DIFFICULTY_OPTIONS, isQuestionDifficulty } from '~/utils/questionDomain'
+import { DIFFICULTY_OPTIONS, isQuestionDifficulty } from '~/domain/questions'
 
 defineProps<{
   bankMode: 'all' | 'mine'

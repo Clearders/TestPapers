@@ -72,7 +72,7 @@
 
 <script setup lang="ts">
 import type { Question } from '~/types/question'
-import { isOptionQuestionType } from '~/utils/questionDomain'
+import { isOptionQuestionType } from '~/domain/questions'
 
 defineProps<{
   question: Question

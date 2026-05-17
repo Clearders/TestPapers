@@ -87,7 +87,7 @@
 
 <script setup lang="ts">
 import type { EssayBlankSpace, QuestionDifficulty, QuestionImage, QuestionType } from '~/types/question'
-import { isOptionQuestionType } from '~/utils/questionDomain'
+import { isOptionQuestionType } from '~/domain/questions'
 
 interface ProblemFormPreview {
   type: QuestionType

@@ -4,7 +4,7 @@ import {
   MAX_IMAGE_UPLOAD_BYTES,
   normalizeQuestion,
   toQuestionPayload
-} from '~/utils/questionDomain'
+} from '~/domain/questions'
 
 export type { EssayBlankSpace, Question, QuestionEntity, QuestionFormInput, QuestionImage, QuestionQueryParams } from '~/types/question'
 

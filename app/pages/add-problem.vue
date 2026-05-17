@@ -201,7 +201,7 @@ import {
   QUESTION_TYPE_OPTIONS,
   getEssayBlankHeightPx,
   isOptionQuestionType
-} from '~/utils/questionDomain'
+} from '~/domain/questions'
 
 definePageMeta({
   requiresAuth: true,

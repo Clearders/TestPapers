@@ -312,7 +312,7 @@ import PaginationControls from '~/components/questions/PaginationControls.vue'
 import QuestionBankCard from '~/components/questions/QuestionBankCard.vue'
 import QuestionBankToolbar from '~/components/questions/QuestionBankToolbar.vue'
 import type { Question } from '~/types/question'
-import { QUESTION_TYPE_LABELS, QUESTION_TYPE_ORDER, getEssayBlankHeightPx, isOptionQuestionType } from '~/utils/questionDomain'
+import { QUESTION_TYPE_LABELS, QUESTION_TYPE_ORDER, getEssayBlankHeightPx, isOptionQuestionType } from '~/domain/questions'
 
 interface GenerationDiagnostics {
   fitness: number
