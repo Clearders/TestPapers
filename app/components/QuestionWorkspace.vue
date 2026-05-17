@@ -316,6 +316,7 @@ import { QUESTION_TYPE_LABELS, getEssayBlankHeightPx, type Question } from '~/co
 interface GenerationDiagnostics {
   fitness: number
   candidateCount: number
+  ownQuestionsOnly?: boolean
   difficultyActual: Record<string, number>
   typeActual: Record<string, number>
   difficultyCoefficient?: number
@@ -670,7 +671,8 @@ function generationRequestBody () {
     duration: boundedInteger(paper.duration, 60, 1),
     totalMarks,
     difficultyCoefficient: boundedNumber(generationForm.difficultyCoefficient, 0.5, 0, 1),
-    questionType: generationForm.questionType
+    questionType: generationForm.questionType,
+    ownQuestionsOnly: bankMode.value === 'mine'
   }
 }
 
