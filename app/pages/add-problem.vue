@@ -195,7 +195,7 @@
 <script setup lang="ts">
 import AddProblemPreview from '~/components/questions/AddProblemPreview.vue'
 import QuestionImageUploader from '~/components/questions/QuestionImageUploader.vue'
-import { DEFAULT_ESSAY_BLANK_SPACE, type QuestionImage } from '~/composables/useQuestionBank'
+import { DEFAULT_ESSAY_BLANK_SPACE, getEssayBlankHeightPx, type QuestionImage } from '~/composables/useQuestionBank'
 
 definePageMeta({
   requiresAuth: true,
@@ -245,7 +245,7 @@ watch(
 )
 
 const essayBlankHeight = computed(() => {
-  return Math.max(1, form.essayBlankSpace.lines) * Math.max(20, form.essayBlankSpace.lineHeight)
+  return getEssayBlankHeightPx(form.essayBlankSpace)
 })
 
 function addTag () {

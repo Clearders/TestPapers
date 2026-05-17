@@ -311,7 +311,7 @@
 import PaginationControls from '~/components/questions/PaginationControls.vue'
 import QuestionBankCard from '~/components/questions/QuestionBankCard.vue'
 import QuestionBankToolbar from '~/components/questions/QuestionBankToolbar.vue'
-import { DEFAULT_ESSAY_BLANK_SPACE, QUESTION_TYPE_LABELS, type Question } from '~/composables/useQuestionBank'
+import { QUESTION_TYPE_LABELS, getEssayBlankHeightPx, type Question } from '~/composables/useQuestionBank'
 
 interface GenerationDiagnostics {
   fitness: number
@@ -763,12 +763,8 @@ function toggleAnswer (id: number) {
 }
 
 function getEssayBlankStyle (question: Question) {
-  const blankSpace = question.essayBlankSpace ?? DEFAULT_ESSAY_BLANK_SPACE
-  const lineHeight = Math.max(20, blankSpace.lineHeight)
-  const minHeight = Math.max(1, blankSpace.lines) * lineHeight
-
   return {
-    minHeight: `${minHeight}px`
+    minHeight: `${getEssayBlankHeightPx(question.essayBlankSpace)}px`
   }
 }
 </script>
