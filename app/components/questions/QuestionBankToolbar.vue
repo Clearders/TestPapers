@@ -38,9 +38,9 @@
         @change="onDifficultyChange"
       >
         <option value="">All difficulties</option>
-        <option value="easy">Easy</option>
-        <option value="medium">Medium</option>
-        <option value="hard">Hard</option>
+        <option v-for="option in DIFFICULTY_OPTIONS" :key="option.value" :value="option.value">
+          {{ option.label }}
+        </option>
       </select>
       <NuxtLink v-if="canCreateQuestions" to="/add-problem" class="btn btn-primary">+ Add Problem</NuxtLink>
     </div>
@@ -49,6 +49,7 @@
 
 <script setup lang="ts">
 import type { QuestionDifficulty } from '~/types/question'
+import { DIFFICULTY_OPTIONS, isQuestionDifficulty } from '~/utils/questionDomain'
 
 defineProps<{
   bankMode: 'all' | 'mine'
@@ -65,12 +66,6 @@ const emit = defineEmits<{
   'update:filterSubject': [value: string]
   'update:filterDifficulty': [value: QuestionDifficulty | '']
 }>()
-
-const difficultyOptions = new Set<QuestionDifficulty>(['easy', 'medium', 'hard'])
-
-function isQuestionDifficulty(value: string): value is QuestionDifficulty {
-  return difficultyOptions.has(value as QuestionDifficulty)
-}
 
 function onDifficultyChange(event: Event) {
   const value = (event.target as HTMLSelectElement).value

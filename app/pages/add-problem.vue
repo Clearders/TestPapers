@@ -16,11 +16,9 @@
             <div class="form-group" style="flex:1">
               <label class="form-label">Type <span class="required">*</span></label>
               <select v-model="form.type" class="form-input" required>
-                <option value="choice">Multiple Choice</option>
-                <option value="true_false">True / False</option>
-                <option value="blank">Fill in the Blank</option>
-                <option value="short_answer">Short Answer</option>
-                <option value="essay">Essay</option>
+                <option v-for="option in QUESTION_TYPE_OPTIONS" :key="option.value" :value="option.value">
+                  {{ option.label }}
+                </option>
               </select>
             </div>
           </div>
@@ -34,9 +32,9 @@
               <label class="form-label">Difficulty <span class="required">*</span></label>
               <select v-model="form.difficulty" class="form-input" required>
                 <option value="">Select</option>
-                <option value="easy">Easy</option>
-                <option value="medium">Medium</option>
-                <option value="hard">Hard</option>
+                <option v-for="option in DIFFICULTY_OPTIONS" :key="option.value" :value="option.value">
+                  {{ option.label }}
+                </option>
               </select>
             </div>
             <div class="form-group" style="flex:1">
@@ -142,7 +140,7 @@
           <div class="form-group">
             <label class="form-label">Answer <span class="required">*</span></label>
             <textarea
-              v-if="form.type !== 'choice' && form.type !== 'true_false'"
+              v-if="!usesOptionAnswers"
               v-model="form.answer"
               class="form-input form-textarea form-textarea--short"
               placeholder="e.g. $x = 4$"
@@ -195,7 +193,15 @@
 <script setup lang="ts">
 import AddProblemPreview from '~/components/questions/AddProblemPreview.vue'
 import QuestionImageUploader from '~/components/questions/QuestionImageUploader.vue'
-import { DEFAULT_ESSAY_BLANK_SPACE, getEssayBlankHeightPx, type QuestionImage } from '~/composables/useQuestionBank'
+import type { QuestionDifficulty, QuestionImage, QuestionType } from '~/types/question'
+import {
+  DEFAULT_ESSAY_BLANK_SPACE,
+  DIFFICULTY_OPTIONS,
+  LATEX_QUICK_REFERENCE,
+  QUESTION_TYPE_OPTIONS,
+  getEssayBlankHeightPx,
+  isOptionQuestionType
+} from '~/utils/questionDomain'
 
 definePageMeta({
   requiresAuth: true,
@@ -213,9 +219,9 @@ const uploadingImage = ref(false)
 const canCreateQuestions = computed(() => hasPermission('questions:write'))
 
 const form = reactive({
-  type: 'choice' as 'choice' | 'true_false' | 'blank' | 'short_answer' | 'essay',
+  type: 'choice' as QuestionType,
   subject: '',
-  difficulty: '' as '' | 'easy' | 'medium' | 'hard',
+  difficulty: '' as QuestionDifficulty | '',
   tags: [] as string[],
   questionText: '',
   options: ['', '', '', ''] as string[],
@@ -225,6 +231,8 @@ const form = reactive({
   scoreWeight: 1,
   images: [] as QuestionImage[]
 })
+
+const usesOptionAnswers = computed(() => isOptionQuestionType(form.type))
 
 watch(() => form.type, () => {
   form.answer = ''
@@ -291,10 +299,10 @@ async function submitProblem () {
     await addQuestion({
       type: form.type,
       subject: form.subject.trim(),
-      difficulty: form.difficulty as 'easy' | 'medium' | 'hard',
+      difficulty: form.difficulty as QuestionDifficulty,
       tags: [...form.tags],
       text: form.questionText.trim(),
-      options: (form.type === 'choice' || form.type === 'true_false')
+      options: usesOptionAnswers.value
         ? form.options.map(option => option.trim()).filter(Boolean)
         : undefined,
       answer: form.answer.trim(),
@@ -342,16 +350,7 @@ function handleReset () {
 }
 
 // Module-level constant - never changes, no need for computed
-const cheatSheet = [
-  { label: 'Fraction', code: '\\frac{a}{b}', formula: '\\frac{a}{b}' },
-  { label: 'Square root', code: '\\sqrt{x}', formula: '\\sqrt{x}' },
-  { label: 'Power', code: 'x^{2}', formula: 'x^{2}' },
-  { label: 'Subscript', code: 'x_{n}', formula: 'x_{n}' },
-  { label: 'Integral', code: '\\int_a^b f\\,dx', formula: '\\int_a^b f\\,dx' },
-  { label: 'Sum', code: '\\sum_{i=1}^n i', formula: '\\sum_{i=1}^n i' },
-  { label: 'Infinity', code: '\\infty', formula: '\\infty' },
-  { label: 'Greek', code: '\\alpha, \\beta', formula: '\\alpha, \\beta' }
-]
+const cheatSheet = LATEX_QUICK_REFERENCE
 </script>
 
 <style scoped>

@@ -1,117 +1,12 @@
 import type { ApiPagination, PaginatedData } from '~/types/api'
-import type { EssayBlankSpace, Question, QuestionEntity, QuestionFormInput, QuestionQueryParams } from '~/types/question'
+import type { Question, QuestionEntity, QuestionFormInput, QuestionQueryParams } from '~/types/question'
+import {
+  MAX_IMAGE_UPLOAD_BYTES,
+  normalizeQuestion,
+  toQuestionPayload
+} from '~/utils/questionDomain'
 
 export type { EssayBlankSpace, Question, QuestionEntity, QuestionFormInput, QuestionImage, QuestionQueryParams } from '~/types/question'
-
-export const DEFAULT_ESSAY_BLANK_SPACE: EssayBlankSpace = {
-  lines: 6,
-  lineHeight: 28
-}
-
-const ESSAY_BLANK_SPACE_BOUNDS = {
-  minLines: 1,
-  maxLines: 20,
-  minLineHeight: 20,
-  maxLineHeight: 48
-}
-
-export const QUESTION_TYPE_LABELS: Record<Question['type'], string> = {
-  choice: 'Multiple Choice',
-  true_false: 'True / False',
-  blank: 'Fill in the Blank',
-  short_answer: 'Short Answer',
-  essay: 'Essay'
-}
-
-// Module-level regex to avoid recompilation
-const LATEX_DETECT_RE = /(\$\$[^$]+\$\$|\$[^$]+\$)/
-const MAX_IMAGE_UPLOAD_BYTES = 30 * 1024 * 1024
-
-function boundedInteger (value: unknown, fallback: number, min: number, max: number) {
-  const parsed = Number(value)
-  if (!Number.isFinite(parsed)) return fallback
-  return Math.max(min, Math.min(max, Math.trunc(parsed)))
-}
-
-export function normalizeEssayBlankSpace (blankSpace?: Partial<EssayBlankSpace> | null): EssayBlankSpace {
-  return {
-    lines: boundedInteger(
-      blankSpace?.lines,
-      DEFAULT_ESSAY_BLANK_SPACE.lines,
-      ESSAY_BLANK_SPACE_BOUNDS.minLines,
-      ESSAY_BLANK_SPACE_BOUNDS.maxLines
-    ),
-    lineHeight: boundedInteger(
-      blankSpace?.lineHeight,
-      DEFAULT_ESSAY_BLANK_SPACE.lineHeight,
-      ESSAY_BLANK_SPACE_BOUNDS.minLineHeight,
-      ESSAY_BLANK_SPACE_BOUNDS.maxLineHeight
-    )
-  }
-}
-
-export function getEssayBlankHeightPx (blankSpace?: Partial<EssayBlankSpace> | null) {
-  const normalized = normalizeEssayBlankSpace(blankSpace)
-  return normalized.lines * normalized.lineHeight
-}
-
-function hasLatexContent (question: Partial<QuestionEntity>) {
-  if (LATEX_DETECT_RE.test(question.text || '') || LATEX_DETECT_RE.test(question.answer || '')) return true
-  if (!Array.isArray(question.options)) return false
-  return question.options.some(option => LATEX_DETECT_RE.test(option || ''))
-}
-
-function normalizeQuestion (question: Partial<QuestionEntity> & { id: number }): Question {
-  const shouldUseEssayBlankSpace = question.type === 'essay'
-  const essayBlankSpace = shouldUseEssayBlankSpace
-    ? normalizeEssayBlankSpace(question.essayBlankSpace)
-    : undefined
-
-  const tags = Array.isArray(question.tags) ? question.tags : []
-  const options = Array.isArray(question.options) ? question.options : undefined
-  const images = Array.isArray(question.images) ? question.images : []
-  const scoreWeight = Math.max(0.01, Math.min(100, Number(question.scoreWeight) || 1))
-
-  const hasLatex = typeof question.hasLatex === 'boolean'
-    ? question.hasLatex
-    : hasLatexContent(question)
-
-  return {
-    id: question.id,
-    type: question.type as Question['type'],
-    subject: question.subject || '',
-    difficulty: question.difficulty as Question['difficulty'] || 'medium',
-    text: question.text || '',
-    answer: question.answer || '',
-    source: question.source,
-    tags,
-    options,
-    images,
-    scoreWeight,
-    essayBlankSpace,
-    hasLatex,
-    ownerId: question.ownerId ?? null
-  }
-}
-
-function toPayload (input: QuestionFormInput) {
-  return {
-    type: input.type,
-    subject: input.subject.trim(),
-    difficulty: input.difficulty,
-    tags: input.tags,
-    text: input.text.trim(),
-    options: (input.type === 'choice' || input.type === 'true_false') ? input.options || [] : undefined,
-    answer: input.answer.trim(),
-    source: input.source?.trim() || undefined,
-    essayBlankSpace: input.type === 'essay'
-      ? normalizeEssayBlankSpace(input.essayBlankSpace)
-      : undefined,
-    images: input.images || [],
-    scoreWeight: Math.max(0.01, Math.min(100, Number(input.scoreWeight) || 1)),
-    hasLatex: input.hasLatex
-  }
-}
 
 function upsertQuestion (state: { value: Question[] }, question: Question) {
   const existingIndex = state.value.findIndex(item => item.id === question.id)
@@ -197,7 +92,7 @@ export function useQuestionBank () {
   const addQuestion = async (input: QuestionFormInput) => {
     const response = await apiFetch<QuestionEntity>('/questions', {
       method: 'POST',
-      body: toPayload(input)
+      body: toQuestionPayload(input)
     })
 
     const normalized = normalizeQuestion(response.data)

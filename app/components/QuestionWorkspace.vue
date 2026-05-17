@@ -131,7 +131,7 @@
                 <div class="form-group compact-field">
                   <label class="form-label">Question Type</label>
                   <select v-model="generationForm.questionType" class="form-input">
-                    <option v-for="type in questionTypeOrder" :key="type" :value="type">
+                    <option v-for="type in QUESTION_TYPE_ORDER" :key="type" :value="type">
                       {{ QUESTION_TYPE_LABELS[type] }}
                     </option>
                   </select>
@@ -261,7 +261,7 @@
                     </template>
                   </div>
 
-                  <div v-if="(q.type === 'choice' || q.type === 'true_false') && q.options?.length" class="export-options">
+                  <div v-if="isOptionQuestionType(q.type) && q.options?.length" class="export-options">
                     <div v-for="(opt, idx) in q.options" :key="idx" class="export-option">
                       <span class="q-option-label">{{ String.fromCharCode(65 + idx) }}.</span>
                       <span>
@@ -311,7 +311,8 @@
 import PaginationControls from '~/components/questions/PaginationControls.vue'
 import QuestionBankCard from '~/components/questions/QuestionBankCard.vue'
 import QuestionBankToolbar from '~/components/questions/QuestionBankToolbar.vue'
-import { QUESTION_TYPE_LABELS, getEssayBlankHeightPx, type Question } from '~/composables/useQuestionBank'
+import type { Question } from '~/types/question'
+import { QUESTION_TYPE_LABELS, QUESTION_TYPE_ORDER, getEssayBlankHeightPx, isOptionQuestionType } from '~/utils/questionDomain'
 
 interface GenerationDiagnostics {
   fitness: number
@@ -397,7 +398,6 @@ const paper = reactive({
 })
 
 const exported = ref(false)
-const questionTypeOrder: QuestionType[] = ['choice', 'true_false', 'blank', 'short_answer', 'essay']
 
 const canReadQuestions = computed(() => hasPermission('questions:read'))
 const canWritePapers = computed(() => hasPermission('papers:write'))
@@ -488,7 +488,7 @@ const exportSections = computed(() => {
 
   const sections: { key: string; title: string; questions: PaperQuestion[]; start: number }[] = []
   let start = 1
-  for (const type of questionTypeOrder) {
+  for (const type of QUESTION_TYPE_ORDER) {
     const questions = byType.get(type)
     if (!questions || !questions.length) continue
     sections.push({ key: type, title: QUESTION_TYPE_LABELS[type], questions, start })

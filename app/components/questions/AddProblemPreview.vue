@@ -56,7 +56,7 @@
       <div v-if="form.answer" class="preview-section">
         <span class="preview-label">Answer</span>
         <div class="preview-content">
-          <template v-if="form.type === 'choice' || form.type === 'true_false'">
+          <template v-if="isOptionQuestionType(form.type)">
             <strong>{{ form.answer }}</strong>
           </template>
           <template v-else v-for="(part, i) in parseLatexParts(form.answer)" :key="'a' + i">
@@ -87,6 +87,7 @@
 
 <script setup lang="ts">
 import type { EssayBlankSpace, QuestionDifficulty, QuestionImage, QuestionType } from '~/types/question'
+import { isOptionQuestionType } from '~/utils/questionDomain'
 
 interface ProblemFormPreview {
   type: QuestionType

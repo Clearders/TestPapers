@@ -19,7 +19,7 @@
         </template>
       </div>
 
-      <div v-if="(question.type === 'choice' || question.type === 'true_false') && question.options?.length" class="q-options">
+      <div v-if="isOptionQuestionType(question.type) && question.options?.length" class="q-options">
         <div v-for="(opt, idx) in question.options" :key="idx" class="q-option">
           <span class="q-option-label">{{ String.fromCharCode(65 + idx) }}.</span>
           <template v-for="(part, i) in parseLatexParts(opt)" :key="i">
@@ -72,6 +72,7 @@
 
 <script setup lang="ts">
 import type { Question } from '~/types/question'
+import { isOptionQuestionType } from '~/utils/questionDomain'
 
 defineProps<{
   question: Question
