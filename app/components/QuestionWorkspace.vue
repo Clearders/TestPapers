@@ -952,23 +952,84 @@ function getEssayBlankStyle (question: Question) {
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
 }
 .setting-card--score {
-  border-top: 4px solid #ef4444;
+  border-top: 3px solid var(--color-primary);
 }
 .setting-card--diff {
-  border-top: 4px solid #f59e0b;
+  border-top: 3px solid #22c55e;
 }
 .setting-card--type {
-  border-top: 4px solid #3b82f6;
+  border-top: 3px solid #8b5cf6;
+}
+
+.wheel-selector {
+  display: flex;
+  align-items: center;
+  background: var(--color-border);
+  padding: 4px;
+  border-radius: 999px;
+  gap: 4px;
+  overflow-x: auto;
+  margin-top: 8px;
+}
+.wheel-option {
+  flex: 1;
+  background: transparent;
+  border: none;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--color-muted);
+  text-align: center;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+.wheel-option:hover {
+  color: var(--color-text);
+  background: rgba(255, 255, 255, 0.4);
+}
+.wheel-option--active {
+  background: #ffffff;
+  color: var(--color-primary);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+.custom-score {
+  width: 70px;
+  border-radius: 999px;
+  border: none;
+  text-align: center;
+  padding: 6px;
+  font-size: 0.85rem;
+  background: #ffffff;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+}
+.custom-score:focus {
+  outline: 2px solid var(--color-primary-d);
+}
+
+.setting-card--small {
+  padding: 10px 16px;
 }
 .form-range {
   width: 100%;
-  accent-color: #f59e0b;
+  accent-color: var(--color-primary);
   cursor: pointer;
   margin-top: 8px;
+  height: 4px;
+  background: var(--color-border);
+  border-radius: 2px;
+  appearance: auto;
 }
-.form-range--primary {
-  accent-color: var(--color-primary);
+.form-range::-webkit-slider-thumb {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  background: var(--color-primary);
+  border-radius: 50%;
+  cursor: pointer;
 }
+
 .generation-footer {
   display: flex;
   align-items: center;
