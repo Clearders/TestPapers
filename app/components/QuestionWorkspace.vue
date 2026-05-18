@@ -110,24 +110,25 @@
           <section class="generation-section">
             <div class="generation-section__head">
               <h3>Generation Settings</h3>
+              <span class="badge" style="background: linear-gradient(90deg, #4f6ef7, #22c55e); color: white;">Optimization</span>
             </div>
             <div class="generation-grid">
-              <div class="form-group compact-field">
+              <div class="setting-card setting-card--score">
                 <label class="form-label">Total Score</label>
                 <input v-model.number="paper.totalMarks" class="form-input" type="number" min="1" />
               </div>
-              <div class="form-group compact-field">
-                <label class="form-label">Difficulty Coefficient</label>
+              <div class="setting-card setting-card--diff">
+                <label class="form-label">Difficulty: {{ generationForm.difficultyCoefficient }}</label>
                 <input
                   v-model.number="generationForm.difficultyCoefficient"
-                  class="form-input"
-                  type="number"
-                  min="0"
-                  max="1"
+                  class="form-range"
+                  type="range"
+                  min="0.1"
+                  max="1.0"
                   step="0.05"
                 />
               </div>
-              <div class="form-group compact-field">
+              <div class="setting-card setting-card--type">
                 <label class="form-label">Question Type</label>
                 <select v-model="generationForm.questionType" class="form-input">
                   <option v-for="type in QUESTION_TYPE_ORDER" :key="type" :value="type">
@@ -908,6 +909,36 @@ function getEssayBlankStyle (question: Question) {
 .compact-field {
   margin-bottom: 0;
 }
+.setting-card {
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.setting-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+}
+.setting-card--score {
+  border-top: 4px solid #ef4444;
+}
+.setting-card--diff {
+  border-top: 4px solid #f59e0b;
+}
+.setting-card--type {
+  border-top: 4px solid #3b82f6;
+}
+.form-range {
+  width: 100%;
+  accent-color: #f59e0b;
+  cursor: pointer;
+  margin-top: 8px;
+}
 .generation-footer {
   display: flex;
   align-items: center;
@@ -1241,4 +1272,6 @@ function getEssayBlankStyle (question: Question) {
   }
 }
 </style>
+
+
 
