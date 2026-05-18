@@ -115,26 +115,51 @@
             <div class="generation-grid">
               <div class="setting-card setting-card--score">
                 <label class="form-label">Total Score</label>
-                <input v-model.number="paper.totalMarks" class="form-input" type="number" min="1" />
+                <div class="wheel-selector">
+                  <button
+                    v-for="score in [50, 100, 120, 150]"
+                    :key="score"
+                    type="button"
+                    class="wheel-option"
+                    :class="{ 'wheel-option--active': paper.totalMarks === score }"
+                    @click="paper.totalMarks = score"
+                  >
+                    {{ score }}
+                  </button>
+                  <input
+                    v-model.number="paper.totalMarks"
+                    class="form-input custom-score"
+                    type="number"
+                    min="1"
+                    placeholder="Custom"
+                  />
+                </div>
               </div>
-              <div class="setting-card setting-card--diff">
+              <div class="setting-card setting-card--type">
+                <label class="form-label">Question Type</label>
+                <div class="wheel-selector">
+                  <button
+                    v-for="type in QUESTION_TYPE_ORDER"
+                    :key="type"
+                    type="button"
+                    class="wheel-option"
+                    :class="{ 'wheel-option--active': generationForm.questionType === type }"
+                    @click="generationForm.questionType = type"
+                  >
+                    {{ QUESTION_TYPE_LABELS[type] }}
+                  </button>
+                </div>
+              </div>
+              <div class="setting-card setting-card--diff setting-card--small">
                 <label class="form-label">Difficulty: {{ generationForm.difficultyCoefficient }}</label>
                 <input
                   v-model.number="generationForm.difficultyCoefficient"
-                  class="form-range"
+                  class="form-range form-range--primary"
                   type="range"
                   min="0.1"
                   max="1.0"
                   step="0.05"
                 />
-              </div>
-              <div class="setting-card setting-card--type">
-                <label class="form-label">Question Type</label>
-                <select v-model="generationForm.questionType" class="form-input">
-                  <option v-for="type in QUESTION_TYPE_ORDER" :key="type" :value="type">
-                    {{ QUESTION_TYPE_LABELS[type] }}
-                  </option>
-                </select>
               </div>
             </div>
           </section>
@@ -903,11 +928,13 @@ function getEssayBlankStyle (question: Question) {
 }
 .generation-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 12px;
 }
-.compact-field {
-  margin-bottom: 0;
+@media (min-width: 900px) {
+  .generation-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 .setting-card {
   background: rgba(255, 255, 255, 0.8);
@@ -938,6 +965,9 @@ function getEssayBlankStyle (question: Question) {
   accent-color: #f59e0b;
   cursor: pointer;
   margin-top: 8px;
+}
+.form-range--primary {
+  accent-color: var(--color-primary);
 }
 .generation-footer {
   display: flex;
