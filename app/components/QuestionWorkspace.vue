@@ -77,17 +77,17 @@
           </span>
         </div>
 
-        <div class="card" style="margin-bottom:16px">
+        <div class="card paper-meta-card">
           <div class="form-group">
             <label class="form-label">Paper Title</label>
             <input v-model="paper.title" class="form-input" placeholder="e.g. Mid-term Examination 2026" />
           </div>
           <div class="paper-meta-row">
-            <div class="form-group" style="flex:1">
+            <div class="form-group paper-meta-field">
               <label class="form-label">Subject</label>
               <input v-model="paper.subject" class="form-input" placeholder="e.g. Mathematics" />
             </div>
-            <div class="form-group" style="flex:1">
+            <div class="form-group paper-meta-field">
               <label class="form-label">Duration (min)</label>
               <input v-model.number="paper.duration" type="number" min="1" class="form-input" placeholder="60" />
             </div>
@@ -107,42 +107,40 @@
             <span v-if="generationDiagnostics" class="tag count-tag">fitness {{ generationDiagnostics.fitness }}</span>
           </div>
 
-          <div class="generation-sections">
-            <section class="generation-section">
-              <div class="generation-section__head">
-                <h3>Generation Settings</h3>
+          <section class="generation-section">
+            <div class="generation-section__head">
+              <h3>Generation Settings</h3>
+            </div>
+            <div class="generation-grid">
+              <div class="form-group compact-field">
+                <label class="form-label">Total Score</label>
+                <input v-model.number="paper.totalMarks" class="form-input" type="number" min="1" />
               </div>
-              <div class="generation-grid generation-grid--simple">
-                <div class="form-group compact-field">
-                  <label class="form-label">Total Score</label>
-                  <input v-model.number="paper.totalMarks" class="form-input" type="number" min="1" />
-                </div>
-                <div class="form-group compact-field">
-                  <label class="form-label">Difficulty Coefficient</label>
-                  <input
-                    v-model.number="generationForm.difficultyCoefficient"
-                    class="form-input"
-                    type="number"
-                    min="0"
-                    max="1"
-                    step="0.05"
-                  />
-                </div>
-                <div class="form-group compact-field">
-                  <label class="form-label">Question Type</label>
-                  <select v-model="generationForm.questionType" class="form-input">
-                    <option v-for="type in QUESTION_TYPE_ORDER" :key="type" :value="type">
-                      {{ QUESTION_TYPE_LABELS[type] }}
-                    </option>
-                  </select>
-                </div>
+              <div class="form-group compact-field">
+                <label class="form-label">Difficulty Coefficient</label>
+                <input
+                  v-model.number="generationForm.difficultyCoefficient"
+                  class="form-input"
+                  type="number"
+                  min="0"
+                  max="1"
+                  step="0.05"
+                />
               </div>
-            </section>
-          </div>
+              <div class="form-group compact-field">
+                <label class="form-label">Question Type</label>
+                <select v-model="generationForm.questionType" class="form-input">
+                  <option v-for="type in QUESTION_TYPE_ORDER" :key="type" :value="type">
+                    {{ QUESTION_TYPE_LABELS[type] }}
+                  </option>
+                </select>
+              </div>
+            </div>
+          </section>
 
           <div class="generation-footer">
             <div class="paper-actions">
-              <button class="btn btn-primary" type="submit" :disabled="isGenerating || !paper.title || !paper.subject">
+              <button class="btn btn-primary" type="submit" :disabled="isGenerating || !paper.title.trim() || !paper.subject.trim()">
                 {{ isGenerating ? 'Generating...' : 'Generate Paper' }}
               </button>
               <span class="form-hint">Uses the current paper title, subject, and duration.</span>
@@ -155,6 +153,7 @@
           <div v-if="generationDiagnostics" class="generation-summary">
             <span class="summary-pill">Difficulty: {{ formatDistribution(generationDiagnostics.difficultyActual) }}</span>
             <span class="summary-pill">Types: {{ formatDistribution(generationDiagnostics.typeActual) }}</span>
+            <span v-if="generationDiagnostics.questionCount" class="summary-pill">Questions: {{ generationDiagnostics.questionCount }}</span>
             <span v-if="generationDiagnostics.marksActual" class="summary-pill">Marks: {{ generationDiagnostics.marksActual }}</span>
             <span v-if="generationDiagnostics.scoreWeightActual" class="summary-pill">Weight: {{ generationDiagnostics.scoreWeightActual }}</span>
             <span class="summary-pill">Candidates: {{ generationDiagnostics.candidateCount }}</span>
@@ -202,8 +201,8 @@
           </div>
         </Transition>
 
-        <div class="paper-actions" style="margin-top:20px">
-          <button class="btn btn-success" :disabled="!paper.questions.length || !paper.title" @click="exportPaper">
+        <div class="paper-actions paper-actions--export">
+          <button class="btn btn-success" :disabled="!paper.questions.length || !paper.title.trim()" @click="exportPaper">
             Export Paper
           </button>
           <button class="btn btn-primary" :disabled="!canDownloadDocx" @click="downloadDocx">
@@ -214,12 +213,12 @@
           </button>
         </div>
 
-        <div v-if="downloadError" class="status-banner status-banner--error" style="margin-top:14px">
+        <div v-if="downloadError" class="status-banner status-banner--error download-error">
           {{ downloadError }}
         </div>
 
         <Transition name="fade">
-          <div v-if="exported" class="export-preview card" style="margin-top:24px">
+          <div v-if="exported" class="export-preview card">
             <div class="export-preview-head">
               <div>
                 <h3>{{ paper.title }}</h3>
@@ -246,7 +245,7 @@
                 </button>
               </div>
             </div>
-            <p style="color:var(--color-muted);font-size:.875rem;margin-bottom:16px">
+            <p class="export-preview-note">
               {{ exportMode === 'categorized' ? 'Questions are grouped as multiple-choice, fill-in-the-blank, and essay, with forward numbering across sections.' : 'Questions follow the order from the paper builder.' }}
             </p>
             <section v-for="section in exportSections" :key="section.key" class="export-section">
@@ -311,21 +310,55 @@
 import PaginationControls from '~/components/questions/PaginationControls.vue'
 import QuestionBankCard from '~/components/questions/QuestionBankCard.vue'
 import QuestionBankToolbar from '~/components/questions/QuestionBankToolbar.vue'
-import type { Question } from '~/types/question'
-import { QUESTION_TYPE_LABELS, QUESTION_TYPE_ORDER, getEssayBlankHeightPx, isOptionQuestionType } from '~/domain/questions'
+import type { Question, QuestionEntity } from '~/types/question'
+import {
+  QUESTION_TYPE_LABELS,
+  QUESTION_TYPE_ORDER,
+  getEssayBlankHeightPx,
+  isOptionQuestionType,
+  normalizeQuestion
+} from '~/domain/questions'
 
 interface GenerationDiagnostics {
   fitness: number
   candidateCount: number
+  questionCount?: number
   ownQuestionsOnly?: boolean
   difficultyActual: Record<string, number>
+  difficultyTargets?: Record<string, number>
   typeActual: Record<string, number>
+  typeTargets?: Record<string, number>
   difficultyCoefficient?: number
   scoreWeightActual?: number
   marksActual?: number
+  generationsRun?: number
 }
 
 type PaperQuestion = Question & { marks?: number; orderNo?: number }
+type ApiPaperQuestion = Partial<QuestionEntity> & { id: number; marks?: number | null; orderNo?: number | null }
+
+interface PaperMetadataPayload {
+  title: string
+  subject: string
+  duration: number
+  totalMarks: number
+}
+
+interface PaperQuestionRefPayload {
+  questionId: number
+  orderNo: number
+  marks?: number
+}
+
+interface PaperCreatePayload extends PaperMetadataPayload {
+  questions: PaperQuestionRefPayload[]
+}
+
+interface PaperGeneratePayload extends PaperMetadataPayload {
+  difficultyCoefficient: number
+  questionType: QuestionType
+  ownQuestionsOnly: boolean
+}
 
 interface GeneratedPaperResponse {
   paper: {
@@ -334,7 +367,7 @@ interface GeneratedPaperResponse {
     subject: string
     duration: number
     totalMarks: number
-    questions: PaperQuestion[]
+    questions: ApiPaperQuestion[]
   }
   diagnostics: GenerationDiagnostics
 }
@@ -371,10 +404,14 @@ interface GenerationFormState {
   questionType: QuestionType
 }
 
+const DEFAULT_PAPER = {
+  duration: 60,
+  totalMarks: 100
+}
+
 const search = ref('')
 const filterSubject = ref('')
 const filterDifficulty = ref<QuestionDifficulty | ''>('')
-// Use Set for O(1) lookup and toggle
 const shownIds = reactive(new Set<number>())
 function isShown (id: number) { return shownIds.has(id) }
 const exportMode = ref<ExportMode>('paper')
@@ -392,8 +429,8 @@ const downloadError = ref('')
 const paper = reactive({
   title: '',
   subject: '',
-  duration: 60,
-  totalMarks: 100,
+  duration: DEFAULT_PAPER.duration,
+  totalMarks: DEFAULT_PAPER.totalMarks,
   questions: [] as PaperQuestion[]
 })
 
@@ -478,7 +515,6 @@ const exportSections = computed(() => {
     return [{ key: 'paper', title: '', questions: paper.questions, start: 1 }]
   }
 
-  // Single pass categorization - avoid multiple filter() calls
   const byType = new Map<QuestionType, PaperQuestion[]>()
   for (const q of paper.questions) {
     const list = byType.get(q.type)
@@ -497,7 +533,6 @@ const exportSections = computed(() => {
   return sections
 })
 
-// Faster lookup via cached Set
 const paperQuestionIds = computed(() => {
   const ids = new Set<number>()
   for (const q of paper.questions) ids.add(q.id)
@@ -512,8 +547,7 @@ function toggleQuestion (question: Question) {
     removeQuestion(question.id)
     return
   }
-  // Use push instead of spread for better memory efficiency
-  paper.questions.push(question)
+  paper.questions.push({ ...question })
 }
 
 function removeQuestion (id: number) {
@@ -539,8 +573,7 @@ function clearPaper () {
   paper.questions.length = 0
   exported.value = false
   exportMode.value = 'paper'
-  savedPaperId.value = null
-  savedPaperSignature.value = ''
+  forgetSavedPaper()
   downloadError.value = ''
 }
 
@@ -548,17 +581,44 @@ function exportPaper () {
   exported.value = true
 }
 
-function getPaperPayload () {
+function toPositiveInteger (value: unknown, fallback: number, min = 1) {
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed)) return fallback
+  return Math.max(min, Math.round(parsed))
+}
+
+function toBoundedNumber (value: unknown, fallback: number, min: number, max: number) {
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed)) return fallback
+  return Math.max(min, Math.min(max, parsed))
+}
+
+function toOptionalPositiveInteger (value: unknown) {
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed) || parsed <= 0) return undefined
+  return Math.round(parsed)
+}
+
+function paperMetadataPayload (): PaperMetadataPayload {
   return {
     title: paper.title.trim(),
     subject: paper.subject.trim(),
-    duration: Number(paper.duration) || 60,
-    totalMarks: Number(paper.totalMarks) || 100,
-    questions: paper.questions.map((question, index) => ({
-      questionId: question.id,
-      orderNo: index + 1,
-      marks: question.marks
-    }))
+    duration: toPositiveInteger(paper.duration, DEFAULT_PAPER.duration),
+    totalMarks: toPositiveInteger(paper.totalMarks, DEFAULT_PAPER.totalMarks)
+  }
+}
+
+function getPaperPayload (): PaperCreatePayload {
+  return {
+    ...paperMetadataPayload(),
+    questions: paper.questions.map((question, index) => {
+      const marks = toOptionalPositiveInteger(question.marks)
+      return {
+        questionId: question.id,
+        orderNo: index + 1,
+        ...(marks ? { marks } : {})
+      }
+    })
   }
 }
 
@@ -646,34 +706,42 @@ async function downloadDocx () {
   }
 }
 
-function boundedNumber (value: number, fallback: number, min: number, max?: number) {
-  if (!Number.isFinite(value)) return fallback
-  const upperBounded = typeof max === 'number' ? Math.min(value, max) : value
-  return Math.max(min, upperBounded)
-}
-
-function boundedInteger (value: number, fallback: number, min: number, max?: number) {
-  return Math.round(boundedNumber(value, fallback, min, max))
-}
-
-function generationRequestBody () {
-  const title = paper.title.trim()
-  const subject = paper.subject.trim()
-  if (!title || !subject) {
+function buildPaperGeneratePayload (): PaperGeneratePayload | null {
+  const metadata = paperMetadataPayload()
+  if (!metadata.title || !metadata.subject) {
     generationError.value = 'Please enter a paper title and subject before generating.'
     return null
   }
 
-  const totalMarks = boundedInteger(paper.totalMarks, 100, 1)
   return {
-    title,
-    subject,
-    duration: boundedInteger(paper.duration, 60, 1),
-    totalMarks,
-    difficultyCoefficient: boundedNumber(generationForm.difficultyCoefficient, 0.5, 0, 1),
+    ...metadata,
+    difficultyCoefficient: toBoundedNumber(generationForm.difficultyCoefficient, 0.5, 0, 1),
     questionType: generationForm.questionType,
     ownQuestionsOnly: bankMode.value === 'mine'
   }
+}
+
+function normalizePaperQuestion (question: ApiPaperQuestion): PaperQuestion {
+  const normalized = normalizeQuestion(question)
+  return {
+    ...normalized,
+    marks: toOptionalPositiveInteger(question.marks),
+    orderNo: toOptionalPositiveInteger(question.orderNo)
+  }
+}
+
+function setPaperQuestions (questions: ApiPaperQuestion[]) {
+  paper.questions.splice(0, paper.questions.length, ...questions.map(normalizePaperQuestion))
+}
+
+function rememberSavedPaper (paperId: number) {
+  savedPaperId.value = paperId
+  savedPaperSignature.value = getPaperSignature()
+}
+
+function forgetSavedPaper () {
+  savedPaperId.value = null
+  savedPaperSignature.value = ''
 }
 
 function apiErrorMessage (error: unknown, fallback: string) {
@@ -722,23 +790,22 @@ async function generatePaper () {
     generationError.value = 'You do not have permission to generate papers.'
     return
   }
-  const body = generationRequestBody()
-  if (!body) return
+  const payload = buildPaperGeneratePayload()
+  if (!payload) return
   isGenerating.value = true
 
   try {
     const response = await apiFetch<GeneratedPaperResponse>('/papers/generate', {
       method: 'POST',
-      body
+      body: payload
     })
 
     paper.title = response.data.paper.title
     paper.subject = response.data.paper.subject
     paper.duration = response.data.paper.duration
     paper.totalMarks = response.data.paper.totalMarks
-    paper.questions = response.data.paper.questions
-    savedPaperId.value = response.data.paper.id
-    savedPaperSignature.value = getPaperSignature()
+    setPaperQuestions(response.data.paper.questions)
+    rememberSavedPaper(response.data.paper.id)
     generationDiagnostics.value = response.data.diagnostics
     exported.value = false
     downloadError.value = ''
@@ -817,11 +884,6 @@ function getEssayBlankStyle (question: Question) {
   padding-bottom: 14px;
   border-bottom: 1px solid var(--color-border);
 }
-.generation-sections {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
 .generation-section {
   display: flex;
   flex-direction: column;
@@ -838,16 +900,10 @@ function getEssayBlankStyle (question: Question) {
   font-size: .9rem;
   font-weight: 700;
 }
-.generation-section--tags {
-  padding-top: 2px;
-}
 .generation-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-}
-.generation-grid--simple {
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
 }
 .compact-field {
   margin-bottom: 0;
@@ -894,14 +950,12 @@ function getEssayBlankStyle (question: Question) {
   color: #b91c1c;
 }
 @media (max-width: 900px) {
-  .generation-grid,
-  .generation-grid--simple {
+  .generation-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 @media (max-width: 560px) {
-  .generation-grid,
-  .generation-grid--simple {
+  .generation-grid {
     grid-template-columns: 1fr;
   }
 
@@ -916,13 +970,6 @@ function getEssayBlankStyle (question: Question) {
   background: #eff3fe;
   color: var(--color-primary);
 }
-.toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 20px;
-}
 .permission-card {
   max-width: 520px;
 }
@@ -934,6 +981,12 @@ function getEssayBlankStyle (question: Question) {
   color: var(--color-muted);
   margin-bottom: 16px;
 }
+.paper-meta-card {
+  margin-bottom: 16px;
+}
+.paper-meta-field {
+  flex: 1;
+}
 .q-list,
 .paper-question-list {
   display: flex;
@@ -941,17 +994,18 @@ function getEssayBlankStyle (question: Question) {
   gap: 16px;
   position: relative;
 }
-.q-card,
 .paper-q-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.q-card:hover,
 .paper-q-item:hover {
   transform: translateY(-2px);
   box-shadow: 0 10px 25px rgba(0,0,0,0.08);
   border-color: var(--color-primary);
 }
-.q-card-header,
 .q-meta {
   display: flex;
   justify-content: space-between;
@@ -959,42 +1013,16 @@ function getEssayBlankStyle (question: Question) {
   flex-wrap: wrap;
   gap: 8px;
 }
-.q-id {
-  font-size: .8rem;
-  color: var(--color-muted);
-}
-.q-body {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.q-text,
 .q-text-wrap {
   font-size: .95rem;
   line-height: 1.7;
   min-width: 0;
   overflow-wrap: anywhere;
 }
-.q-options {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.q-option {
-  display: flex;
-  gap: 8px;
-  align-items: flex-start;
-  min-width: 0;
-}
 .q-option-label {
   font-weight: 700;
   color: var(--color-primary);
 }
-.q-source {
-  font-size: .82rem;
-  color: var(--color-muted);
-}
-.q-footer,
 .paper-actions,
 .paper-meta-row,
 .export-toggle {
@@ -1005,6 +1033,9 @@ function getEssayBlankStyle (question: Question) {
 .paper-meta-row > .form-group {
   min-width: 150px;
 }
+.paper-actions--export {
+  margin-top: 20px;
+}
 .export-toggle {
   align-items: center;
   margin-top: 4px;
@@ -1013,32 +1044,6 @@ function getEssayBlankStyle (question: Question) {
 }
 .export-toggle input {
   margin: 0;
-}
-.q-answer-wrapper {
-  display: grid;
-  grid-template-rows: 0fr;
-  opacity: 0;
-  transition: grid-template-rows 0.3s ease, opacity 0.3s ease;
-}
-.q-answer-wrapper.is-open {
-  grid-template-rows: 1fr;
-  opacity: 1;
-}
-.q-answer-inner {
-  overflow: hidden;
-}
-.q-answer {
-  background: #f0fdf4;
-  border: 1px solid #bbf7d0;
-  border-radius: var(--radius);
-  padding: 12px 16px;
-  font-size: .9rem;
-}
-.paper-q-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  min-width: 0;
 }
 .paper-q-controls {
   display: flex;
@@ -1085,8 +1090,12 @@ function getEssayBlankStyle (question: Question) {
   text-align: center;
   color: var(--color-muted);
 }
+.download-error {
+  margin-top: 14px;
+}
 .export-preview {
   background: #fff;
+  margin-top: 24px;
   overflow: hidden;
 }
 .export-preview-head {
@@ -1102,6 +1111,11 @@ function getEssayBlankStyle (question: Question) {
 .export-preview-head p {
   color: var(--color-muted);
   font-size: .875rem;
+}
+.export-preview-note {
+  color: var(--color-muted);
+  font-size: .875rem;
+  margin-bottom: 16px;
 }
 .export-mode-actions {
   display: flex;
@@ -1161,25 +1175,6 @@ function getEssayBlankStyle (question: Question) {
   border: 1px solid var(--color-border);
   border-radius: 8px;
 }
-.q-type-tag {
-  display: inline-block;
-  font-size: .7rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  color: var(--color-primary);
-  background: #eff3fe;
-  padding: 1px 6px;
-  border-radius: 4px;
-  margin-right: 4px;
-  vertical-align: middle;
-}
-.q-images {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 4px;
-}
-.q-image-thumb,
 .export-image-thumb {
   max-width: 160px;
   max-height: 120px;
@@ -1192,11 +1187,6 @@ function getEssayBlankStyle (question: Question) {
   flex-wrap: wrap;
   gap: 8px;
   margin-top: 10px;
-}
-.bank-mode-tabs {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
 }
 :deep(.katex-display),
 :deep(.latex-block) {
@@ -1235,7 +1225,6 @@ function getEssayBlankStyle (question: Question) {
   }
 }
 @media (max-width: 560px) {
-  .q-footer .btn,
   .paper-actions .btn,
   .generation-footer .btn,
   .export-mode-actions .btn {
@@ -1246,7 +1235,6 @@ function getEssayBlankStyle (question: Question) {
     min-width: 100%;
   }
 
-  .q-image-thumb,
   .export-image-thumb {
     max-width: 100%;
     width: 100%;
