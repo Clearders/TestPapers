@@ -36,6 +36,8 @@
           :src="img.url"
           :alt="img.caption || 'Question image'"
           :title="img.caption || ''"
+          width="160"
+          height="120"
           class="q-image-thumb"
         />
       </div>
@@ -96,7 +98,7 @@ function formatScoreWeight (weight: number) {
 <style scoped>
 .q-card {
   min-width: 0;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease, border-color 0.3s ease;
 }
 .q-card:hover {
   transform: translateY(-2px);

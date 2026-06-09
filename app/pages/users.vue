@@ -13,27 +13,27 @@
       <form class="card user-form" @submit.prevent="createUser">
         <h2>Create User</h2>
         <div class="form-group">
-          <label class="form-label">Username</label>
-          <input v-model="form.username" class="form-input" required />
+          <label class="form-label" htmlFor="users-username">Username</label>
+          <input id="users-username" v-model="form.username" class="form-input" required />
         </div>
         <div class="form-group">
-          <label class="form-label">Display Name</label>
-          <input v-model="form.displayName" class="form-input" required />
+          <label class="form-label" htmlFor="users-displayname">Display Name</label>
+          <input id="users-displayname" v-model="form.displayName" class="form-input" required />
         </div>
         <div class="form-group">
-          <label class="form-label">Password</label>
-          <input v-model="form.password" class="form-input" type="password" minlength="6" required />
+          <label class="form-label" htmlFor="users-password">Password</label>
+          <input id="users-password" v-model="form.password" class="form-input" type="password" minlength="6" required />
         </div>
         <div class="form-group">
-          <label class="form-label">Role</label>
-          <select v-model="form.role" class="form-input">
+          <label class="form-label" htmlFor="users-role">Role</label>
+          <select id="users-role" v-model="form.role" class="form-input">
             <option value="admin">Admin</option>
             <option value="teacher">Teacher</option>
             <option value="viewer">Viewer</option>
           </select>
         </div>
         <button class="btn btn-primary" type="submit" :disabled="isSaving">
-          {{ isSaving ? 'Creating...' : 'Create User' }}
+          {{ isSaving ? 'Creating…' : 'Create User' }}
         </button>
         <p v-if="message" class="form-message">{{ message }}</p>
       </form>
@@ -144,6 +144,7 @@ async function updateUser (item: AuthUser) {
 }
 
 async function deleteUser (id: number) {
+  if (!window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) return
   await authFetch(`/users/${id}`, { method: 'DELETE' })
   users.value = users.value.filter(item => item.id !== id)
 }

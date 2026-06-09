@@ -33,8 +33,8 @@
           {{ questionError }}
         </div>
 
-        <div v-if="activeLoading" class="status-banner">
-          Loading questions...
+        <div v-if="activeLoading" class="status-banner" aria-live="polite">
+          Loading questions…
         </div>
 
         <TransitionGroup name="list" tag="div" class="q-list" v-if="currentQuestions.length">
@@ -156,7 +156,7 @@
                   v-model.number="generationForm.difficultyCoefficient"
                   class="form-range form-range--primary"
                   type="range"
-                  min="0.1"
+                  min="0.0"
                   max="1.0"
                   step="0.05"
                 />
@@ -167,13 +167,13 @@
           <div class="generation-footer">
             <div class="paper-actions">
               <button class="btn btn-primary" type="submit" :disabled="isGenerating || !paper.title.trim() || !paper.subject.trim()">
-                {{ isGenerating ? 'Generating...' : 'Generate Paper' }}
+                {{ isGenerating ? 'Generating…' : 'Generate Paper' }}
               </button>
               <span class="form-hint">Uses the current paper title, subject, and duration.</span>
             </div>
           </div>
 
-          <div v-if="generationError" class="status-banner status-banner--error">
+          <div v-if="generationError" class="status-banner status-banner--error" aria-live="polite">
             {{ generationError }}
           </div>
           <div v-if="generationDiagnostics" class="generation-summary">
@@ -232,14 +232,14 @@
             Export Paper
           </button>
           <button class="btn btn-primary" :disabled="!canDownloadDocx" @click="downloadDocx">
-            {{ isDownloadingDocx ? 'Preparing DOCX...' : 'Download DOCX' }}
+            {{ isDownloadingDocx ? 'Preparing DOCX…' : 'Download DOCX' }}
           </button>
           <button class="btn btn-outline" :disabled="!paper.questions.length" @click="clearPaper">
             Clear All
           </button>
         </div>
 
-        <div v-if="downloadError" class="status-banner status-banner--error download-error">
+        <div v-if="downloadError" class="status-banner status-banner--error download-error" aria-live="polite">
           {{ downloadError }}
         </div>
 
@@ -311,6 +311,8 @@
                       :src="img.url"
                       :alt="img.caption || 'Question image'"
                       :title="img.caption || ''"
+                      width="160"
+                      height="120"
                       class="export-image-thumb"
                     />
                   </div>
@@ -348,16 +350,18 @@ import {
 interface GenerationDiagnostics {
   fitness: number
   candidateCount: number
-  questionCount?: number
-  ownQuestionsOnly?: boolean
+  questionCount: number
+  ownQuestionsOnly: boolean
   difficultyActual: Record<string, number>
-  difficultyTargets?: Record<string, number>
+  difficultyTargets: Record<string, number>
   typeActual: Record<string, number>
-  typeTargets?: Record<string, number>
-  difficultyCoefficient?: number
-  scoreWeightActual?: number
-  marksActual?: number
-  generationsRun?: number
+  typeTargets: Record<string, number>
+  difficultyCoefficient: number
+  scoreWeightActual: number
+  marksActual: number
+  generationsRun: number
+  requiredTags: string[]
+  preferredTags: string[]
 }
 
 type PaperQuestion = Question & { marks?: number; orderNo?: number }
@@ -384,6 +388,8 @@ interface PaperGeneratePayload extends PaperMetadataPayload {
   difficultyCoefficient: number
   questionType: QuestionType
   ownQuestionsOnly: boolean
+  requiredTags?: string[]
+  preferredTags?: string[]
 }
 
 interface GeneratedPaperResponse {
@@ -1121,7 +1127,7 @@ function getEssayBlankStyle (question: Question) {
   align-items: flex-start;
   gap: 12px;
   min-width: 0;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease, border-color 0.3s ease;
 }
 .paper-q-item:hover {
   transform: translateY(-2px);

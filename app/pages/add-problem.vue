@@ -14,8 +14,8 @@
         <form class="card" @submit.prevent="submitProblem">
           <div class="form-row">
             <div class="form-group" style="flex:1">
-              <label class="form-label">Type <span class="required">*</span></label>
-              <select v-model="form.type" class="form-input" required>
+              <label class="form-label" htmlFor="problem-type">Type <span class="required">*</span></label>
+              <select id="problem-type" v-model="form.type" class="form-input" required>
                 <option v-for="option in QUESTION_TYPE_OPTIONS" :key="option.value" :value="option.value">
                   {{ option.label }}
                 </option>
@@ -25,12 +25,12 @@
 
           <div class="form-row">
             <div class="form-group" style="flex:1">
-              <label class="form-label">Subject <span class="required">*</span></label>
-              <input v-model="form.subject" class="form-input" placeholder="e.g. Mathematics" required />
+              <label class="form-label" htmlFor="problem-subject">Subject <span class="required">*</span></label>
+              <input id="problem-subject" v-model="form.subject" class="form-input" placeholder="e.g. Mathematics" required />
             </div>
             <div class="form-group" style="flex:1">
-              <label class="form-label">Difficulty <span class="required">*</span></label>
-              <select v-model="form.difficulty" class="form-input" required>
+              <label class="form-label" htmlFor="problem-difficulty">Difficulty <span class="required">*</span></label>
+              <select id="problem-difficulty" v-model="form.difficulty" class="form-input" required>
                 <option value="">Select</option>
                 <option v-for="option in DIFFICULTY_OPTIONS" :key="option.value" :value="option.value">
                   {{ option.label }}
@@ -38,8 +38,9 @@
               </select>
             </div>
             <div class="form-group" style="flex:1">
-              <label class="form-label">Score Weight <span class="required">*</span></label>
+              <label class="form-label" htmlFor="problem-scoreweight">Score Weight <span class="required">*</span></label>
               <input
+                id="problem-scoreweight"
                 v-model.number="form.scoreWeight"
                 class="form-input"
                 type="number"
@@ -52,9 +53,10 @@
           </div>
 
           <div class="form-group">
-            <label class="form-label">Tags</label>
+            <label class="form-label" htmlFor="problem-tags">Tags</label>
             <div class="tag-input-row">
               <input
+                id="problem-tags"
                 v-model="tagInput"
                 class="form-input"
                 placeholder="Add tag and press Enter"
@@ -64,18 +66,19 @@
             </div>
             <div v-if="form.tags.length" class="tag-list">
               <span v-for="tag in form.tags" :key="tag" class="tag tag-removable">
-                {{ tag }} <button type="button" @click="removeTag(tag)">x</button>
+                {{ tag }} <button type="button" aria-label="Remove tag" @click="removeTag(tag)">x</button>
               </span>
             </div>
             <span class="form-hint">Press Enter or click Add after each tag.</span>
           </div>
 
           <div class="form-group">
-            <label class="form-label">
+            <label class="form-label" htmlFor="problem-text">
               Question Text <span class="required">*</span>
               <span class="form-hint" style="margin-left:8px">Use `$...$` for inline LaTeX and `$$...$$` for block LaTeX.</span>
             </label>
             <textarea
+              id="problem-text"
               v-model="form.questionText"
               class="form-input form-textarea"
               placeholder="e.g. Solve for $x$: $2x + 5 = 13$"
@@ -138,21 +141,22 @@
           </div>
 
           <div class="form-group">
-            <label class="form-label">Answer <span class="required">*</span></label>
+            <label class="form-label" htmlFor="problem-answer">Answer <span class="required">*</span></label>
             <textarea
               v-if="!usesOptionAnswers"
+              id="problem-answer"
               v-model="form.answer"
               class="form-input form-textarea form-textarea--short"
               placeholder="e.g. $x = 4$"
               required
             />
-            <select v-else-if="form.type === 'choice'" v-model="form.answer" class="form-input" required>
+            <select v-else-if="form.type === 'choice'" id="problem-answer" v-model="form.answer" class="form-input" required>
               <option value="">Select Correct Option</option>
               <option v-for="(opt, index) in form.options" :key="index" :value="opt.trim()">
                 {{ String.fromCharCode(65 + index) }}. {{ opt.trim() }}
               </option>
             </select>
-            <select v-else v-model="form.answer" class="form-input" required>
+            <select v-else id="problem-answer" v-model="form.answer" class="form-input" required>
               <option value="">Select Correct Answer</option>
               <option value="True">True</option>
               <option value="False">False</option>
@@ -166,7 +170,7 @@
 
           <div class="form-actions">
             <button type="submit" class="btn btn-primary" :disabled="submitted || isSaving">
-              {{ isSaving ? 'Saving...' : submitted ? 'Saved' : 'Save Problem' }}
+              {{ isSaving ? 'Saving…' : submitted ? 'Saved' : 'Save Problem' }}
             </button>
             <button type="button" class="btn btn-outline" @click="handleReset">Reset</button>
           </div>

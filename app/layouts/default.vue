@@ -1,5 +1,6 @@
 <template>
   <div class="site-wrapper">
+    <a href="#main-content" class="skip-link">Skip to main content</a>
     <div class="dynamic-bg" aria-hidden="true">
       <div class="bg-pattern"></div>
       <div class="shape shape-1"></div>
@@ -41,7 +42,7 @@
       </div>
     </header>
 
-    <main class="site-main">
+    <main id="main-content" class="site-main">
       <slot />
     </main>
 
@@ -94,6 +95,22 @@ a { color: inherit; text-decoration: none; }
 button { cursor: pointer; font: inherit; }
 input, textarea, select { font: inherit; max-width: 100%; }
 img, svg, canvas, video { max-width: 100%; }
+
+.skip-link {
+  position: fixed;
+  top: -100%;
+  left: 12px;
+  z-index: 200;
+  padding: 10px 16px;
+  background: var(--color-primary);
+  color: #fff;
+  border-radius: 0 0 var(--radius) var(--radius);
+  font-weight: 600;
+  font-size: .9rem;
+}
+.skip-link:focus {
+  top: 0;
+}
 
 .site-wrapper {
   display: flex;
@@ -244,7 +261,7 @@ img, svg, canvas, video { max-width: 100%; }
   font-size: .9rem;
   font-weight: 500;
   color: var(--color-muted);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: color 0.3s ease, background 0.3s ease, transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
 }
@@ -256,7 +273,7 @@ img, svg, canvas, video { max-width: 100%; }
   width: 0;
   height: 2px;
   background: var(--color-primary);
-  transition: all 0.3s ease;
+  transition: width 0.3s ease, transform 0.3s ease;
   transform: translateX(-50%);
 }
 .nav-link:hover { background: var(--color-bg); color: var(--color-text); }
@@ -317,7 +334,7 @@ img, svg, canvas, video { max-width: 100%; }
   font-size: .9rem;
   font-weight: 500;
   border: none;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background 0.25s ease, color 0.25s ease, box-shadow 0.25s ease, transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .btn:active:not(:disabled) { transform: scale(0.96); }
 .btn:disabled { opacity: .5; cursor: not-allowed; }
@@ -377,7 +394,7 @@ img, svg, canvas, video { max-width: 100%; }
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   background: var(--color-surface);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .form-input:focus {
   outline: none;

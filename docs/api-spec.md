@@ -1166,6 +1166,7 @@ interface PaperGenerateRequest {
   totalMarks: number                // 试卷总分，> 0；也是自动分配分值的目标总分
   difficultyCoefficient: number     // 难度系数，0–1；后端保留两位小数
   questionType: 'choice' | 'true_false' | 'blank' | 'short_answer' | 'essay'
+  ownQuestionsOnly: boolean         // 是否仅从当前用户个人题库中选题，默认 false
 }
 ```
 
@@ -1180,7 +1181,8 @@ interface PaperGenerateRequest {
   "duration": 60,
   "totalMarks": 100,
   "difficultyCoefficient": 0.65,
-  "questionType": "choice"
+  "questionType": "choice",
+  "ownQuestionsOnly": false
 }
 ```
 
@@ -1193,6 +1195,7 @@ interface PaperGenerateResponse {
     fitness: number                 // 适应度得分
     candidateCount: number          // 候选池试题数
     questionCount: number           // 实际组卷试题数
+    ownQuestionsOnly: boolean       // 是否仅使用个人题库
     difficultyCoefficient: number   // 请求使用的难度系数（已按后端规则保留两位小数）
     scoreWeightActual: number       // 实际总权重
     marksActual: number             // 实际总分值

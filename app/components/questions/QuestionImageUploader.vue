@@ -12,7 +12,7 @@
     </div>
     <div v-if="images.length" class="image-previews">
       <div v-for="(img, imgIdx) in images" :key="imgIdx" class="image-preview-item">
-        <img :src="img.url" alt="Question image" class="preview-thumb" />
+        <img :src="img.url" alt="Question image" width="220" height="140" class="preview-thumb" />
         <div class="img-info">
           <input
             :value="img.caption"
@@ -26,7 +26,7 @@
         </div>
       </div>
     </div>
-    <span v-if="uploading" class="form-hint">Uploading image...</span>
+    <span v-if="uploading" class="form-hint">Uploading image…</span>
   </div>
 </template>
 

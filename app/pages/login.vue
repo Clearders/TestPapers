@@ -6,15 +6,15 @@
 
       <form @submit.prevent="submitLogin">
         <div class="form-group">
-          <label class="form-label">Username</label>
-          <input v-model="username" class="form-input" autocomplete="username" required />
+          <label class="form-label" htmlFor="login-username">Username</label>
+          <input id="login-username" v-model="username" class="form-input" autocomplete="username" required />
         </div>
         <div class="form-group">
-          <label class="form-label">Password</label>
-          <input v-model="password" class="form-input" type="password" autocomplete="current-password" required />
+          <label class="form-label" htmlFor="login-password">Password</label>
+          <input id="login-password" v-model="password" class="form-input" type="password" autocomplete="current-password" required />
         </div>
         <button class="btn btn-primary" type="submit" :disabled="isSubmitting">
-          {{ isSubmitting ? 'Signing in...' : 'Sign In' }}
+          {{ isSubmitting ? 'Signing in…' : 'Sign In' }}
         </button>
         <p v-if="errorMessage" class="login-error">{{ errorMessage }}</p>
       </form>

@@ -5,27 +5,27 @@
       <p class="page-sub">Register a viewer account for browsing shared question and paper resources.</p>
 
       <div class="form-group">
-        <label class="form-label">Username</label>
-        <input v-model="form.username" class="form-input" autocomplete="username" minlength="3" maxlength="64" required />
+        <label class="form-label" htmlFor="register-username">Username</label>
+        <input id="register-username" v-model="form.username" class="form-input" autocomplete="username" minlength="3" maxlength="64" required />
       </div>
 
       <div class="form-group">
-        <label class="form-label">Display Name</label>
-        <input v-model="form.displayName" class="form-input" autocomplete="name" maxlength="120" required />
+        <label class="form-label" htmlFor="register-displayname">Display Name</label>
+        <input id="register-displayname" v-model="form.displayName" class="form-input" autocomplete="name" maxlength="120" required />
       </div>
 
       <div class="form-group">
-        <label class="form-label">Password</label>
-        <input v-model="form.password" class="form-input" type="password" autocomplete="new-password" minlength="6" maxlength="128" required />
+        <label class="form-label" htmlFor="register-password">Password</label>
+        <input id="register-password" v-model="form.password" class="form-input" type="password" autocomplete="new-password" minlength="6" maxlength="128" required />
       </div>
 
       <div class="form-group">
-        <label class="form-label">Confirm Password</label>
-        <input v-model="confirmPassword" class="form-input" type="password" autocomplete="new-password" minlength="6" maxlength="128" required />
+        <label class="form-label" htmlFor="register-confirmpassword">Confirm Password</label>
+        <input id="register-confirmpassword" v-model="confirmPassword" class="form-input" type="password" autocomplete="new-password" minlength="6" maxlength="128" required />
       </div>
 
       <button class="btn btn-primary" type="submit" :disabled="isSubmitting">
-        {{ isSubmitting ? 'Creating...' : 'Create Account' }}
+        {{ isSubmitting ? 'Creating…' : 'Create Account' }}
       </button>
 
       <p v-if="message" class="register-message" :class="{ 'register-message--error': hasError }">
