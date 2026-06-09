@@ -1,11 +1,11 @@
 <template>
   <div v-if="pagination.totalPages > 1" class="pagination-controls">
     <button
+      type="button"
       class="btn btn-outline btn-sm"
       :disabled="loading || pagination.page <= 1"
-      :aria-disabled="loading || pagination.page <= 1"
       aria-label="Go to previous page"
-      @click="$emit('change', pagination.page - 1)"
+      @click="emit('change', pagination.page - 1)"
     >
       Previous
     </button>
@@ -14,11 +14,11 @@
       <span class="pagination-summary">({{ firstItem }}&ndash;{{ lastItem }} of {{ pagination.total }})</span>
     </span>
     <button
+      type="button"
       class="btn btn-outline btn-sm"
       :disabled="loading || pagination.page >= pagination.totalPages"
-      :aria-disabled="loading || pagination.page >= pagination.totalPages"
       aria-label="Go to next page"
-      @click="$emit('change', pagination.page + 1)"
+      @click="emit('change', pagination.page + 1)"
     >
       Next
     </button>
@@ -36,13 +36,14 @@ const props = withDefaults(defineProps<{
   loading: false
 })
 
-defineEmits<{
+const emit = defineEmits<{
   change: [page: number]
 }>()
 
-const firstItem = computed(() =>
-  props.pagination.total === 0 ? 0 : (props.pagination.page - 1) * props.pagination.pageSize + 1
-)
+const firstItem = computed(() => {
+  if (props.pagination.total === 0 || props.pagination.pageSize === 0) return 0
+  return (props.pagination.page - 1) * props.pagination.pageSize + 1
+})
 
 const lastItem = computed(() =>
   Math.min(props.pagination.page * props.pagination.pageSize, props.pagination.total)
