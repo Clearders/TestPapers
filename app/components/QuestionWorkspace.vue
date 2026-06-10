@@ -149,15 +149,31 @@
 
             <div class="gen-field">
               <label class="form-label">Question Type</label>
-              <div class="gen-pill-group">
-                <button
-                  v-for="type in QUESTION_TYPE_ORDER"
-                  :key="type"
-                  type="button"
-                  class="gen-pill"
-                  :class="{ 'gen-pill--active': generationForm.questionTypes.includes(type) }"
-                  @click="toggleQuestionType(type)"
-                >{{ QUESTION_TYPE_LABELS[type] }}</button>
+              <div
+                class="gen-wheel-outer"
+                @wheel.prevent="scrollWheel($event)"
+              >
+                <div class="gen-wheel-mask gen-wheel-mask--top"></div>
+                <div class="gen-wheel-viewport" ref="wheelViewport">
+                  <div class="gen-wheel-track" :style="{ transform: `translateY(${wheelOffset}px)` }">
+                    <button
+                      v-for="(type, i) in QUESTION_TYPE_ORDER"
+                      :key="type"
+                      type="button"
+                      class="gen-wheel-item"
+                      :class="{
+                        'gen-wheel-item--center': wheelCenterIndex === i,
+                        'gen-wheel-item--active': generationForm.questionTypes.includes(type)
+                      }"
+                      :style="wheelItemStyle(i)"
+                      @click="toggleQuestionType(type)"
+                    >
+                      <span class="gen-wheel-label">{{ QUESTION_TYPE_LABELS[type] }}</span>
+                      <span v-if="generationForm.questionTypes.includes(type)" class="gen-wheel-check">✓</span>
+                    </button>
+                  </div>
+                </div>
+                <div class="gen-wheel-mask gen-wheel-mask--bottom"></div>
               </div>
               <div v-if="generationForm.questionTypes.length" class="gen-type-counts">
                 <div v-for="type in generationForm.questionTypes" :key="type" class="gen-type-count-row">
@@ -569,6 +585,37 @@ const paper = reactive({
   totalMarks: DEFAULT_PAPER.totalMarks,
   questions: [] as PaperQuestion[]
 })
+
+const ITEM_HEIGHT = 36
+const VISIBLE_COUNT = 3
+const WHEEL_HALF = Math.floor(VISIBLE_COUNT / 2)
+
+const wheelViewport = ref<HTMLElement | null>(null)
+const wheelIndex = ref(0)
+
+const wheelCenterIndex = computed(() => wheelIndex.value)
+
+const wheelOffset = computed(() => {
+  return -(wheelIndex.value - WHEEL_HALF) * ITEM_HEIGHT
+})
+
+function wheelItemStyle (index: number) {
+  const dist = index - wheelCenterIndex.value
+  const absDist = Math.abs(dist)
+  if (absDist > WHEEL_HALF + 1) return { opacity: '0', pointerEvents: 'none' }
+  const opacity = 1 - absDist * 0.45
+  const scale = 1 - absDist * 0.13
+  return {
+    opacity: String(Math.max(0, opacity)),
+    transform: `scale(${Math.max(0.6, scale)})`,
+    pointerEvents: absDist > WHEEL_HALF ? 'none' : 'auto'
+  }
+}
+
+function scrollWheel (event: WheelEvent) {
+  const delta = event.deltaY > 0 ? 1 : -1
+  wheelIndex.value = Math.max(0, Math.min(QUESTION_TYPE_ORDER.length - 1, wheelIndex.value + delta))
+}
 
 const exported = ref(false)
 
@@ -1252,6 +1299,86 @@ function getEssayBlankStyle (question: Question) {
 .gen-pill-input:focus {
   outline: 2px solid var(--color-primary);
   outline-offset: -2px;
+}
+
+.gen-wheel-outer {
+  position: relative;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.02);
+  border: 1px solid var(--color-border);
+  user-select: none;
+}
+.gen-wheel-mask {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 36px;
+  z-index: 2;
+  pointer-events: none;
+}
+.gen-wheel-mask--top {
+  top: 0;
+  border-radius: 12px 12px 0 0;
+  background: linear-gradient(to bottom, var(--color-surface) 0%, transparent 100%);
+}
+.gen-wheel-mask--bottom {
+  bottom: 0;
+  border-radius: 0 0 12px 12px;
+  background: linear-gradient(to top, var(--color-surface) 0%, transparent 100%);
+}
+.gen-wheel-viewport {
+  height: 108px;
+  overflow: hidden;
+  position: relative;
+}
+.gen-wheel-track {
+  display: flex;
+  flex-direction: column;
+  padding: 36px 0;
+  transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.gen-wheel-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 12px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: .82rem;
+  font-weight: 500;
+  color: var(--color-muted);
+  transition: color 0.2s ease, background 0.2s ease;
+  white-space: nowrap;
+}
+.gen-wheel-item--center {
+  color: var(--color-text);
+  font-weight: 700;
+  font-size: .92rem;
+}
+.gen-wheel-item--center::before {
+  content: '';
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  height: 36px;
+  border-radius: 8px;
+  background: rgba(79, 110, 247, 0.06);
+  z-index: -1;
+}
+.gen-wheel-item--active .gen-wheel-label {
+  color: var(--color-primary);
+}
+.gen-wheel-item--active.gen-wheel-item--center .gen-wheel-label {
+  color: var(--color-primary);
+  font-weight: 700;
+}
+.gen-wheel-check {
+  font-size: .7rem;
+  color: var(--color-accent);
+  font-weight: 700;
 }
 
 .gen-type-counts {
