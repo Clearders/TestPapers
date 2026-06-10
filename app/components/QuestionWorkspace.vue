@@ -99,97 +99,153 @@
         </div>
 
         <form v-if="canWritePapers" class="card generation-card" @submit.prevent="generatePaper">
-          <div class="panel-head generation-card__head">
-            <div>
+          <div class="gen-header">
+            <div class="gen-header__text">
               <h2>Auto Generate</h2>
-              <p class="panel-sub">Use a genetic algorithm to compose a balanced paper from the question bank.</p>
+              <p>Use a genetic algorithm to compose a balanced paper from the question bank.</p>
             </div>
-            <span v-if="generationDiagnostics" class="tag count-tag">fitness {{ generationDiagnostics.fitness }}</span>
+            <Transition name="gen-stat-pop">
+              <div v-if="generationDiagnostics" class="gen-fitness-badge" :class="fitnessClass" :title="'Generations run: ' + generationDiagnostics.generationsRun">
+                <span class="gen-fitness-value">{{ generationDiagnostics.fitness.toFixed(2) }}</span>
+                <span class="gen-fitness-label">fitness</span>
+              </div>
+            </Transition>
           </div>
 
-          <section class="generation-section">
-            <div class="generation-section__head">
-              <h3>Generation Settings</h3>
-              <span class="badge" style="background: linear-gradient(90deg, #4f6ef7, #22c55e); color: white;">Optimization</span>
-            </div>
-            <div class="generation-grid">
-              <div class="setting-card setting-card--score">
-                <label class="form-label">Total Score</label>
-                <div class="wheel-selector">
-                  <button
-                    v-for="score in [50, 100, 120, 150]"
-                    :key="score"
-                    type="button"
-                    class="wheel-option"
-                    :class="{ 'wheel-option--active': paper.totalMarks === score }"
-                    @click="paper.totalMarks = score"
-                  >
-                    {{ score }}
-                  </button>
-                  <input
-                    v-model.number="paper.totalMarks"
-                    class="form-input custom-score"
-                    type="number"
-                    min="1"
-                    placeholder="Custom"
-                  />
-                </div>
-              </div>
-              <div class="setting-card setting-card--type">
-                <label class="form-label">Question Type</label>
-                <div class="wheel-selector">
-                  <button
-                    v-for="type in QUESTION_TYPE_ORDER"
-                    :key="type"
-                    type="button"
-                    class="wheel-option"
-                    :class="{ 'wheel-option--active': generationForm.questionType === type }"
-                    @click="generationForm.questionType = type"
-                  >
-                    {{ QUESTION_TYPE_LABELS[type] }}
-                  </button>
-                </div>
-              </div>
-              <div class="setting-card setting-card--diff setting-card--small">
-                <label class="form-label">Difficulty: {{ generationForm.difficultyCoefficient }}</label>
+          <div class="gen-controls">
+            <div class="gen-field">
+              <label class="form-label">Total Score</label>
+              <div class="gen-pill-group">
+                <button
+                  v-for="score in [50, 100, 120, 150]"
+                  :key="score"
+                  type="button"
+                  class="gen-pill"
+                  :class="{ 'gen-pill--active': paper.totalMarks === score }"
+                  @click="paper.totalMarks = score"
+                >{{ score }}</button>
                 <input
-                  v-model.number="generationForm.difficultyCoefficient"
-                  class="form-range form-range--primary"
-                  type="range"
-                  min="0.0"
-                  max="1.0"
-                  step="0.05"
+                  v-model.number="paper.totalMarks"
+                  class="gen-pill-input"
+                  type="number"
+                  min="1"
+                  placeholder="Custom"
                 />
               </div>
             </div>
-          </section>
 
-          <div class="generation-footer">
-            <div class="paper-actions">
-              <button class="btn btn-primary" type="submit" :disabled="isGenerating || !paper.title.trim() || !paper.subject.trim()">
-                {{ isGenerating ? 'Generating…' : 'Generate Paper' }}
-              </button>
-              <span class="form-hint">Uses the current paper title, subject, and duration.</span>
+            <div class="gen-field">
+              <label class="form-label">Question Type</label>
+              <div class="gen-pill-group">
+                <button
+                  v-for="type in QUESTION_TYPE_ORDER"
+                  :key="type"
+                  type="button"
+                  class="gen-pill"
+                  :class="{ 'gen-pill--active': generationForm.questionType === type }"
+                  @click="generationForm.questionType = type"
+                >{{ QUESTION_TYPE_LABELS[type] }}</button>
+              </div>
+            </div>
+
+            <div class="gen-field">
+              <div class="gen-field__label-row">
+                <label class="form-label">Difficulty</label>
+                <span class="gen-diff-badge" :class="difficultyBadgeClass">{{ difficultyLabel }}</span>
+              </div>
+              <div class="gen-range-wrap">
+                <input
+                  v-model.number="generationForm.difficultyCoefficient"
+                  class="gen-range"
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.05"
+                />
+                <div class="gen-range-ticks">
+                  <span>Easy</span>
+                  <span>Medium</span>
+                  <span>Hard</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="gen-field">
+              <label class="form-label">Tag Filters <span class="gen-optional">(optional)</span></label>
+              <div class="gen-tag-row">
+                <div class="gen-tag-section">
+                  <span class="gen-tag-hint">Required</span>
+                  <input
+                    v-model="generationForm.requiredTagsStr"
+                    class="form-input gen-tag-input"
+                    placeholder="e.g. algebra, calculus"
+                    @blur="syncRequiredTags"
+                  />
+                </div>
+                <div class="gen-tag-section">
+                  <span class="gen-tag-hint">Preferred</span>
+                  <input
+                    v-model="generationForm.preferredTagsStr"
+                    class="form-input gen-tag-input"
+                    placeholder="e.g. basic, review"
+                    @blur="syncPreferredTags"
+                  />
+                </div>
+              </div>
+              <p class="form-hint">Required tags must all be present; preferred tags improve fitness scoring.</p>
             </div>
           </div>
 
-          <div v-if="generationError" class="status-banner status-banner--error" aria-live="polite">
-            {{ generationError }}
+          <div class="gen-action">
+            <button
+              class="btn btn-primary gen-submit"
+              type="submit"
+              :disabled="isGenerating || !paper.title.trim() || !paper.subject.trim()"
+            >
+              <span v-if="isGenerating" class="gen-spinner"></span>
+              {{ isGenerating ? 'Generating…' : 'Generate Paper' }}
+            </button>
+            <span class="form-hint">Uses the current paper title, subject, and duration.</span>
           </div>
-          <div v-if="generationDiagnostics" class="generation-summary">
-            <span class="summary-pill">Difficulty: {{ formatDistribution(generationDiagnostics.difficultyActual) }}</span>
-            <span class="summary-pill">Types: {{ formatDistribution(generationDiagnostics.typeActual) }}</span>
-            <span v-if="generationDiagnostics.questionCount" class="summary-pill">Questions: {{ generationDiagnostics.questionCount }}</span>
-            <span v-if="generationDiagnostics.marksActual" class="summary-pill">Marks: {{ generationDiagnostics.marksActual }}</span>
-            <span v-if="generationDiagnostics.scoreWeightActual" class="summary-pill">Weight: {{ generationDiagnostics.scoreWeightActual }}</span>
-            <span class="summary-pill">Candidates: {{ generationDiagnostics.candidateCount }}</span>
-          </div>
+
+          <Transition name="gen-banner">
+            <div v-if="generationError" class="status-banner status-banner--error" aria-live="polite">
+              {{ generationError }}
+            </div>
+          </Transition>
+
+          <Transition name="gen-banner">
+            <div v-if="generationDiagnostics" class="gen-result">
+              <div class="gen-result-header">
+                <span class="gen-result-title">Generation Result</span>
+                <span class="gen-result-meta">{{ generationDiagnostics.questionCount }} questions · {{ generationDiagnostics.candidateCount }} candidates · {{ generationDiagnostics.generationsRun }} generations</span>
+              </div>
+              <div class="gen-stats">
+                <div class="gen-stat">
+                  <span class="gen-stat-label">Marks</span>
+                  <span class="gen-stat-value">{{ generationDiagnostics.marksActual }}</span>
+                </div>
+                <div class="gen-stat">
+                  <span class="gen-stat-label">Weight</span>
+                  <span class="gen-stat-value">{{ generationDiagnostics.scoreWeightActual }}</span>
+                </div>
+                <div class="gen-stat">
+                  <span class="gen-stat-label">Difficulty</span>
+                  <span class="gen-stat-value gen-stat--small">{{ formatDistribution(generationDiagnostics.difficultyActual) }}</span>
+                </div>
+                <div class="gen-stat">
+                  <span class="gen-stat-label">Type</span>
+                  <span class="gen-stat-value gen-stat--small">{{ formatDistribution(generationDiagnostics.typeActual) }}</span>
+                </div>
+              </div>
+            </div>
+          </Transition>
         </form>
         <div v-else class="card generation-card">
-          <div class="panel-head generation-card__head">
-            <div>
+          <div class="gen-header">
+            <div class="gen-header__text">
               <h2>Auto Generate</h2>
-              <p class="panel-sub">Paper generation requires papers:write permission.</p>
+              <p>Paper generation requires <strong>papers:write</strong> permission.</p>
             </div>
           </div>
         </div>
@@ -434,6 +490,10 @@ type BankMode = 'all' | 'mine'
 interface GenerationFormState {
   difficultyCoefficient: number
   questionType: QuestionType
+  requiredTagsStr: string
+  requiredTags: string[]
+  preferredTagsStr: string
+  preferredTags: string[]
 }
 
 const DEFAULT_PAPER = {
@@ -473,7 +533,11 @@ const canWritePapers = computed(() => hasPermission('papers:write'))
 
 const generationForm = reactive<GenerationFormState>({
   difficultyCoefficient: 0.5,
-  questionType: 'choice'
+  questionType: 'choice',
+  requiredTagsStr: '',
+  requiredTags: [],
+  preferredTagsStr: '',
+  preferredTags: []
 })
 
 const currentQuestions = computed(() => bankMode.value === 'mine' ? myQuestions.value : questions.value)
@@ -749,7 +813,9 @@ function buildPaperGeneratePayload (): PaperGeneratePayload | null {
     ...metadata,
     difficultyCoefficient: toBoundedNumber(generationForm.difficultyCoefficient, 0.5, 0, 1),
     questionType: generationForm.questionType,
-    ownQuestionsOnly: bankMode.value === 'mine'
+    ownQuestionsOnly: bankMode.value === 'mine',
+    ...(generationForm.requiredTags.length ? { requiredTags: generationForm.requiredTags } : {}),
+    ...(generationForm.preferredTags.length ? { preferredTags: generationForm.preferredTags } : {})
   }
 }
 
@@ -854,6 +920,43 @@ function formatDistribution (distribution: Record<string, number>) {
     .join(', ') || '-'
 }
 
+function syncRequiredTags () {
+  generationForm.requiredTags = generationForm.requiredTagsStr
+    .split(',')
+    .map(t => t.trim().toLowerCase())
+    .filter(Boolean)
+}
+
+function syncPreferredTags () {
+  generationForm.preferredTags = generationForm.preferredTagsStr
+    .split(',')
+    .map(t => t.trim().toLowerCase())
+    .filter(Boolean)
+}
+
+const fitnessClass = computed(() => {
+  if (!generationDiagnostics.value) return ''
+  const f = generationDiagnostics.value.fitness
+  if (f >= 0.85) return 'gen-fitness--high'
+  if (f >= 0.60) return 'gen-fitness--mid'
+  return 'gen-fitness--low'
+})
+
+const difficultyLabel = computed(() => {
+  const coeff = generationForm.difficultyCoefficient
+  if (coeff <= 0.3) return 'Easy'
+  if (coeff <= 0.55) return 'Easy-Medium'
+  if (coeff <= 0.75) return 'Medium-Hard'
+  return 'Hard'
+})
+
+const difficultyBadgeClass = computed(() => {
+  const coeff = generationForm.difficultyCoefficient
+  if (coeff <= 0.3) return 'badge-easy'
+  if (coeff <= 0.55) return 'badge-medium'
+  return 'badge-hard'
+})
+
 function formatScoreWeight (weight: number) {
   return Number.isInteger(weight) ? String(weight) : weight.toFixed(1)
 }
@@ -909,81 +1012,113 @@ function getEssayBlankStyle (question: Question) {
   overflow: hidden;
   margin-bottom: 16px;
   background:
-    linear-gradient(135deg, rgba(79, 110, 247, 0.08), rgba(34, 197, 94, 0.05)),
+    linear-gradient(135deg, rgba(79, 110, 247, 0.06), rgba(34, 197, 94, 0.03)),
     var(--color-surface);
 }
-.generation-card__head {
-  padding-bottom: 14px;
+
+.gen-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 16px;
+  margin-bottom: 16px;
   border-bottom: 1px solid var(--color-border);
 }
-.generation-section {
+.gen-header__text h2 {
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+.gen-header__text p {
+  color: var(--color-muted);
+  font-size: .82rem;
+  margin-top: 3px;
+}
+
+.gen-fitness-badge {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  align-items: center;
+  justify-content: center;
+  min-width: 58px;
+  padding: 6px 14px;
+  border-radius: 10px;
+  background: rgba(34, 197, 94, 0.08);
+  border: 1px solid rgba(34, 197, 94, 0.2);
+  flex-shrink: 0;
 }
-.generation-section__head {
+.gen-fitness--high {
+  background: rgba(34, 197, 94, 0.1);
+  border-color: rgba(34, 197, 94, 0.3);
+}
+.gen-fitness--mid {
+  background: rgba(234, 179, 8, 0.1);
+  border-color: rgba(234, 179, 8, 0.25);
+}
+.gen-fitness--low {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.2);
+}
+.gen-fitness-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--color-text);
+  line-height: 1.2;
+}
+.gen-fitness--high .gen-fitness-value { color: #15803d; }
+.gen-fitness--mid .gen-fitness-value { color: #a16207; }
+.gen-fitness--low .gen-fitness-value { color: #b91c1c; }
+.gen-fitness-label {
+  font-size: .65rem;
+  font-weight: 500;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.gen-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin-bottom: 20px;
+}
+
+.gen-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.gen-field__label-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  flex-wrap: wrap;
   gap: 8px;
 }
-.generation-section__head h3 {
-  font-size: .9rem;
-  font-weight: 700;
+.gen-diff-badge {
+  flex-shrink: 0;
 }
-.generation-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 12px;
-}
-@media (min-width: 900px) {
-  .generation-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-.setting-card {
-  background: rgba(255, 255, 255, 0.8);
-  border-radius: 8px;
-  padding: 16px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
-  border: 1px solid rgba(0, 0, 0, 0.05);
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-.setting-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
-}
-.setting-card--score {
-  border-top: 3px solid var(--color-primary);
-}
-.setting-card--diff {
-  border-top: 3px solid #22c55e;
-}
-.setting-card--type {
-  border-top: 3px solid #8b5cf6;
+.gen-optional {
+  font-weight: 400;
+  color: var(--color-muted);
+  font-size: .8rem;
 }
 
-.wheel-selector {
+.gen-pill-group {
   display: flex;
   align-items: center;
   background: var(--color-border);
-  padding: 4px;
+  padding: 3px;
   border-radius: 999px;
-  gap: 4px;
+  gap: 2px;
   overflow-x: auto;
-  margin-top: 8px;
 }
-.wheel-option {
+.gen-pill {
   flex: 1;
   background: transparent;
   border: none;
   border-radius: 999px;
-  padding: 6px 12px;
-  font-size: 0.85rem;
+  padding: 5px 10px;
+  font-size: .82rem;
   font-weight: 500;
   color: var(--color-muted);
   text-align: center;
@@ -991,77 +1126,205 @@ function getEssayBlankStyle (question: Question) {
   transition: all 0.2s ease;
   cursor: pointer;
 }
-.wheel-option:hover {
+.gen-pill:hover {
   color: var(--color-text);
-  background: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.45);
 }
-.wheel-option--active {
+.gen-pill--active {
   background: #ffffff;
   color: var(--color-primary);
-  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
 }
-.custom-score {
-  width: 70px;
+.gen-pill-input {
+  width: 64px;
   border-radius: 999px;
   border: none;
   text-align: center;
-  padding: 6px;
-  font-size: 0.85rem;
+  padding: 5px;
+  font-size: .82rem;
+  font-weight: 500;
   background: #ffffff;
   box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+  transition: box-shadow 0.2s ease;
 }
-.custom-score:focus {
-  outline: 2px solid var(--color-primary-d);
+.gen-pill-input:focus {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
 }
 
-.setting-card--small {
-  padding: 10px 16px;
+.gen-range-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
-.form-range {
+.gen-range {
   width: 100%;
-  accent-color: var(--color-primary);
-  cursor: pointer;
-  margin-top: 8px;
-  height: 4px;
-  background: var(--color-border);
-  border-radius: 2px;
-  appearance: auto;
-}
-.form-range::-webkit-slider-thumb {
+  height: 6px;
+  border-radius: 3px;
+  background: linear-gradient(to right, #22c55e, #eab308, #ef4444);
   appearance: none;
-  width: 16px;
-  height: 16px;
-  background: var(--color-primary);
+  cursor: pointer;
+}
+.gen-range::-webkit-slider-thumb {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  background: #ffffff;
+  border: 2px solid var(--color-primary);
   border-radius: 50%;
   cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+  transition: transform 0.15s ease;
+}
+.gen-range::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+.gen-range-ticks {
+  display: flex;
+  justify-content: space-between;
+  font-size: .7rem;
+  color: var(--color-muted);
+  padding: 0 2px;
 }
 
-.generation-footer {
+.gen-tag-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.gen-tag-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.gen-tag-hint {
+  font-size: .72rem;
+  font-weight: 600;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.gen-tag-input {
+  font-size: .82rem;
+}
+
+.gen-action {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   flex-wrap: wrap;
   gap: 12px;
   padding-top: 16px;
-  margin-top: 18px;
+  margin-top: 2px;
   border-top: 1px solid var(--color-border);
 }
-.generation-summary {
+.gen-submit {
+  min-width: 160px;
+  justify-content: center;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.gen-submit:not(:disabled) {
+  animation: genPulse 2.5s ease-in-out infinite;
+}
+@keyframes genPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(79, 110, 247, 0.25); }
+  50% { box-shadow: 0 0 0 6px rgba(79, 110, 247, 0); }
+}
+.gen-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: genSpin 0.6s linear infinite;
+}
+@keyframes genSpin {
+  to { transform: rotate(360deg); }
+}
+
+.gen-result {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border);
+}
+.gen-result-header {
   display: flex;
+  align-items: baseline;
+  justify-content: space-between;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 14px;
-  color: var(--color-muted);
-  font-size: .82rem;
+  margin-bottom: 14px;
 }
-.summary-pill {
-  display: inline-flex;
+.gen-result-title {
+  font-size: .85rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+.gen-result-meta {
+  font-size: .75rem;
+  color: var(--color-muted);
+}
+.gen-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+.gen-stat {
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  min-height: 26px;
-  padding: 4px 8px;
-  border: 1px solid rgba(79, 110, 247, 0.16);
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.72);
+  gap: 4px;
+  padding: 10px 8px;
+  border-radius: var(--radius);
+  background: rgba(79, 110, 247, 0.04);
+  border: 1px solid rgba(79, 110, 247, 0.08);
+}
+.gen-stat-label {
+  font-size: .68rem;
+  font-weight: 500;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.gen-stat-value {
+  font-size: .95rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+.gen-stat--small {
+  font-size: .75rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.gen-stat-pop-enter-active {
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.gen-stat-pop-leave-active {
+  transition: all 0.25s ease;
+}
+.gen-stat-pop-enter-from {
+  opacity: 0;
+  transform: scale(0.8);
+}
+.gen-stat-pop-leave-to {
+  opacity: 0;
+  transform: scale(0.9);
+}
+
+.gen-banner-enter-active {
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.gen-banner-leave-active {
+  transition: all 0.2s ease;
+}
+.gen-banner-enter-from {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+.gen-banner-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
 }
 .status-banner {
   border: 1px solid var(--color-border);
@@ -1077,17 +1340,16 @@ function getEssayBlankStyle (question: Question) {
   background: #fef2f2;
   color: #b91c1c;
 }
-@media (max-width: 900px) {
-  .generation-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
 @media (max-width: 560px) {
-  .generation-grid {
+  .gen-tag-row {
     grid-template-columns: 1fr;
   }
 
-  .generation-footer,
+  .gen-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .gen-action,
   .paper-actions {
     align-items: stretch;
     flex-direction: column;
@@ -1354,7 +1616,7 @@ function getEssayBlankStyle (question: Question) {
 }
 @media (max-width: 560px) {
   .paper-actions .btn,
-  .generation-footer .btn,
+  .gen-action .btn,
   .export-mode-actions .btn {
     width: 100%;
   }
