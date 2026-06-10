@@ -22,7 +22,7 @@ const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS'])
 function readCookie (name: string): string {
   if (import.meta.server) return ''
   const match = document.cookie.split('; ').find((row) => row.startsWith(name + '='))
-  return match ? decodeURIComponent(match.split('=')[1]) : ''
+  return match ? decodeURIComponent(match.split('=')[1] ?? '') : ''
 }
 
 function getApiBase () {

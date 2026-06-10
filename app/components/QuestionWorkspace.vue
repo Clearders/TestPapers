@@ -155,9 +155,20 @@
                   :key="type"
                   type="button"
                   class="gen-pill"
-                  :class="{ 'gen-pill--active': generationForm.questionType === type }"
-                  @click="generationForm.questionType = type"
+                  :class="{ 'gen-pill--active': generationForm.questionTypes.includes(type) }"
+                  @click="toggleQuestionType(type)"
                 >{{ QUESTION_TYPE_LABELS[type] }}</button>
+              </div>
+              <div v-if="generationForm.questionTypes.length" class="gen-type-counts">
+                <div v-for="type in generationForm.questionTypes" :key="type" class="gen-type-count-row">
+                  <span class="gen-type-count-label">{{ QUESTION_TYPE_LABELS[type] }}</span>
+                  <input
+                    v-model.number="generationForm.typeCounts[type]"
+                    class="gen-type-count-input"
+                    type="number"
+                    min="1"
+                  />
+                </div>
               </div>
             </div>
 
@@ -223,7 +234,7 @@
             <button
               class="btn btn-primary gen-submit"
               type="submit"
-              :disabled="isGenerating || !generationForm.subject.trim() || !paper.title.trim()"
+              :disabled="isGenerating || !generationForm.subject.trim() || !paper.title.trim() || !generationForm.questionTypes.length"
             >
               <span v-if="isGenerating" class="gen-spinner"></span>
               {{ isGenerating ? 'Generating…' : 'Generate Paper' }}
@@ -465,7 +476,7 @@ interface PaperCreatePayload extends PaperMetadataPayload {
 
 interface PaperGeneratePayload extends PaperMetadataPayload {
   difficultyCoefficient: number
-  questionType: QuestionType
+  questionTypes: Array<{ questionType: QuestionType; count: number }>
   ownQuestionsOnly: boolean
   requiredTags?: string[]
   preferredTags?: string[]
@@ -516,7 +527,8 @@ type QuestionDifficulty = Question['difficulty']
 type BankMode = 'all' | 'mine'
 interface GenerationFormState {
   difficultyCoefficient: number
-  questionType: QuestionType
+  questionTypes: QuestionType[]
+  typeCounts: Record<string, number>
   subject: string
   requiredTagsStr: string
   requiredTags: string[]
@@ -562,7 +574,8 @@ const canWritePapers = computed(() => hasPermission('papers:write'))
 
 const generationForm = reactive<GenerationFormState>({
   difficultyCoefficient: 0.5,
-  questionType: 'choice',
+  questionTypes: ['choice'],
+  typeCounts: { choice: 5 },
   subject: '',
   requiredTagsStr: '',
   requiredTags: [],
@@ -847,7 +860,10 @@ function buildPaperGeneratePayload (): PaperGeneratePayload | null {
     duration: toPositiveInteger(paper.duration, DEFAULT_PAPER.duration),
     totalMarks: toPositiveInteger(paper.totalMarks, DEFAULT_PAPER.totalMarks),
     difficultyCoefficient: toBoundedNumber(generationForm.difficultyCoefficient, 0.5, 0, 1),
-    questionType: generationForm.questionType,
+    questionTypes: generationForm.questionTypes.map(type => ({
+      questionType: type,
+      count: generationForm.typeCounts[type] || 1
+    })),
     ownQuestionsOnly: bankMode.value === 'mine',
     ...(generationForm.requiredTags.length ? { requiredTags: generationForm.requiredTags } : {}),
     ...(generationForm.preferredTags.length ? { preferredTags: generationForm.preferredTags } : {})
@@ -959,6 +975,19 @@ function tagChipClass (tag: string) {
   if (generationForm.requiredTags.includes(tag)) return 'gen-chip--required'
   if (generationForm.preferredTags.includes(tag)) return 'gen-chip--preferred'
   return ''
+}
+
+function toggleQuestionType (type: QuestionType) {
+  const index = generationForm.questionTypes.indexOf(type)
+  if (index === -1) {
+    generationForm.questionTypes = [...generationForm.questionTypes, type]
+    generationForm.typeCounts = { ...generationForm.typeCounts, [type]: generationForm.typeCounts[type] || 1 }
+  } else {
+    generationForm.questionTypes = generationForm.questionTypes.filter(t => t !== type)
+    const newCounts = { ...generationForm.typeCounts }
+    delete newCounts[type]
+    generationForm.typeCounts = newCounts
+  }
 }
 
 function toggleTag (event: MouseEvent, tag: string) {
@@ -1218,6 +1247,47 @@ function getEssayBlankStyle (question: Question) {
   transition: box-shadow 0.2s ease;
 }
 .gen-pill-input:focus {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
+.gen-type-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.gen-type-count-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--color-border);
+  border-radius: 999px;
+  padding: 2px 2px 2px 12px;
+}
+
+.gen-type-count-label {
+  font-size: .78rem;
+  color: var(--color-text);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.gen-type-count-input {
+  width: 48px;
+  border-radius: 999px;
+  border: none;
+  text-align: center;
+  padding: 4px 6px;
+  font-size: .82rem;
+  font-weight: 500;
+  background: #ffffff;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+  transition: box-shadow 0.2s ease;
+}
+
+.gen-type-count-input:focus {
   outline: 2px solid var(--color-primary);
   outline-offset: -2px;
 }
