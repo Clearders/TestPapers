@@ -86,7 +86,7 @@
             />
           </div>
 
-          <div v-if="form.type === 'choice'" class="form-group">
+          <div v-if="form.type === 'single_choice' || form.type === 'multiple_choice'" class="form-group">
             <label class="form-label">Options <span class="required">*</span></label>
             <div v-for="(opt, index) in form.options" :key="index" class="option-row">
               <span class="option-label">{{ String.fromCharCode(65 + index) }}.</span>
@@ -150,12 +150,20 @@
               placeholder="e.g. $x = 4$"
               required
             />
-            <select v-else-if="form.type === 'choice'" id="problem-answer" v-model="form.answer" class="form-input" required>
+            <select v-else-if="form.type === 'single_choice'" id="problem-answer" v-model="form.answer" class="form-input" required>
               <option value="">Select Correct Option</option>
               <option v-for="(opt, index) in form.options" :key="index" :value="opt.trim()">
                 {{ String.fromCharCode(65 + index) }}. {{ opt.trim() }}
               </option>
             </select>
+            <div v-else-if="form.type === 'multiple_choice'" class="form-group">
+              <div v-for="(opt, index) in form.options" :key="index" class="option-row">
+                <label class="checkbox-option">
+                  <input type="checkbox" :value="opt.trim()" v-model="form.answerMultiple" />
+                  <span>{{ String.fromCharCode(65 + index) }}. {{ opt.trim() }}</span>
+                </label>
+              </div>
+            </div>
             <select v-else id="problem-answer" v-model="form.answer" class="form-input" required>
               <option value="">Select Correct Answer</option>
               <option value="True">True</option>
@@ -223,13 +231,14 @@ const uploadingImage = ref(false)
 const canCreateQuestions = computed(() => hasPermission('questions:write'))
 
 const form = reactive({
-  type: 'choice' as QuestionType,
+  type: 'single_choice' as QuestionType,
   subject: '',
   difficulty: '' as QuestionDifficulty | '',
   tags: [] as string[],
   questionText: '',
   options: ['', '', '', ''] as string[],
   answer: '',
+  answerMultiple: [] as string[],
   source: '',
   essayBlankSpace: { ...DEFAULT_ESSAY_BLANK_SPACE },
   scoreWeight: 1,
@@ -238,19 +247,21 @@ const form = reactive({
 
 const usesOptionAnswers = computed(() => isOptionQuestionType(form.type))
 
+const isChoiceType = computed(() => form.type === 'single_choice' || form.type === 'multiple_choice')
+
 watch(() => form.type, () => {
   form.answer = ''
-  if (form.type === 'choice' && form.options.length !== 4) form.options = ['', '', '', '']
+  form.answerMultiple = []
+  if (isChoiceType.value && form.options.length !== 4) form.options = ['', '', '', '']
   if (form.type === 'true_false') form.options = ['True', 'False']
   if (form.type === 'essay') form.essayBlankSpace = { ...DEFAULT_ESSAY_BLANK_SPACE }
 })
 
-// Only watch for option changes in choice mode - shallow watch on joined options
 watch(
-  () => form.type === 'choice' ? form.options.join('\0') : null,
+  () => isChoiceType.value ? form.options.join('\0') : null,
   (joined) => {
     if (joined === null) return
-    if (form.answer && !form.options.includes(form.answer)) {
+    if (typeof form.answer === 'string' && form.answer && !form.options.includes(form.answer)) {
       form.answer = ''
     }
   }
@@ -309,7 +320,9 @@ async function submitProblem () {
       options: usesOptionAnswers.value
         ? form.options.map(option => option.trim()).filter(Boolean)
         : undefined,
-      answer: form.answer.trim(),
+      answer: form.type === 'multiple_choice'
+        ? form.answerMultiple.filter(Boolean)
+        : form.answer.trim(),
       source: form.source.trim() || undefined,
       scoreWeight: Math.max(0.01, Math.min(100, Number(form.scoreWeight) || 1)),
       essayBlankSpace: form.type === 'essay'
@@ -333,13 +346,14 @@ async function submitProblem () {
 
 function resetForm (clearBanner = true) {
   Object.assign(form, {
-    type: 'choice',
+    type: 'single_choice',
     subject: '',
     difficulty: '',
     tags: [],
     questionText: '',
     options: ['', '', '', ''],
     answer: '',
+    answerMultiple: [],
     source: '',
     essayBlankSpace: { ...DEFAULT_ESSAY_BLANK_SPACE },
     scoreWeight: 1,

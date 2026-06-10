@@ -1,4 +1,4 @@
-export type QuestionType = 'choice' | 'true_false' | 'blank' | 'short_answer' | 'essay'
+export type QuestionType = 'single_choice' | 'multiple_choice' | 'true_false' | 'blank' | 'short_answer' | 'essay'
 export type QuestionDifficulty = 'easy' | 'medium' | 'hard'
 
 export interface EssayBlankSpace {
@@ -19,7 +19,7 @@ export interface Question {
   tags: string[]
   text: string
   options?: string[]
-  answer: string
+  answer: string | string[]
   hasLatex: boolean
   source?: string
   essayBlankSpace?: EssayBlankSpace

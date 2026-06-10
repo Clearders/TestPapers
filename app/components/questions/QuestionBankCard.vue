@@ -62,7 +62,10 @@
       <div class="q-answer-inner">
         <div v-if="canReadAnswers" class="q-answer">
           <strong>Answer:</strong>
-          <template v-for="(part, i) in parseLatexParts(question.answer)" :key="i">
+          <template v-if="Array.isArray(question.answer)">
+            {{ question.answer.join(', ') }}
+          </template>
+          <template v-else v-for="(part, i) in parseLatexParts(question.answer)" :key="i">
             <LatexRenderer v-if="part.isLatex" :formula="part.content" />
             <span v-else>{{ part.content }}</span>
           </template>

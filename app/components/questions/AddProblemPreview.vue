@@ -32,7 +32,7 @@
           </figure>
         </div>
 
-        <div v-if="form.type === 'choice' && form.options.some(option => option.trim())" class="preview-options">
+        <div v-if="(form.type === 'single_choice' || form.type === 'multiple_choice') && form.options.some(option => option.trim())" class="preview-options">
           <div v-for="(opt, index) in form.options" :key="'opt' + index">
             <span v-if="opt.trim()" class="preview-option">
               <strong>{{ String.fromCharCode(65 + index) }}.</strong>
@@ -53,11 +53,11 @@
         />
       </div>
 
-      <div v-if="form.answer" class="preview-section">
+      <div v-if="form.answer || (Array.isArray(form.answer) && form.answer.length)" class="preview-section">
         <span class="preview-label">Answer</span>
         <div class="preview-content">
           <template v-if="isOptionQuestionType(form.type)">
-            <strong>{{ form.answer }}</strong>
+            <strong>{{ Array.isArray(form.answer) ? form.answer.join(', ') : form.answer }}</strong>
           </template>
           <template v-else v-for="(part, i) in parseLatexParts(form.answer)" :key="'a' + i">
             <LatexRenderer v-if="part.isLatex" :formula="part.content" :block="part.block" />

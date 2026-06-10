@@ -409,7 +409,10 @@
 
                   <div v-if="includeAnswersInExport && canReadAnswers" class="export-answer">
                     <strong>Answer:</strong>
-                    <template v-for="(part, i) in parseLatexParts(q.answer)" :key="i">
+                    <template v-if="Array.isArray(q.answer)">
+                      {{ q.answer.join(', ') }}
+                    </template>
+                    <template v-else v-for="(part, i) in parseLatexParts(q.answer)" :key="i">
                       <LatexRenderer v-if="part.isLatex" :formula="part.content" />
                       <span v-else>{{ part.content }}</span>
                     </template>
@@ -574,8 +577,8 @@ const canWritePapers = computed(() => hasPermission('papers:write'))
 
 const generationForm = reactive<GenerationFormState>({
   difficultyCoefficient: 0.5,
-  questionTypes: ['choice'],
-  typeCounts: { choice: 5 },
+  questionTypes: ['single_choice'],
+  typeCounts: { single_choice: 5 },
   subject: '',
   requiredTagsStr: '',
   requiredTags: [],

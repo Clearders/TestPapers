@@ -34,7 +34,8 @@ export function getEssayBlankHeightPx (blankSpace?: Partial<EssayBlankSpace> | n
 }
 
 export function hasLatexContent (question: Partial<QuestionEntity>) {
-  if (LATEX_DETECT_RE.test(question.text || '') || LATEX_DETECT_RE.test(question.answer || '')) return true
+  const answerText = typeof question.answer === 'string' ? question.answer : (Array.isArray(question.answer) ? question.answer.join(' ') : '')
+  if (LATEX_DETECT_RE.test(question.text || '') || LATEX_DETECT_RE.test(answerText)) return true
   if (!Array.isArray(question.options)) return false
   return question.options.some(option => LATEX_DETECT_RE.test(option || ''))
 }
@@ -80,7 +81,7 @@ export function toQuestionPayload (input: QuestionFormInput) {
     tags: input.tags,
     text: input.text.trim(),
     options: isOptionQuestionType(input.type) ? input.options || [] : undefined,
-    answer: input.answer.trim(),
+    answer: typeof input.answer === 'string' ? input.answer.trim() : input.answer,
     source: input.source?.trim() || undefined,
     essayBlankSpace: input.type === 'essay'
       ? normalizeEssayBlankSpace(input.essayBlankSpace)

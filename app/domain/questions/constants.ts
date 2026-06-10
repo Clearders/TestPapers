@@ -13,7 +13,8 @@ export const ESSAY_BLANK_SPACE_BOUNDS = {
 } as const
 
 export const QUESTION_TYPE_OPTIONS: Array<{ value: QuestionType; label: string }> = [
-  { value: 'choice', label: 'Multiple Choice' },
+  { value: 'single_choice', label: 'Single Choice' },
+  { value: 'multiple_choice', label: 'Multiple Choice' },
   { value: 'true_false', label: 'True / False' },
   { value: 'blank', label: 'Fill in the Blank' },
   { value: 'short_answer', label: 'Short Answer' },
