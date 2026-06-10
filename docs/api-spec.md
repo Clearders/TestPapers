@@ -1,9 +1,9 @@
 # TestPapers 前后端 API 接口文档
 
-> **版本**: v5  
+> **版本**: v6  
 > **后端框架**: FastAPI (Python)  
 > **前端框架**: Nuxt 4 (TypeScript)  
-> **最后更新**: 2026-05-11
+> **最后更新**: 2026-06-10
 
 ---
 
@@ -16,9 +16,12 @@
 - [5. 试卷管理](#5-试卷管理)
 - [6. 元数据](#6-元数据)
 - [7. 异步任务](#7-异步任务)
-- [8. 数据模型](#8-数据模型)
-- [9. 错误码](#9-错误码)
-- [10. 前端页面与 API 对应关系](#10-前端页面与-api-对应关系)
+- [8. 健康检查](#8-健康检查)
+- [9. 根路由](#9-根路由)
+- [10. 数据模型](#10-数据模型)
+- [11. 错误码](#11-错误码)
+- [12. 前端页面与 API 对应关系](#12-前端页面与-api-对应关系)
+- [13. 实现注意事项](#13-实现注意事项)
 
 ---
 
@@ -33,7 +36,7 @@
 | 内容类型   | `application/json; charset=utf-8` |
 | 时间格式   | ISO 8601 UTC（如 `2026-05-07T12:00:00Z`） |
 | 字段命名   | `camelCase`（驼峰命名）         |
-| 认证方式   | HttpOnly Cookie `testpapers_session`（兼容 `Authorization: Bearer <token>`） |
+| 认证方式   | HttpOnly Cookie `testpapers_session`（兼容 `Authorization: Bearer <token>`）；非安全方法需附带 CSRF Token |
 
 ### 1.2 统一响应格式
 
@@ -270,6 +273,15 @@ WS /api/v1/ws
 **认证**：连接握手时携带 HttpOnly `testpapers_session` Cookie，或兼容使用 Bearer token。
 
 连接成功后服务端发送 `auth.connected` 事件。客户端发送 `{ "event": "ping" }` 时，服务端返回 `{ "event": "pong" }`。
+
+### 2.8 CSRF 保护
+
+对于修改数据的请求（POST、PATCH、PUT、DELETE），客户端必须提供有效的 CSRF Token：
+
+- 登录/注册成功后，服务端在响应中设置 HttpOnly `testpapers_csrf` Cookie
+- 客户端需从 Cookie 中读取 CSRF Token，并在后续非安全方法的请求头中附带 `X-CSRF-Token`
+- 登出时服务端清除 CSRF Cookie
+- GET/HEAD/OPTIONS 等安全方法不受 CSRF 保护
 
 ---
 
@@ -593,7 +605,97 @@ POST /api/v1/papers
 
 **成功响应**：`201 Created`，`data` 为创建的试卷对象（含展开的试题详情）。
 
-### 5.2 获取试卷详情
+### 5.2 遗传算法自动组卷
+
+```http
+POST /api/v1/papers/generate
+```
+
+> **所需权限**：`papers:write`
+
+通过遗传算法自动从题库中选取试题组成试卷。
+
+**请求体**：
+
+| 字段                    | 类型      | 必填 | 默认值  | 说明                                                         |
+| ----------------------- | --------- | :--: | ------- | ------------------------------------------------------------ |
+| `title`                 | string    |  是  | —       | 试卷标题                                                      |
+| `subject`               | string    |  是  | —       | 学科，用于筛选候选试题                                         |
+| `duration`              | integer   |  是  | —       | 考试时长（分钟），必须 > 0                                     |
+| `totalMarks`            | integer   |  是  | —       | 试卷总分，必须 > 0；也是自动分配分值的目标总分                  |
+| `difficultyCoefficient` | number    |  是  | —       | 难度系数，范围 0–1，后端保留两位小数。用于推导 easy/medium/hard 目标分布 |
+| `questionType`          | string    |  是  | —       | 题型：`choice` / `true_false` / `blank` / `short_answer` / `essay` |
+| `ownQuestionsOnly`      | boolean   |  否  | `false` | 是否仅从当前用户个人题库中选题                                  |
+| `requiredTags`          | string[]  |  否  | `[]`    | 候选试题必须包含的标签（交集匹配），用于约束候选池              |
+| `preferredTags`         | string[]  |  否  | `[]`    | 优选标签列表，包含越多优选标签的试题适应度评分越高              |
+
+示例：
+
+```json
+{
+  "title": "2026 年期中考试",
+  "subject": "数学",
+  "duration": 60,
+  "totalMarks": 100,
+  "difficultyCoefficient": 0.65,
+  "questionType": "choice",
+  "ownQuestionsOnly": false,
+  "requiredTags": ["代数"],
+  "preferredTags": ["基础"]
+}
+```
+
+**成功响应** (201)：
+
+```json
+{
+  "success": true,
+  "data": {
+    "paper": { },
+    "diagnostics": {
+      "fitness": 0.85,
+      "candidateCount": 45,
+      "questionCount": 10,
+      "ownQuestionsOnly": false,
+      "difficultyCoefficient": 0.65,
+      "scoreWeightActual": 10.0,
+      "marksActual": 100,
+      "difficultyTargets": { "easy": 0.2, "medium": 0.5, "hard": 0.3 },
+      "difficultyActual": { "easy": 0.18, "medium": 0.52, "hard": 0.30 },
+      "typeTargets": { "choice": 1.0 },
+      "typeActual": { "choice": 1.0 },
+      "generationsRun": 50
+    }
+  }
+}
+```
+
+`diagnostics` 字段说明：
+
+| 字段                   | 说明                                                    |
+| ---------------------- | ------------------------------------------------------- |
+| `fitness`              | 适应度得分（越接近 1 越好）                              |
+| `candidateCount`       | 候选池试题数量                                           |
+| `questionCount`        | 实际选入试卷的试题数量                                    |
+| `difficultyCoefficient`| 请求的难度系数（保留两位小数）                             |
+| `scoreWeightActual`    | 实际总权重                                               |
+| `marksActual`          | 实际总分值（应等于请求的 `totalMarks`）                    |
+| `difficultyTargets`    | 各难度级别的目标分布比例                                  |
+| `difficultyActual`     | 实际选中的难度分布比例                                     |
+| `typeTargets`          | 目标题型分布                                              |
+| `typeActual`           | 实际题型分布                                              |
+| `generationsRun`       | 遗传算法迭代代数；候选数等于题目数时为 0                   |
+
+**错误响应**：
+
+| HTTP 状态码 | 错误码                   | 说明                          |
+| ----------- | ------------------------ | ----------------------------- |
+| 401         | `UNAUTHORIZED`           | 未认证                         |
+| 403         | `FORBIDDEN`              | 缺少 `papers:write` 权限       |
+| 422         | `VALIDATION_ERROR`       | 请求参数校验失败                |
+| 422         | `INSUFFICIENT_QUESTIONS` | 按条件筛选后候选题数量不足       |
+
+### 5.3 获取试卷详情
 
 ```http
 GET /api/v1/papers/{paper_id}
@@ -616,7 +718,7 @@ GET /api/v1/papers/1?expand=questions&includeAnswer=true
 
 **成功响应** (200)（`expand=questions` 时，`questions` 数组中的每项为展开的试题对象，额外包含 `orderNo` 和 `marks` 字段）。
 
-### 5.3 更新试卷元数据
+### 5.4 更新试卷元数据
 
 ```http
 PATCH /api/v1/papers/{paper_id}
@@ -636,7 +738,7 @@ PATCH /api/v1/papers/{paper_id}
 
 **成功响应** (200)：`data` 为更新后的试卷对象。
 
-### 5.4 向试卷添加试题
+### 5.5 向试卷添加试题
 
 ```http
 POST /api/v1/papers/{paper_id}/questions
@@ -656,7 +758,7 @@ POST /api/v1/papers/{paper_id}/questions
 
 **成功响应** (200)：`data` 为更新后的试卷详情（含展开试题）。
 
-### 5.5 从试卷移除试题
+### 5.6 从试卷移除试题
 
 ```http
 DELETE /api/v1/papers/{paper_id}/questions/{question_id}
@@ -668,7 +770,7 @@ DELETE /api/v1/papers/{paper_id}/questions/{question_id}
 
 **成功响应** (200)：`data` 为更新后的试卷详情。
 
-### 5.6 调整试题排序
+### 5.7 调整试题排序
 
 ```http
 PUT /api/v1/papers/{paper_id}/questions/order
@@ -693,7 +795,7 @@ PUT /api/v1/papers/{paper_id}/questions/order
 
 **成功响应** (200)：`data` 为重排后的试卷详情。
 
-### 5.7 导出预览
+### 5.8 导出预览
 
 ```http
 POST /api/v1/papers/{paper_id}/export-preview
@@ -737,14 +839,13 @@ POST /api/v1/papers/{paper_id}/export-preview
       "format": "json",
       "questionOrder": "paper",
       "includeAnswer": false
-    },
-    "exportedAt": "2026-05-11T12:00:00Z"
+    }
   },
   "meta": { "requestId": "..." }
 }
 ```
 
-### 5.8 下载 DOCX 试卷
+### 5.9 下载 DOCX 试卷
 
 ```http
 GET /api/v1/papers/{paper_id}/download
@@ -814,14 +915,18 @@ POST /api/v1/tasks/ping
 
 > **所需权限**：`questions:read`
 
+向 Celery 消息队列派发一个 `ping` 任务，返回任务 ID 供轮询。
+
 **成功响应** (200)：
 
 ```json
 {
   "success": true,
-  "data": { "result": "pong" }
+  "data": { "taskId": "a1b2c3d4-...", "status": "dispatched" }
 }
 ```
+
+客户端随后可通过 `GET /api/v1/tasks/{task_id}` 轮询任务结果。
 
 ### 7.2 查询任务状态与结果
 
@@ -839,13 +944,17 @@ GET /api/v1/tasks/{task_id}
   "data": {
     "taskId": "a1b2c3d4-...",
     "status": "SUCCESS",
-    "result": { },
-    "completedAt": "2026-05-11T12:00:00Z"
+    "result": { }
   }
 }
 ```
 
-`status` 可能值：`PENDING`、`STARTED`、`SUCCESS`、`FAILURE`、`RETRY`。
+`status` 可能值：`PENDING`、`STARTED`、`SUCCESS`、`FAILURE`、`RETRY`、`PROGRESS`、`REVOKED`。
+
+- `SUCCESS` 时附加 `result` 字段
+- `FAILURE` 时附加 `error` 字段（错误描述字符串）
+- `PROGRESS` 时附加 `progress` 字段（进度信息）
+- `REVOKED` 时附加 `message` 字段
 
 ### 7.3 异步导出试卷
 
@@ -857,13 +966,13 @@ POST /api/v1/tasks/export-paper/{paper_id}
 
 **查询参数**：
 
-| 参数             | 类型    | 默认值     | 说明                                                    |
-| ---------------- | ------- | ---------- | ------------------------------------------------------- |
-| `format`         | string  | `"json"`   | 导出格式：`json` / `csv` / `txt`                         |
-| `includeAnswer`  | boolean | `true`     | 是否包含答案（需 `answers:read` 权限）                    |
-| `questionOrder`  | string  | `"paper"`   | 排序方式：`paper`（编排顺序）/ `categorized`（题型分组）   |
+| 参数              | 类型    | 默认值     | 说明                                                    |
+| ----------------- | ------- | ---------- | ------------------------------------------------------- |
+| `format`          | string  | `"json"`   | 导出格式：`json` / `csv` / `txt`                         |
+| `include_answer`  | boolean | `true`     | 是否包含答案（需 `answers:read` 权限）                    |
+| `question_order`  | string  | `"paper"`  | 排序方式：`paper`（编排顺序）/ `categorized`（题型分组）   |
 
-**成功响应** (202)：返回 `taskId`，客户端随后可通过 `GET /api/v1/tasks/{task_id}` 轮询结果。
+**成功响应** (200)：返回 `taskId`、`paperId` 和 `status: "dispatched"`，客户端随后可通过 `GET /api/v1/tasks/{task_id}` 轮询结果。
 
 ### 7.4 验证全部试题
 
@@ -873,7 +982,7 @@ POST /api/v1/tasks/validate-questions
 
 > **所需权限**：`questions:read`
 
-**成功响应** (202)：返回 `taskId`，任务完成后 `result` 中包含每道试题的验证状态和问题列表。
+**成功响应** (200)：返回 `taskId` 和 `status: "dispatched"`，客户端随后可通过 `GET /api/v1/tasks/{task_id}` 轮询验证结果。任务完成后 `result` 中包含每道试题的验证状态和问题列表。
 
 ### 7.5 验证单个试题
 
@@ -883,7 +992,7 @@ POST /api/v1/tasks/validate-question/{question_id}
 
 > **所需权限**：`questions:read`
 
-**成功响应** (202)：返回 `taskId`，任务完成后 `result` 中包含该试题的验证结果。
+**成功响应** (200)：返回 `taskId`、`questionId` 和 `status: "dispatched"`，客户端随后可通过 `GET /api/v1/tasks/{task_id}` 轮询验证结果。
 
 ### 7.6 清理过期认证令牌
 
@@ -893,9 +1002,9 @@ POST /api/v1/tasks/cleanup-expired-sessions
 
 > **所需权限**：`users:manage`
 
-清理所有已过期的 `auth_tokens` 记录。
+向 Celery 派发异步清理任务，清理所有已过期的 `auth_tokens` 记录。
 
-**成功响应** (200)：返回清理的令牌数量。
+**成功响应** (200)：返回 `taskId` 和 `status: "dispatched"`，客户端随后可通过 `GET /api/v1/tasks/{task_id}` 轮询结果。
 
 ### 7.7 试题统计信息
 
@@ -905,30 +1014,54 @@ GET /api/v1/tasks/stats/questions
 
 > **所需权限**：`questions:read`
 
+向 Celery 派发异步统计计算任务。**成功响应** (200)：返回 `taskId` 和 `status: "dispatched"`。
+
+任务完成后，`result` 中包含以下统计信息：
+
+```json
+{
+  "total": 150,
+  "byType": { "choice": 60, "blank": 30, "short_answer": 30, "essay": 20, "true_false": 10 },
+  "byDifficulty": { "easy": 45, "medium": 75, "hard": 30 },
+  "bySubject": { "数学": 80, "物理": 50, "化学": 20 },
+  "withLatex": 45,
+  "topTags": [["代数", 30], ["几何", 25]],
+  "computedAt": "2026-05-11T12:00:00Z"
+}
+```
+
+---
+
+## 8. 健康检查
+
+> 用于运维监控，无需认证。
+
+### 8.1 PostgreSQL 健康检查
+
+```http
+GET /api/v1/health/postgres
+```
+
 **成功响应** (200)：
 
 ```json
 {
   "success": true,
   "data": {
-    "total": 150,
-    "byType": { "choice": 60, "blank": 30, "short_answer": 30, "essay": 20, "true_false": 10 },
-    "byDifficulty": { "easy": 45, "medium": 75, "hard": 30 },
-    "bySubject": { "数学": 80, "物理": 50, "化学": 20 },
-    "withLatex": 45,
-    "topTags": [["代数", 30], ["几何", 25]],
-    "computedAt": "2026-05-11T12:00:00Z"
+    "status": "connected",
+    "postgresVersion": "PostgreSQL 16.2 ...",
+    "latencyMs": 1.23
   }
 }
 ```
 
-### 6.3 Redis 健康检查
+**错误响应**：PostgreSQL 不可达时返回 `{"status": "disconnected", "error": "..."}`。
+
+### 8.2 Redis 健康检查
 
 ```http
 GET /api/v1/health/redis
 ```
-
-> 无需认证，用于运维监控。
 
 **成功响应** (200)：
 
@@ -943,13 +1076,35 @@ GET /api/v1/health/redis
 }
 ```
 
-**错误响应**：Redis 不可达时返回 `503 REDIS_UNAVAILABLE`。
+**错误响应**：Redis 不可达时返回 `{"status": "disconnected", "error": "..."}`。
 
 ---
 
-## 8. 数据模型
+## 9. 根路由
 
-### 8.1 试题 (Question)
+```http
+GET /
+```
+
+> 无需认证。
+
+**成功响应** (200)：
+
+```json
+{
+  "success": true,
+  "data": {
+    "service": "TestPaper Backend",
+    "version": "1.0.0"
+  }
+}
+```
+
+---
+
+## 10. 数据模型
+
+### 10.1 试题 (Question)
 
 ```typescript
 interface Question {
@@ -978,7 +1133,7 @@ interface Question {
 }
 ```
 
-### 8.2 试卷 (Paper)
+### 10.2 试卷 (Paper)
 
 ```typescript
 interface Paper {
@@ -1000,7 +1155,7 @@ interface PaperQuestion {
 }
 ```
 
-### 8.3 用户 (User)
+### 10.3 用户 (User)
 
 ```typescript
 interface User {
@@ -1024,7 +1179,7 @@ type Permission =
   | 'users:manage'
 ```
 
-### 8.4 认证会话 (AuthSession)
+### 10.4 认证会话 (AuthSession)
 
 ```typescript
 interface AuthSession {
@@ -1035,7 +1190,7 @@ interface AuthSession {
 
 ---
 
-## 9. 错误码
+## 11. 错误码
 
 | HTTP 状态码 | 错误码                      | 说明                         |
 | ----------- | --------------------------- | ---------------------------- |
@@ -1057,7 +1212,7 @@ interface AuthSession {
 
 ---
 
-## 10. 前端页面与 API 对应关系
+## 12. 前端页面与 API 对应关系
 
 | 前端页面 / 组件                              | 功能             | 调用的 API                                                                                                                                                            |
 | -------------------------------------------- | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -1104,156 +1259,66 @@ interface AuthSession {
 | `PUT`    | `/api/v1/papers/{id}/questions/order`       | `papers:write`       | 调整试题排序     |
 | `POST`   | `/api/v1/papers/{id}/export-preview`        | `papers:read`        | 导出预览         |
 | `GET`    | `/api/v1/papers/{id}/download`              | `papers:read`        | 下载 DOCX 试卷   |
-| `POST`   | `/api/v1/tasks/ping`                        | `questions:read`     | Worker 健康检查  |
+| `POST`   | `/api/v1/tasks/ping`                        | `questions:read`     | Worker 健康检查 (异步派发) |
 | `GET`    | `/api/v1/tasks/{task_id}`                   | `questions:read`     | 查询任务状态     |
 | `POST`   | `/api/v1/tasks/export-paper/{id}`           | `papers:read`        | 异步导出试卷     |
-| `POST`   | `/api/v1/tasks/validate-questions`          | `questions:read`     | 验证全部试题     |
-| `POST`   | `/api/v1/tasks/validate-question/{id}`      | `questions:read`     | 验证单个试题     |
-| `POST`   | `/api/v1/tasks/cleanup-expired-sessions`    | `users:manage`       | 清理过期会话     |
-| `GET`    | `/api/v1/tasks/stats/questions`             | `questions:read`     | 试题统计信息     |
+| `POST`   | `/api/v1/tasks/validate-questions`          | `questions:read`     | 验证全部试题 (异步派发) |
+| `POST`   | `/api/v1/tasks/validate-question/{id}`      | `questions:read`     | 验证单个试题 (异步派发) |
+| `POST`   | `/api/v1/tasks/cleanup-expired-sessions`    | `users:manage`       | 清理过期会话 (异步派发) |
+| `GET`    | `/api/v1/tasks/stats/questions`             | `questions:read`     | 试题统计信息 (异步派发) |
+| `GET`    | `/api/v1/health/postgres`                   | 无                   | PostgreSQL 健康检查 |
 | `GET`    | `/api/v1/health/redis`                      | 无                   | Redis 健康检查   |
+| `GET`    | `/`                                         | 无                   | 服务信息         |
 
-## 11. API 更新 (2026-05-11)
+## 13. 实现注意事项
 
-### 11.1 基于 Cookie 的认证
-
-认证现在通过 HttpOnly 会话 Cookie 持久化。
-
-| 端点 | 认证方式 | 行为说明 |
-| --- | --- | --- |
-| `POST /api/v1/auth/login` | 公开 | 验证凭据，创建服务端会话，并设置 `testpapers_session` HttpOnly Cookie。 |
-| `POST /api/v1/auth/register` | 公开 | 创建用户，立即登录，并设置 `testpapers_session`。 |
-| `POST /api/v1/auth/refresh` | Cookie 或 Bearer 降级 | 验证当前会话，轮换令牌，刷新 Cookie，并返回当前 `AuthSession`。 |
-| `GET /api/v1/auth/me` | Cookie 或 Bearer 降级 | 返回当前用户信息，Nuxt 应用通过此接口在页面刷新时恢复登录状态。 |
-| `POST /api/v1/auth/logout` | 有 Cookie 时使用 | 使服务端会话失效并清除 Cookie。 |
-
-前端发送请求时应启用凭证携带。登录/注册/刷新接口不再向浏览器 JavaScript 返回令牌；服务端持有的 HttpOnly Cookie 是唯一可信来源。`Authorization: Bearer <token>` 仅作为非浏览器客户端的兼容性降级方案保留。
-
-```typescript
-interface AuthSession {
-  expiresAt: string
-  user: User
-}
-```
-
-### 11.2 自动会话验证与刷新
-
-Nuxt 路由中间件应仅在 `/api/v1/auth/me` 成功后，才将受保护页面视为已认证。当请求收到 `401 TOKEN_EXPIRED` 时，API 客户端应使用 `POST /api/v1/auth/refresh` 重试一次，刷新成功后再重放原始请求。如果刷新失败，则清除客户端认证状态并重定向到登录页。
-
-### 11.3 WebSocket 实时通道
-
-```http
-WS /api/v1/ws
-```
-
-WebSocket 端点使用相同的 HttpOnly Cookie 进行认证。连接成功后，服务端会发送 `auth.connected` 事件，包含已认证用户信息和服务器时间戳。客户端可发送 `{ "event": "ping" }` 并接收 `{ "event": "pong" }`。
-
-### 11.4 遗传算法自动组卷
-
-```http
-POST /api/v1/papers/generate
-```
-
-所需权限：`papers:write`。
-
-请求体：
-
-```typescript
-interface PaperGenerateRequest {
-  title: string                     // 试卷标题
-  subject: string                   // 学科
-  duration: number                  // 考试时长（分钟），> 0
-  totalMarks: number                // 试卷总分，> 0；也是自动分配分值的目标总分
-  difficultyCoefficient: number     // 难度系数，0–1；后端保留两位小数
-  questionType: 'choice' | 'true_false' | 'blank' | 'short_answer' | 'essay'
-  ownQuestionsOnly: boolean         // 是否仅从当前用户个人题库中选题，默认 false
-}
-```
-
-除 `title`、`subject`、`duration` 这些试卷元数据外，当前自动组卷只接收 `totalMarks`、`difficultyCoefficient`、`questionType` 作为生成输入。候选题会按 `subject`（大小写不敏感精确匹配）和 `questionType` 筛选；题目数量由后端根据 `totalMarks` 与候选题 `scoreWeight` 自动估算，并限制在 `1–100`、`totalMarks`、候选池大小之间。
-
-示例：
-
-```json
-{
-  "title": "2026 年期中考试",
-  "subject": "数学",
-  "duration": 60,
-  "totalMarks": 100,
-  "difficultyCoefficient": 0.65,
-  "questionType": "choice",
-  "ownQuestionsOnly": false
-}
-```
-
-成功响应 (201)：
-
-```typescript
-interface PaperGenerateResponse {
-  paper: PaperEntity                // 创建的试卷对象；questions 为展开后的试题详情并包含 orderNo / marks
-  diagnostics: {
-    fitness: number                 // 适应度得分
-    candidateCount: number          // 候选池试题数
-    questionCount: number           // 实际组卷试题数
-    ownQuestionsOnly: boolean       // 是否仅使用个人题库
-    difficultyCoefficient: number   // 请求使用的难度系数（已按后端规则保留两位小数）
-    scoreWeightActual: number       // 实际总权重
-    marksActual: number             // 实际总分值
-    difficultyTargets: Record<string, number>   // 目标难度分布
-    difficultyActual: Record<string, number>    // 实际难度分布
-    typeTargets: Record<string, number>         // 目标题型分布
-    typeActual: Record<string, number>          // 实际题型分布
-    generationsRun: number          // 实际迭代代数；候选题数等于题目数时为 0
-  }
-}
-```
-
-校验与错误：
-
-| HTTP 状态码 | 错误码 | 含义 |
-| --- | --- | --- |
-| `401` | `UNAUTHORIZED`、`INVALID_TOKEN`、`TOKEN_EXPIRED` | 会话缺失、无效或已过期 |
-| `403` | `FORBIDDEN` | 用户没有 `papers:write` 权限 |
-| `422` | `VALIDATION_ERROR` | 请求体无效，如必填字段缺失、`title` / `subject` 为空、`duration` / `totalMarks` 不大于 0、`difficultyCoefficient` 不在 `0–1` 范围内，或 `questionType` 不是支持的枚举值 |
-| `422` | `INSUFFICIENT_QUESTIONS` | 按 `subject` 与 `questionType` 筛选后没有可用候选题 |
-
-## 11. 实现注意事项
-
-### 11.1 认证与会话
+### 13.1 认证与会话
 
 - 前端使用 HttpOnly Cookie（`testpapers_session`）进行认证，JavaScript 不直接读写令牌。
 - Nuxt 服务端渲染（SSR）时通过 `useRequestHeaders(['cookie'])` 转发 Cookie 到后端。
 - 客户端收到 `401 TOKEN_EXPIRED` 时，API 客户端自动调用 `POST /api/v1/auth/refresh` 刷新，成功则重放原始请求。
 - 非浏览器客户端可使用 `Authorization: Bearer <token>` 作为兼容降级方案。
 
-### 11.2 答案可见性
+### 13.2 答案可见性
 
 - `answers:read` 权限控制是否返回试题/试卷中的 `answer` 字段。
 - `viewer` 角色无此权限，即使请求参数 `includeAnswer=true`，响应中也不包含答案。
 - 前端工作台默认请求答案，但后端根据权限自动过滤。
 
-### 11.3 WebSocket 实时通信
+### 13.3 WebSocket 实时通信
 
 - 连接握手使用与 HTTP API 相同的 Cookie 认证。
-- 连接成功后服务端发送 `auth.connected` 事件。
-- 试题和试卷的增删改操作会广播 WebSocket 事件给所有已连接客户端。
+- 连接成功后服务端发送 `auth.connected` 事件，包含当前用户信息和服务器时间戳。
+- 试题和试卷的增删改操作会广播 WebSocket 事件给所有已连接客户端。广播事件包括：
+  - `question.created` / `question.updated` / `question.deleted`
+  - `paper.created` / `paper.updated`
+  - `paper.questions.added` / `paper.question.removed` / `paper.questions.reordered`
 - 前端通过 `useRealtime.ts` composable 管理 WebSocket 连接生命周期。
 
-### 11.4 图片上传
+### 13.4 图片上传
 
 - 图片通过 Base64 编码以 data URL 格式存储。
 - 当前仅支持 PNG 格式，单文件最大 30MB。
 - 返回的 `url` 为 data URL，可直接放入试题的 `images` 数组。
 
-### 11.5 遗传算法组卷
+### 13.5 遗传算法组卷
 
 - `PaperGenerateRequest` 继承 `PaperBase`（含 `title`、`subject`、`duration`、`totalMarks`）。
-- 生成输入只包含 `totalMarks`、`difficultyCoefficient`、`questionType`；其他生成字段不再是公开契约。
+- 生成输入包含 `totalMarks`、`difficultyCoefficient`、`questionType`、`ownQuestionsOnly`、`requiredTags`、`preferredTags`。
+  - `requiredTags`：候选试题必须包含的标签列表（交集匹配），用于约束候选池范围
+  - `preferredTags`：优选标签列表，用于适应度评分（包含越多优选标签的试题得分越高）
 - 后端按 `subject` 与 `questionType` 构建候选池，并根据 `difficultyCoefficient` 自动推导 `easy` / `medium` / `hard` 的目标分布。
 - 题目数量根据 `totalMarks` 与候选题 `scoreWeight` 自动估算，并限制为不超过 `100`、`totalMarks` 和候选题数量。
 - 分值分配会根据试题的 `scoreWeight` 字段进行加权计算，最终 `marksActual` 应等于请求的 `totalMarks`。
 
-### 11.6 数据库迁移
+### 13.6 CSRF 保护
+
+- 登录/注册成功后服务端设置 HttpOnly `testpapers_csrf` Cookie。
+- 前端需从 Cookie 读取 CSRF Token，并在 POST/PATCH/PUT/DELETE 请求头中附带 `X-CSRF-Token`。
+- 登出时服务端自动清除 CSRF Cookie。
+- 注意：非浏览器的 CSRF Token 机制可通过 `POST /api/v1/auth/login` 的 `Set-Cookie` 响应头获取。
+
+### 13.7 数据库迁移
 
 - 数据库表由 Alembic 迁移管理，不会在应用启动时自动创建。
 - 运行 `alembic upgrade head` 即可创建所有表并填充种子数据。
