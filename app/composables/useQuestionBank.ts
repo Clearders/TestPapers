@@ -32,6 +32,9 @@ export function useQuestionBank () {
   const error = useState<string>('question-bank-error', () => '')
   const questionPagination = useState<ApiPagination>('question-bank-pagination', () => ({ page: 1, pageSize: 20, total: 0, totalPages: 0 }))
   const myQuestionPagination = useState<ApiPagination>('my-question-bank-pagination', () => ({ page: 1, pageSize: 20, total: 0, totalPages: 0 }))
+  const availableSubjects = useState<string[]>('meta-subjects', () => [])
+  const availableTags = useState<string[]>('meta-tags', () => [])
+  const isLoadingMeta = useState<boolean>('meta-loading', () => false)
   const { hasPermission } = useAuth()
   const { apiFetch, getApiBase } = useApi()
 
@@ -153,6 +156,22 @@ export function useQuestionBank () {
     return new URL(response.data.url, new URL(getApiBase(), window.location.origin)).toString()
   }
 
+  const loadMeta = async () => {
+    if (isLoadingMeta.value) return
+    isLoadingMeta.value = true
+    try {
+      const [subjectsRes, tagsRes] = await Promise.all([
+        apiFetch<string[]>('/meta/subjects', { method: 'GET' }),
+        apiFetch<string[]>('/meta/tags', { method: 'GET' })
+      ])
+      availableSubjects.value = subjectsRes.data
+      availableTags.value = tagsRes.data
+    } catch {
+    } finally {
+      isLoadingMeta.value = false
+    }
+  }
+
   return {
     questions,
     myQuestions,
@@ -162,13 +181,17 @@ export function useQuestionBank () {
     loadQuestions,
     loadMyQuestions,
     uploadImage,
+    loadMeta,
     canCreateQuestions: computed(() => hasPermission('questions:write')),
     canDeleteQuestions: computed(() => hasPermission('questions:delete')),
     canReadAnswers: computed(() => hasPermission('answers:read')),
     error,
     isLoading,
     isLoadingMine,
+    isLoadingMeta,
     questionPagination,
-    myQuestionPagination
+    myQuestionPagination,
+    availableSubjects,
+    availableTags
   }
 }

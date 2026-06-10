@@ -114,6 +114,19 @@
 
           <div class="gen-controls">
             <div class="gen-field">
+              <label class="form-label">Subject</label>
+              <input
+                v-model="generationForm.subject"
+                class="form-input"
+                list="gen-subjects"
+                placeholder="e.g. Mathematics"
+              />
+              <datalist id="gen-subjects">
+                <option v-for="subject in availableSubjects" :key="subject" :value="subject" />
+              </datalist>
+            </div>
+
+            <div class="gen-field">
               <label class="form-label">Total Score</label>
               <div class="gen-pill-group">
                 <button
@@ -172,27 +185,37 @@
 
             <div class="gen-field">
               <label class="form-label">Tag Filters <span class="gen-optional">(optional)</span></label>
-              <div class="gen-tag-row">
-                <div class="gen-tag-section">
-                  <span class="gen-tag-hint">Required</span>
-                  <input
-                    v-model="generationForm.requiredTagsStr"
-                    class="form-input gen-tag-input"
-                    placeholder="e.g. algebra, calculus"
-                    @blur="syncRequiredTags"
-                  />
-                </div>
-                <div class="gen-tag-section">
-                  <span class="gen-tag-hint">Preferred</span>
-                  <input
-                    v-model="generationForm.preferredTagsStr"
-                    class="form-input gen-tag-input"
-                    placeholder="e.g. basic, review"
-                    @blur="syncPreferredTags"
-                  />
-                </div>
+              <div v-if="availableTags.length" class="gen-tag-pool">
+                <button
+                  v-for="tag in availableTags"
+                  :key="tag"
+                  type="button"
+                  class="gen-tag-chip"
+                  :class="tagChipClass(tag)"
+                  @click="toggleTag($event, tag)"
+                >{{ tag }}</button>
               </div>
-              <p class="form-hint">Required tags must all be present; preferred tags improve fitness scoring.</p>
+              <div v-else-if="isLoadingMeta" class="gen-tag-loading">
+                Loading tags…
+              </div>
+              <div v-if="selectedTagsDisplay.length" class="gen-selected-tags">
+                <span
+                  v-for="tag in selectedTagsDisplay"
+                  :key="tag.value"
+                  class="gen-selected-pill"
+                  :class="'gen-spill--' + tag.group"
+                >
+                  {{ tag.value }}
+                  <button type="button" class="gen-pill-remove" @click="removeTag(tag.value)" aria-label="Remove">×</button>
+                </span>
+              </div>
+              <input
+                v-model="generationForm.customTagInput"
+                class="form-input gen-tag-input"
+                placeholder="Type custom tag and press Enter"
+                @keydown.enter.prevent="addCustomTag"
+              />
+              <p class="form-hint">Click a tag to add as Required; Shift+click for Preferred. Tap × to remove.</p>
             </div>
           </div>
 
@@ -200,12 +223,12 @@
             <button
               class="btn btn-primary gen-submit"
               type="submit"
-              :disabled="isGenerating || !paper.title.trim() || !paper.subject.trim()"
+              :disabled="isGenerating || !generationForm.subject.trim() || !paper.title.trim()"
             >
               <span v-if="isGenerating" class="gen-spinner"></span>
               {{ isGenerating ? 'Generating…' : 'Generate Paper' }}
             </button>
-            <span class="form-hint">Uses the current paper title, subject, and duration.</span>
+            <span class="form-hint">Uses the paper title, duration, and the generation subject above.</span>
           </div>
 
           <Transition name="gen-banner">
@@ -479,7 +502,11 @@ const {
   isLoadingMine,
   error: questionError,
   questionPagination,
-  myQuestionPagination
+  myQuestionPagination,
+  availableSubjects,
+  availableTags,
+  loadMeta,
+  isLoadingMeta
 } = useQuestionBank()
 const { hasPermission, isAuthReady } = useAuth()
 const { apiFetch, getApiBase, refreshSessionCookie } = useApi()
@@ -490,10 +517,12 @@ type BankMode = 'all' | 'mine'
 interface GenerationFormState {
   difficultyCoefficient: number
   questionType: QuestionType
+  subject: string
   requiredTagsStr: string
   requiredTags: string[]
   preferredTagsStr: string
   preferredTags: string[]
+  customTagInput: string
 }
 
 const DEFAULT_PAPER = {
@@ -534,10 +563,12 @@ const canWritePapers = computed(() => hasPermission('papers:write'))
 const generationForm = reactive<GenerationFormState>({
   difficultyCoefficient: 0.5,
   questionType: 'choice',
+  subject: '',
   requiredTagsStr: '',
   requiredTags: [],
   preferredTagsStr: '',
-  preferredTags: []
+  preferredTags: [],
+  customTagInput: ''
 })
 
 const currentQuestions = computed(() => bankMode.value === 'mine' ? myQuestions.value : questions.value)
@@ -554,6 +585,7 @@ watch(
   ([ready, allowed]) => {
     if (ready && allowed) {
       void loadCurrentPage(1)
+      void loadMeta()
     }
   },
   { immediate: true }
@@ -803,14 +835,17 @@ async function downloadDocx () {
 }
 
 function buildPaperGeneratePayload (): PaperGeneratePayload | null {
-  const metadata = paperMetadataPayload()
-  if (!metadata.title || !metadata.subject) {
-    generationError.value = 'Please enter a paper title and subject before generating.'
+  const subject = generationForm.subject.trim()
+  if (!paper.title.trim() || !subject) {
+    generationError.value = 'Please enter a paper title and generation subject.'
     return null
   }
 
   return {
-    ...metadata,
+    title: paper.title.trim(),
+    subject,
+    duration: toPositiveInteger(paper.duration, DEFAULT_PAPER.duration),
+    totalMarks: toPositiveInteger(paper.totalMarks, DEFAULT_PAPER.totalMarks),
     difficultyCoefficient: toBoundedNumber(generationForm.difficultyCoefficient, 0.5, 0, 1),
     questionType: generationForm.questionType,
     ownQuestionsOnly: bankMode.value === 'mine',
@@ -920,18 +955,53 @@ function formatDistribution (distribution: Record<string, number>) {
     .join(', ') || '-'
 }
 
-function syncRequiredTags () {
-  generationForm.requiredTags = generationForm.requiredTagsStr
-    .split(',')
-    .map(t => t.trim().toLowerCase())
-    .filter(Boolean)
+function tagChipClass (tag: string) {
+  if (generationForm.requiredTags.includes(tag)) return 'gen-chip--required'
+  if (generationForm.preferredTags.includes(tag)) return 'gen-chip--preferred'
+  return ''
 }
 
-function syncPreferredTags () {
-  generationForm.preferredTags = generationForm.preferredTagsStr
-    .split(',')
-    .map(t => t.trim().toLowerCase())
-    .filter(Boolean)
+function toggleTag (event: MouseEvent, tag: string) {
+  const shift = event.shiftKey
+  if (generationForm.requiredTags.includes(tag)) {
+    generationForm.requiredTags = generationForm.requiredTags.filter(t => t !== tag)
+  } else if (generationForm.preferredTags.includes(tag)) {
+    generationForm.preferredTags = generationForm.preferredTags.filter(t => t !== tag)
+  } else if (shift) {
+    generationForm.preferredTags = [...generationForm.preferredTags, tag]
+  } else {
+    generationForm.requiredTags = [...generationForm.requiredTags, tag]
+  }
+}
+
+function removeTag (tag: string) {
+  generationForm.requiredTags = generationForm.requiredTags.filter(t => t !== tag)
+  generationForm.preferredTags = generationForm.preferredTags.filter(t => t !== tag)
+}
+
+const selectedTagsDisplay = computed(() => {
+  const display: { value: string; group: string }[] = []
+  for (const tag of generationForm.requiredTags) {
+    if (!display.some(d => d.value === tag)) display.push({ value: tag, group: 'required' })
+  }
+  for (const tag of generationForm.preferredTags) {
+    const existing = display.find(d => d.value === tag)
+    if (existing) existing.group = 'both'
+    else display.push({ value: tag, group: 'preferred' })
+  }
+  return display
+})
+
+function addCustomTag () {
+  const input = generationForm.customTagInput.trim()
+  if (!input) return
+  const tags = input.split(',').map(t => t.trim().toLowerCase()).filter(Boolean)
+  for (const tag of tags) {
+    if (!generationForm.requiredTags.includes(tag) && !generationForm.preferredTags.includes(tag)) {
+      generationForm.requiredTags = [...generationForm.requiredTags, tag]
+    }
+  }
+  generationForm.customTagInput = ''
 }
 
 const fitnessClass = computed(() => {
@@ -1187,25 +1257,104 @@ function getEssayBlankStyle (question: Question) {
   padding: 0 2px;
 }
 
-.gen-tag-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-.gen-tag-section {
+.gen-tag-pool {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-height: 140px;
+  overflow-y: auto;
+  padding: 2px 0;
 }
-.gen-tag-hint {
-  font-size: .72rem;
-  font-weight: 600;
+.gen-tag-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  font-size: .78rem;
+  font-weight: 500;
   color: var(--color-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
+.gen-tag-chip:hover {
+  color: var(--color-text);
+  border-color: var(--color-primary);
+  background: rgba(79, 110, 247, 0.04);
+}
+.gen-chip--required {
+  border-color: var(--color-primary);
+  background: rgba(79, 110, 247, 0.08);
+  color: var(--color-primary);
+  font-weight: 600;
+}
+.gen-chip--preferred {
+  border-color: var(--color-accent);
+  background: rgba(34, 197, 94, 0.08);
+  color: #15803d;
+  font-weight: 600;
+}
+
+.gen-tag-loading {
+  font-size: .82rem;
+  color: var(--color-muted);
+  padding: 8px 0;
+}
+
+.gen-selected-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.gen-selected-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: .78rem;
+  font-weight: 500;
+}
+.gen-spill--required {
+  background: rgba(79, 110, 247, 0.12);
+  color: var(--color-primary);
+  border: 1px solid rgba(79, 110, 247, 0.25);
+}
+.gen-spill--preferred {
+  background: rgba(34, 197, 94, 0.12);
+  color: #15803d;
+  border: 1px solid rgba(34, 197, 94, 0.25);
+}
+.gen-spill--both {
+  background: linear-gradient(135deg, rgba(79, 110, 247, 0.12), rgba(34, 197, 94, 0.12));
+  color: var(--color-text);
+  border: 1px solid rgba(79, 110, 247, 0.25);
+}
+.gen-pill-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  font-size: .85rem;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.5;
+  transition: opacity 0.2s ease;
+}
+.gen-pill-remove:hover {
+  opacity: 1;
+}
+
 .gen-tag-input {
   font-size: .82rem;
+  margin-top: 8px;
 }
 
 .gen-action {
@@ -1341,8 +1490,8 @@ function getEssayBlankStyle (question: Question) {
   color: #b91c1c;
 }
 @media (max-width: 560px) {
-  .gen-tag-row {
-    grid-template-columns: 1fr;
+  .gen-tag-pool {
+    max-height: 200px;
   }
 
   .gen-stats {
