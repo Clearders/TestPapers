@@ -289,44 +289,42 @@ const { hasPermission, isAuthenticated } = useAuth()
   }
 }
 
-@media (prefers-color-scheme: dark) {
-  .text-gradient {
-    background: linear-gradient(135deg, var(--color-primary), #c4b5fd);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
+[data-theme="dark"] .text-gradient {
+  background: linear-gradient(135deg, var(--color-primary), #c4b5fd);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
 
-  .badge-pill {
-    background: rgba(129, 140, 248, 0.12);
-    border-color: rgba(129, 140, 248, 0.25);
-  }
+[data-theme="dark"] .badge-pill {
+  background: rgba(129, 140, 248, 0.12);
+  border-color: rgba(129, 140, 248, 0.25);
+}
 
-  .card-glass {
-    background: rgba(30, 41, 59, 0.6);
-    border-color: rgba(51, 65, 85, 0.6);
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
-  }
+[data-theme="dark"] .card-glass {
+  background: rgba(30, 41, 59, 0.6);
+  border-color: rgba(51, 65, 85, 0.6);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+}
 
-  .feature-card:hover {
-    background: rgba(30, 41, 59, 0.85);
-    border-color: rgba(129, 140, 248, 0.4);
-    box-shadow: 0 16px 32px rgba(129, 140, 248, 0.08);
-  }
+[data-theme="dark"] .feature-card:hover {
+  background: rgba(30, 41, 59, 0.85);
+  border-color: rgba(129, 140, 248, 0.4);
+  box-shadow: 0 16px 32px rgba(129, 140, 248, 0.08);
+}
 
-  .btn-glass {
-    background: rgba(30, 41, 59, 0.6);
-    border-color: rgba(51, 65, 85, 0.6);
-  }
+[data-theme="dark"] .btn-glass {
+  background: rgba(30, 41, 59, 0.6);
+  border-color: rgba(51, 65, 85, 0.6);
+}
 
-  .btn-glass:hover {
-    background: rgba(30, 41, 59, 0.85);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
-  }
+[data-theme="dark"] .btn-glass:hover {
+  background: rgba(30, 41, 59, 0.85);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+}
 
-  .shine-effect::after {
-    background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0) 100%);
-  }
+[data-theme="dark"] .shine-effect::after {
+  background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0) 100%);
 }
 
 @media (max-width: 900px) {

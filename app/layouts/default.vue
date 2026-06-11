@@ -31,6 +31,9 @@
           <NuxtLink to="/latex" class="nav-link">LaTeX Preview</NuxtLink>
           <NuxtLink v-if="hasPermission('questions:write')" to="/add-problem" class="nav-link nav-link--highlight">+ Add Problem</NuxtLink>
           <NuxtLink v-if="hasPermission('users:manage')" to="/users" class="nav-link">Users</NuxtLink>
+          <button class="theme-toggle" type="button" @click.stop="toggleTheme">
+            {{ isDark ? '☀ Light' : '☾ Dark' }}
+          </button>
           <button v-if="isAuthenticated" class="nav-link nav-button" type="button" @click="logout">
             {{ user?.displayName || user?.username }} · Logout
           </button>
@@ -54,6 +57,7 @@
 
 <script setup lang="ts">
 const { hasPermission, isAuthenticated, logout, user } = useAuth()
+const { isDark, toggleTheme } = useTheme()
 const route = useRoute()
 const isNavOpen = ref(false)
 const currentYear = new Date().getFullYear()
@@ -90,22 +94,19 @@ watch(() => route.fullPath, closeNav)
   font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
   color: var(--color-text);
   background: var(--color-bg);
-  color-scheme: light dark;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-bg: #0f172a;
-    --color-surface: #1e293b;
-    --color-primary: #818cf8;
-    --color-primary-d: #6366f1;
-    --color-accent: #4ade80;
-    --color-text: #e2e8f0;
-    --color-muted: #94a3b8;
-    --color-border: #334155;
-    --color-danger: #f87171;
-    --shadow: 0 2px 12px rgba(0,0,0,.4);
-  }
+[data-theme="dark"] {
+  --color-bg: #0f172a;
+  --color-surface: #1e293b;
+  --color-primary: #818cf8;
+  --color-primary-d: #6366f1;
+  --color-accent: #4ade80;
+  --color-text: #e2e8f0;
+  --color-muted: #94a3b8;
+  --color-border: #334155;
+  --color-danger: #f87171;
+  --shadow: 0 2px 12px rgba(0,0,0,.4);
 }
 
 a { color: inherit; text-decoration: none; }
@@ -521,66 +522,31 @@ a, button, [role="button"] { -webkit-tap-highlight-color: transparent; }
   }
 }
 
-@media (prefers-color-scheme: dark) {
-  .dynamic-bg {
-    background: var(--color-bg);
-  }
-
-  .bg-pattern {
-    background-image: radial-gradient(var(--color-border) 1px, transparent 1px);
-    opacity: 0.25;
-  }
-
-  .shape {
-    opacity: 0.18;
-  }
-
-  .site-header {
-    background: var(--color-surface);
-    border-bottom-color: var(--color-border);
-  }
-
-  .nav-link:hover {
-    background: var(--color-bg);
-  }
-
-  .nav-link.router-link-active {
-    background: rgba(129, 140, 248, 0.15);
-    color: var(--color-primary);
-  }
-
-  .site-nav {
-    background: rgba(30, 41, 59, 0.96);
-  }
-
-  .btn-outline:hover:not(:disabled) {
-    background: rgba(129, 140, 248, 0.12);
-  }
-
-  .badge-easy {
-    background: rgba(74, 222, 128, 0.15);
-    color: #4ade80;
-  }
-
-  .badge-medium {
-    background: rgba(250, 204, 21, 0.15);
-    color: #facc15;
-  }
-
-  .badge-hard {
-    background: rgba(248, 113, 113, 0.15);
-    color: #f87171;
-  }
-
-  .tag {
-    background: rgba(129, 140, 248, 0.15);
-    color: var(--color-primary);
-  }
-
-  .form-input {
-    background: var(--color-surface);
-    border-color: var(--color-border);
-    color: var(--color-text);
-  }
+.theme-toggle {
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  color: var(--color-text);
+  cursor: pointer;
+  font-size: .85rem;
+  padding: 6px 12px;
+  white-space: nowrap;
 }
+.theme-toggle:hover {
+  background: var(--color-bg);
+}
+
+[data-theme="dark"] .dynamic-bg { background: var(--color-bg); }
+[data-theme="dark"] .bg-pattern { background-image: radial-gradient(var(--color-border) 1px, transparent 1px); opacity: 0.25; }
+[data-theme="dark"] .shape { opacity: 0.18; }
+[data-theme="dark"] .site-header { background: var(--color-surface); border-bottom-color: var(--color-border); }
+[data-theme="dark"] .nav-link:hover { background: var(--color-bg); }
+[data-theme="dark"] .nav-link.router-link-active { background: rgba(129, 140, 248, 0.15); color: var(--color-primary); }
+[data-theme="dark"] .site-nav { background: rgba(30, 41, 59, 0.96); }
+[data-theme="dark"] .btn-outline:hover:not(:disabled) { background: rgba(129, 140, 248, 0.12); }
+[data-theme="dark"] .badge-easy { background: rgba(74, 222, 128, 0.15); color: #4ade80; }
+[data-theme="dark"] .badge-medium { background: rgba(250, 204, 21, 0.15); color: #facc15; }
+[data-theme="dark"] .badge-hard { background: rgba(248, 113, 113, 0.15); color: #f87171; }
+[data-theme="dark"] .tag { background: rgba(129, 140, 248, 0.15); color: var(--color-primary); }
+[data-theme="dark"] .form-input { background: var(--color-surface); border-color: var(--color-border); color: var(--color-text); }
 </style>
