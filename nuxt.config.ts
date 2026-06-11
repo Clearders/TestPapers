@@ -48,7 +48,8 @@ export default defineNuxtConfig({
       title: 'TestPapers',
       meta: [
         { name: 'description', content: 'A website for creating test papers with real-time LaTeX support.' },
-        { name: 'theme-color', content: '#f5f7fb' }
+        { name: 'theme-color', content: '#f5f7fb' },
+        { name: 'color-scheme', content: 'light dark' }
       ]
     }
   }

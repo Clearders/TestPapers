@@ -90,6 +90,22 @@ watch(() => route.fullPath, closeNav)
   font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
   color: var(--color-text);
   background: var(--color-bg);
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #0f172a;
+    --color-surface: #1e293b;
+    --color-primary: #818cf8;
+    --color-primary-d: #6366f1;
+    --color-accent: #4ade80;
+    --color-text: #e2e8f0;
+    --color-muted: #94a3b8;
+    --color-border: #334155;
+    --color-danger: #f87171;
+    --shadow: 0 2px 12px rgba(0,0,0,.4);
+  }
 }
 
 a { color: inherit; text-decoration: none; }
@@ -502,6 +518,69 @@ a, button, [role="button"] { -webkit-tap-highlight-color: transparent; }
     animation-iteration-count: 1 !important;
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .dynamic-bg {
+    background: var(--color-bg);
+  }
+
+  .bg-pattern {
+    background-image: radial-gradient(var(--color-border) 1px, transparent 1px);
+    opacity: 0.25;
+  }
+
+  .shape {
+    opacity: 0.18;
+  }
+
+  .site-header {
+    background: var(--color-surface);
+    border-bottom-color: var(--color-border);
+  }
+
+  .nav-link:hover {
+    background: var(--color-bg);
+  }
+
+  .nav-link.router-link-active {
+    background: rgba(129, 140, 248, 0.15);
+    color: var(--color-primary);
+  }
+
+  .site-nav {
+    background: rgba(30, 41, 59, 0.96);
+  }
+
+  .btn-outline:hover:not(:disabled) {
+    background: rgba(129, 140, 248, 0.12);
+  }
+
+  .badge-easy {
+    background: rgba(74, 222, 128, 0.15);
+    color: #4ade80;
+  }
+
+  .badge-medium {
+    background: rgba(250, 204, 21, 0.15);
+    color: #facc15;
+  }
+
+  .badge-hard {
+    background: rgba(248, 113, 113, 0.15);
+    color: #f87171;
+  }
+
+  .tag {
+    background: rgba(129, 140, 248, 0.15);
+    color: var(--color-primary);
+  }
+
+  .form-input {
+    background: var(--color-surface);
+    border-color: var(--color-border);
+    color: var(--color-text);
   }
 }
 </style>
