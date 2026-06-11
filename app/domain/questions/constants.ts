@@ -5,7 +5,7 @@ export const DEFAULT_ESSAY_BLANK_SPACE: EssayBlankSpace = {
   lineHeight: 28
 }
 
-const ESSAY_BLANK_SPACE_BOUNDS = {
+export const ESSAY_BLANK_SPACE_BOUNDS = {
   minLines: 1,
   maxLines: 20,
   minLineHeight: 20,

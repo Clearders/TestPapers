@@ -3,7 +3,7 @@
     <div class="q-card-header">
       <div class="q-meta">
         <span class="badge" :class="`badge-${question.difficulty}`">{{ question.difficulty }}</span>
-        <span class="tag">{{ question.subject }}</span>
+        <span v-for="sub in question.subjects" :key="sub" class="subject-pill">{{ sub }}</span>
         <span class="tag">weight {{ formatScoreWeight(question.scoreWeight) }}</span>
         <span v-for="tag in question.tags" :key="tag" class="tag">{{ tag }}</span>
       </div>
@@ -117,6 +117,15 @@ defineEmits<{
 .q-id {
   font-size: .8rem;
   color: var(--color-muted);
+}
+.subject-pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: .75rem;
+  font-weight: 500;
+  background: rgba(79, 110, 247, 0.1);
+  color: var(--color-primary);
 }
 .q-body {
   display: flex;

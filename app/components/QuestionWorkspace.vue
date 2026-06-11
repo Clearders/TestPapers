@@ -311,7 +311,7 @@
                 <div class="paper-q-content">
                   <div class="q-meta">
                     <span class="badge" :class="`badge-${q.difficulty}`">{{ q.difficulty }}</span>
-                    <span class="tag">{{ q.subject }}</span>
+                    <span v-for="sub in q.subjects" :key="sub" class="subject-pill">{{ sub }}</span>
                     <span class="tag">weight {{ formatScoreWeight(q.scoreWeight) }}</span>
                     <span v-if="q.marks" class="tag">{{ q.marks }} mark{{ q.marks !== 1 ? 's' : '' }}</span>
                     <span v-for="tag in q.tags" :key="tag" class="tag">{{ tag }}</span>
@@ -446,7 +446,7 @@
 import PaginationControls from '~/components/questions/PaginationControls.vue'
 import QuestionBankCard from '~/components/questions/QuestionBankCard.vue'
 import QuestionBankToolbar from '~/components/questions/QuestionBankToolbar.vue'
-import type { Question, QuestionEntity } from '~/types/question'
+import type { Question, QuestionDifficulty, QuestionEntity, QuestionType } from '~/types/question'
 import {
   QUESTION_TYPE_LABELS,
   QUESTION_TYPE_ORDER,
@@ -640,7 +640,7 @@ async function switchBankMode (mode: BankMode) {
 function currentQuery (page: number) {
   return {
     q: search.value.trim() || undefined,
-    subject: filterSubject.value || undefined,
+    subjects: filterSubject.value || undefined,
     difficulty: (filterDifficulty.value || undefined) as Question['difficulty'] | undefined,
     page,
     pageSize: pageSize.value,
@@ -667,7 +667,9 @@ function typeLabel (type: Question['type']) {
 
 const subjects = computed(() => {
   const seen = new Set<string>()
-  for (const q of currentQuestions.value) seen.add(q.subject)
+  for (const q of currentQuestions.value) {
+    for (const s of q.subjects) seen.add(s)
+  }
   return [...seen].sort()
 })
 
@@ -1965,6 +1967,16 @@ function getEssayBlankStyle (question: Question) {
     max-width: 100%;
     width: 100%;
   }
+}
+
+.subject-pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: .75rem;
+  font-weight: 500;
+  background: rgba(79, 110, 247, 0.1);
+  color: var(--color-primary);
 }
 </style>
 

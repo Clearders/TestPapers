@@ -14,7 +14,7 @@ export interface QuestionImage {
 export interface Question {
   id: number
   type: QuestionType
-  subject: string
+  subjects: string[]
   difficulty: QuestionDifficulty
   tags: string[]
   text: string
@@ -35,7 +35,7 @@ export interface QuestionEntity extends Question {
 
 export interface QuestionQueryParams {
   q?: string
-  subject?: string
+  subjects?: string
   difficulty?: QuestionDifficulty
   type?: QuestionType
   tags?: string

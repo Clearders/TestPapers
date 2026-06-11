@@ -17,6 +17,23 @@
       </button>
     </div>
 
+    <div v-if="subjects.length" class="subject-tabs">
+      <button
+        :class="['btn btn-sm', filterSubject === '' ? 'btn-primary' : 'btn-outline']"
+        @click="$emit('update:filterSubject', '')"
+      >
+        All
+      </button>
+      <button
+        v-for="sub in subjects"
+        :key="sub"
+        :class="['btn btn-sm', filterSubject === sub ? 'btn-primary' : 'btn-outline']"
+        @click="$emit('update:filterSubject', sub)"
+      >
+        {{ sub }}
+      </button>
+    </div>
+
     <div class="toolbar card">
       <input
         :value="search"
@@ -24,14 +41,6 @@
         placeholder="Search questions…"
         @input="$emit('update:search', ($event.target as HTMLInputElement).value)"
       />
-      <select
-        :value="filterSubject"
-        class="form-input"
-        @change="$emit('update:filterSubject', ($event.target as HTMLSelectElement).value)"
-      >
-        <option value="">All subjects</option>
-        <option v-for="subject in subjects" :key="subject" :value="subject">{{ subject }}</option>
-      </select>
       <select
         :value="filterDifficulty"
         class="form-input"
@@ -83,6 +92,12 @@ function onDifficultyChange(event: Event) {
   gap: 8px;
   margin-bottom: 12px;
 }
+.subject-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
 .toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -100,6 +115,7 @@ function onDifficultyChange(event: Event) {
 }
 @media (max-width: 560px) {
   .bank-mode-tabs .btn,
+  .subject-tabs .btn,
   .toolbar > .form-input,
   .toolbar > .btn {
     width: 100%;

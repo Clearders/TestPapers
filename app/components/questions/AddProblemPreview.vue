@@ -8,7 +8,7 @@
       <div class="preview-header">
         <div class="preview-meta">
           <span v-if="form.difficulty" class="badge" :class="`badge-${form.difficulty}`">{{ form.difficulty }}</span>
-          <span v-if="form.subject" class="tag">{{ form.subject }}</span>
+          <span v-for="sub in form.subjects" :key="sub" class="subject-pill">{{ sub }}</span>
           <span class="tag">weight {{ form.scoreWeight }}</span>
           <span v-for="tag in form.tags" :key="tag" class="tag">{{ tag }}</span>
         </div>
@@ -17,22 +17,22 @@
 
       <div class="preview-section">
         <span class="preview-label">Question</span>
-        <div v-if="form.questionText" class="preview-content">
-          <template v-for="(part, i) in parseLatexParts(form.questionText)" :key="'q' + i">
+        <div v-if="form.text" class="preview-content">
+          <template v-for="(part, i) in parseLatexParts(form.text)" :key="'q' + i">
             <LatexRenderer v-if="part.isLatex" :formula="part.content" :block="part.block" />
             <span v-else>{{ part.content }}</span>
           </template>
         </div>
         <span v-else class="placeholder-text">Your question will appear here.</span>
 
-        <div v-if="form.images.length" class="preview-images">
+        <div v-if="form.images?.length" class="preview-images">
           <figure v-for="(img, imgIdx) in form.images" :key="imgIdx" class="preview-image">
             <img :src="img.url" :alt="img.caption || 'Question image'" width="220" height="150" />
             <figcaption v-if="img.caption">{{ img.caption }}</figcaption>
           </figure>
         </div>
 
-        <div v-if="(form.type === 'single_choice' || form.type === 'multiple_choice') && form.options.some(option => option.trim())" class="preview-options">
+        <div v-if="(form.type === 'single_choice' || form.type === 'multiple_choice') && form.options?.some(option => option.trim())" class="preview-options">
           <div v-for="(opt, index) in form.options" :key="'opt' + index">
             <span v-if="opt.trim()" class="preview-option">
               <strong>{{ String.fromCharCode(65 + index) }}.</strong>
@@ -59,7 +59,7 @@
           <template v-if="isOptionQuestionType(form.type)">
             <strong>{{ Array.isArray(form.answer) ? form.answer.join(', ') : form.answer }}</strong>
           </template>
-          <template v-else v-for="(part, i) in parseLatexParts(form.answer)" :key="'a' + i">
+          <template v-else v-for="(part, i) in parseLatexParts(typeof form.answer === 'string' ? form.answer : '')" :key="'a' + i">
             <LatexRenderer v-if="part.isLatex" :formula="part.content" :block="part.block" />
             <span v-else>{{ part.content }}</span>
           </template>

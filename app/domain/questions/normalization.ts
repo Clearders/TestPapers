@@ -74,7 +74,7 @@ export function normalizeQuestion (question: Partial<QuestionEntity> & { id: num
   return {
     id: question.id,
     type: question.type as Question['type'],
-    subject: question.subject || '',
+    subjects: Array.isArray(question.subjects) ? question.subjects : [],
     difficulty: question.difficulty as Question['difficulty'] || 'medium',
     text: question.text || '',
     answer: question.answer || '',
@@ -92,7 +92,7 @@ export function normalizeQuestion (question: Partial<QuestionEntity> & { id: num
 export function toQuestionPayload (input: QuestionFormInput) {
   return {
     type: input.type,
-    subject: input.subject.trim(),
+    subjects: Array.isArray(input.subjects) ? input.subjects.map(s => s.trim()).filter(Boolean) : [],
     difficulty: input.difficulty,
     tags: input.tags,
     text: input.text.trim(),

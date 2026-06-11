@@ -25,8 +25,28 @@
 
           <div class="form-row">
             <div class="form-group" style="flex:1">
-              <label class="form-label" htmlFor="problem-subject">Subject <span class="required">*</span></label>
-              <input id="problem-subject" v-model="form.subject" class="form-input" placeholder="e.g. Mathematics…" autocomplete="off" required />
+              <label class="form-label" htmlFor="problem-subject">Subjects <span class="required">*</span></label>
+              <div class="tag-input-row">
+                <input
+                  id="problem-subject"
+                  v-model="subjectInput"
+                  class="form-input"
+                  placeholder="Add subject and press Enter…"
+                  list="subject-suggestions"
+                  autocomplete="off"
+                  @keydown.enter.prevent="addSubject"
+                />
+                <datalist id="subject-suggestions">
+                  <option v-for="sub in availableSubjects" :key="sub" :value="sub" />
+                </datalist>
+                <button type="button" class="btn btn-outline btn-sm" @click="addSubject">Add</button>
+              </div>
+              <div v-if="form.subjects.length" class="tag-list">
+                <span v-for="sub in form.subjects" :key="sub" class="subject-pill-form subject-pill-form-removable">
+                  {{ sub }} <button type="button" aria-label="Remove subject" @click="removeSubject(sub)">x</button>
+                </span>
+              </div>
+              <span class="form-hint">Press Enter or click Add after each subject.</span>
             </div>
             <div class="form-group" style="flex:1">
               <label class="form-label" htmlFor="problem-difficulty">Difficulty <span class="required">*</span></label>
@@ -80,7 +100,7 @@
             </label>
             <textarea
               id="problem-text"
-              v-model="form.questionText"
+              v-model="form.text"
               class="form-input form-textarea"
               placeholder="e.g. Solve for $x$: $2x + 5 = 13$…"
               required
@@ -222,22 +242,27 @@ definePageMeta({
   permissions: ['questions:write']
 })
 
-const { addQuestion, uploadImage } = useQuestionBank()
+const { addQuestion, uploadImage, availableSubjects, loadMeta } = useQuestionBank()
 const { hasPermission } = useAuth()
 
 const tagInput = ref('')
+const subjectInput = ref('')
 const submitted = ref(false)
 const submitError = ref('')
 const isSaving = ref(false)
 const uploadingImage = ref(false)
 const canCreateQuestions = computed(() => hasPermission('questions:write'))
 
+onMounted(() => {
+  void loadMeta()
+})
+
 const form = reactive({
   type: 'single_choice' as QuestionType,
-  subject: '',
-  difficulty: '' as QuestionDifficulty | '',
+  subjects: [] as string[],
+  difficulty: 'medium' as QuestionDifficulty,
   tags: [] as string[],
-  questionText: '',
+  text: '',
   options: ['', '', '', ''] as string[],
   answer: '',
   answerMultiple: [] as string[],
@@ -284,6 +309,17 @@ function removeTag (tag: string) {
   if (index !== -1) form.tags.splice(index, 1)
 }
 
+function addSubject () {
+  const sub = subjectInput.value.trim()
+  if (sub && !form.subjects.includes(sub)) form.subjects.push(sub)
+  subjectInput.value = ''
+}
+
+function removeSubject (sub: string) {
+  const index = form.subjects.indexOf(sub)
+  if (index !== -1) form.subjects.splice(index, 1)
+}
+
 async function handleImageSelected (event: Event) {
   const target = event.target as HTMLInputElement
   const file = target.files?.[0]
@@ -310,15 +346,19 @@ async function submitProblem () {
     submitError.value = 'You do not have permission to create questions.'
     return
   }
+  if (!form.subjects.length) {
+    submitError.value = 'Please add at least one subject.'
+    return
+  }
   isSaving.value = true
 
   try {
     await addQuestion({
       type: form.type,
-      subject: form.subject.trim(),
+      subjects: [...form.subjects],
       difficulty: form.difficulty as QuestionDifficulty,
       tags: [...form.tags],
-      text: form.questionText.trim(),
+      text: form.text.trim(),
       options: usesOptionAnswers.value
         ? form.options.map(option => option.trim()).filter(Boolean)
         : undefined,
@@ -349,10 +389,10 @@ async function submitProblem () {
 function resetForm (clearBanner = true) {
   Object.assign(form, {
     type: 'single_choice',
-    subject: '',
+    subjects: [],
     difficulty: '',
     tags: [],
-    questionText: '',
+    text: '',
     options: ['', '', '', ''],
     answer: '',
     answerMultiple: [],
@@ -434,6 +474,28 @@ const cheatSheet = LATEX_QUICK_REFERENCE
   gap: 4px;
 }
 .tag-removable button {
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  line-height: 1;
+}
+.subject-pill-form {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: .75rem;
+  font-weight: 500;
+  background: rgba(79, 110, 247, 0.12);
+  color: var(--color-primary);
+}
+.subject-pill-form-removable {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.subject-pill-form-removable button {
   background: none;
   border: none;
   color: var(--color-primary);
