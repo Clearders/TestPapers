@@ -16,7 +16,7 @@
 
       <div class="form-group">
         <label class="form-label" htmlFor="register-password">Password</label>
-        <input id="register-password" v-model="form.password" class="form-input" type="password" autocomplete="new-password" minlength="6" maxlength="128" required />
+        <input id="register-password" ref="registerPasswordInput" v-model="form.password" class="form-input" type="password" autocomplete="new-password" minlength="6" maxlength="128" required />
       </div>
 
       <div class="form-group">
@@ -28,7 +28,7 @@
         {{ isSubmitting ? 'Creating…' : 'Create Account' }}
       </button>
 
-      <p v-if="message" class="register-message" :class="{ 'register-message--error': hasError }">
+      <p v-if="message" class="register-message" :class="{ 'register-message--error': hasError }" role="alert" aria-live="polite">
         {{ message }}
       </p>
 
@@ -53,6 +53,7 @@ const form = reactive({
   password: ''
 })
 const confirmPassword = ref('')
+const registerPasswordInput = ref<HTMLInputElement | null>(null)
 const isSubmitting = ref(false)
 const message = ref('')
 const hasError = ref(false)
@@ -68,6 +69,7 @@ async function submitRegister () {
   if (form.password !== confirmPassword.value) {
     message.value = 'Passwords do not match.'
     hasError.value = true
+    registerPasswordInput.value?.focus()
     return
   }
 

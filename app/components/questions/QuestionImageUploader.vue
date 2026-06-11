@@ -1,8 +1,9 @@
 <template>
   <div class="form-group">
-    <label class="form-label">Images</label>
+    <label class="form-label" htmlFor="image-upload-input">Images</label>
     <div class="image-upload-area">
       <input
+        id="image-upload-input"
         ref="imageInput"
         type="file"
         accept="image/png"
@@ -17,7 +18,7 @@
           <input
             :value="img.caption"
             class="form-input form-input--sm"
-            placeholder="Image caption (optional)"
+            placeholder="Image caption (optional)…"
             @input="updateCaption(imgIdx, ($event.target as HTMLInputElement).value)"
           />
           <button type="button" class="btn btn-outline btn-sm" @click="$emit('remove', imgIdx)">

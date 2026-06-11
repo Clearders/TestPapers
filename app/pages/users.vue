@@ -14,7 +14,7 @@
         <h2>Create User</h2>
         <div class="form-group">
           <label class="form-label" htmlFor="users-username">Username</label>
-          <input id="users-username" v-model="form.username" class="form-input" required />
+          <input id="users-username" v-model="form.username" class="form-input" autocomplete="off" required />
         </div>
         <div class="form-group">
           <label class="form-label" htmlFor="users-displayname">Display Name</label>
@@ -35,7 +35,7 @@
         <button class="btn btn-primary" type="submit" :disabled="isSaving">
           {{ isSaving ? 'Creating…' : 'Create User' }}
         </button>
-        <p v-if="message" class="form-message">{{ message }}</p>
+        <p v-if="message" class="form-message" role="alert" aria-live="polite">{{ message }}</p>
       </form>
 
       <div class="user-list">

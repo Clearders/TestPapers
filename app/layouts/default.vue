@@ -47,7 +47,7 @@
     </main>
 
     <footer class="site-footer">
-      <p>© {{ new Date().getFullYear() }} TestPapers | Create, manage and export test papers with ease.</p>
+      <p>© {{ currentYear }} TestPapers | Create, manage and export test papers with ease.</p>
     </footer>
   </div>
 </template>
@@ -56,6 +56,7 @@
 const { hasPermission, isAuthenticated, logout, user } = useAuth()
 const route = useRoute()
 const isNavOpen = ref(false)
+const currentYear = new Date().getFullYear()
 
 function toggleNav () {
   isNavOpen.value = !isNavOpen.value
@@ -92,9 +93,11 @@ watch(() => route.fullPath, closeNav)
 }
 
 a { color: inherit; text-decoration: none; }
-button { cursor: pointer; font: inherit; }
+button { cursor: pointer; font: inherit; touch-action: manipulation; }
 input, textarea, select { font: inherit; max-width: 100%; }
+select { background-color: var(--color-surface); color: var(--color-text); }
 img, svg, canvas, video { max-width: 100%; }
+a, button, [role="button"] { -webkit-tap-highlight-color: transparent; }
 
 .skip-link {
   position: fixed;
@@ -403,7 +406,7 @@ img, svg, canvas, video { max-width: 100%; }
   transform: translateY(-1px);
 }
 .form-hint { font-size: .775rem; color: var(--color-muted); }
-.list-enter-active, .list-leave-active { transition: all 0.4s ease; }
+.list-enter-active, .list-leave-active { transition: opacity 0.4s ease, transform 0.4s ease; }
 .list-enter-from { opacity: 0; transform: translateX(20px); }
 .list-leave-to { opacity: 0; transform: translateX(-20px); }
 .list-leave-active { position: absolute; }

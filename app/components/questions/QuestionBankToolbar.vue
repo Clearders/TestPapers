@@ -21,7 +21,7 @@
       <input
         :value="search"
         class="form-input search-input"
-        placeholder="Search questions"
+        placeholder="Search questions…"
         @input="$emit('update:search', ($event.target as HTMLInputElement).value)"
       />
       <select

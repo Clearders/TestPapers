@@ -79,17 +79,17 @@
 
         <div class="card paper-meta-card">
           <div class="form-group">
-            <label class="form-label">Paper Title</label>
-            <input v-model="paper.title" class="form-input" placeholder="e.g. Mid-term Examination 2026" />
+            <label class="form-label" htmlFor="paper-title">Paper Title</label>
+            <input id="paper-title" v-model="paper.title" class="form-input" placeholder="e.g. Mid-term Examination 2026…" />
           </div>
           <div class="paper-meta-row">
             <div class="form-group paper-meta-field">
-              <label class="form-label">Subject</label>
-              <input v-model="paper.subject" class="form-input" placeholder="e.g. Mathematics" />
+              <label class="form-label" htmlFor="paper-subject">Subject</label>
+              <input id="paper-subject" v-model="paper.subject" class="form-input" placeholder="e.g. Mathematics…" />
             </div>
             <div class="form-group paper-meta-field">
-              <label class="form-label">Duration (min)</label>
-              <input v-model.number="paper.duration" type="number" min="1" class="form-input" placeholder="60" />
+              <label class="form-label" htmlFor="paper-duration">Duration (min)</label>
+              <input id="paper-duration" v-model.number="paper.duration" type="number" min="1" class="form-input" placeholder="60…" />
             </div>
           </div>
           <label v-if="canReadAnswers" class="export-toggle">
@@ -114,12 +114,13 @@
 
           <div class="gen-controls">
             <div class="gen-field">
-              <label class="form-label">Subject</label>
+              <label class="form-label" htmlFor="gen-subject-input">Subject</label>
               <input
+                id="gen-subject-input"
                 v-model="generationForm.subject"
                 class="form-input"
                 list="gen-subjects"
-                placeholder="e.g. Mathematics"
+                placeholder="e.g. Mathematics…"
               />
               <datalist id="gen-subjects">
                 <option v-for="subject in availableSubjects" :key="subject" :value="subject" />
@@ -222,7 +223,7 @@
                   @click="toggleTag($event, tag)"
                 >{{ tag }}</button>
               </div>
-              <div v-else-if="isLoadingMeta" class="gen-tag-loading">
+              <div v-else-if="isLoadingMeta" class="gen-tag-loading" aria-live="polite">
                 Loading tags…
               </div>
               <div v-if="selectedTagsDisplay.length" class="gen-selected-tags">
@@ -239,7 +240,7 @@
               <input
                 v-model="generationForm.customTagInput"
                 class="form-input gen-tag-input"
-                placeholder="Type custom tag and press Enter"
+                placeholder="Type custom tag and press Enter…"
                 @keydown.enter.prevent="addCustomTag"
               />
               <p class="form-hint">Click a tag to add as Required; Shift+click for Preferred. Tap × to remove.</p>
@@ -761,6 +762,7 @@ function moveDown (idx: number) {
 }
 
 function clearPaper () {
+  if (!window.confirm('Clear all questions from the paper? This cannot be undone.')) return
   paper.questions.length = 0
   exported.value = false
   exportMode.value = 'paper'
@@ -1272,7 +1274,7 @@ function getEssayBlankStyle (question: Question) {
   color: var(--color-muted);
   text-align: center;
   white-space: nowrap;
-  transition: all 0.2s ease;
+  transition: background 0.2s ease, color 0.2s ease;
   cursor: pointer;
 }
 .gen-pill:hover {
@@ -1476,7 +1478,7 @@ function getEssayBlankStyle (question: Question) {
   font-weight: 500;
   color: var(--color-muted);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
 }
 .gen-tag-chip:hover {
   color: var(--color-text);
@@ -1569,7 +1571,7 @@ function getEssayBlankStyle (question: Question) {
 .gen-submit {
   min-width: 160px;
   justify-content: center;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1), transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .gen-submit:not(:disabled) {
   animation: genPulse 2.5s ease-in-out infinite;
@@ -1639,6 +1641,7 @@ function getEssayBlankStyle (question: Question) {
   font-size: .95rem;
   font-weight: 700;
   color: var(--color-text);
+  font-variant-numeric: tabular-nums;
 }
 .gen-stat--small {
   font-size: .75rem;
@@ -1647,10 +1650,10 @@ function getEssayBlankStyle (question: Question) {
 }
 
 .gen-stat-pop-enter-active {
-  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1), transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .gen-stat-pop-leave-active {
-  transition: all 0.25s ease;
+  transition: opacity 0.25s ease, transform 0.25s ease;
 }
 .gen-stat-pop-enter-from {
   opacity: 0;
@@ -1662,10 +1665,10 @@ function getEssayBlankStyle (question: Question) {
 }
 
 .gen-banner-enter-active {
-  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .gen-banner-leave-active {
-  transition: all 0.2s ease;
+  transition: opacity 0.2s ease, transform 0.2s ease;
 }
 .gen-banner-enter-from {
   opacity: 0;

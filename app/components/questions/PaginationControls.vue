@@ -62,6 +62,7 @@ const lastItem = computed(() =>
   color: var(--color-muted, #6b7280);
   font-size: .86rem;
   text-align: center;
+  font-variant-numeric: tabular-nums;
 }
 .pagination-summary {
   display: block;

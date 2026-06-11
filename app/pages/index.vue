@@ -133,7 +133,7 @@ const { hasPermission, isAuthenticated } = useAuth()
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.5);
   color: var(--color-text);
-  transition: all 0.3s ease;
+  transition: background 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
 }
 .btn-glass:hover {
   background: rgba(255, 255, 255, 0.8);

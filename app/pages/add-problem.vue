@@ -26,7 +26,7 @@
           <div class="form-row">
             <div class="form-group" style="flex:1">
               <label class="form-label" htmlFor="problem-subject">Subject <span class="required">*</span></label>
-              <input id="problem-subject" v-model="form.subject" class="form-input" placeholder="e.g. Mathematics" required />
+              <input id="problem-subject" v-model="form.subject" class="form-input" placeholder="e.g. Mathematics…" autocomplete="off" required />
             </div>
             <div class="form-group" style="flex:1">
               <label class="form-label" htmlFor="problem-difficulty">Difficulty <span class="required">*</span></label>
@@ -44,6 +44,7 @@
                 v-model.number="form.scoreWeight"
                 class="form-input"
                 type="number"
+                autocomplete="off"
                 min="0.01"
                 max="100"
                 step="0.1"
@@ -59,7 +60,7 @@
                 id="problem-tags"
                 v-model="tagInput"
                 class="form-input"
-                placeholder="Add tag and press Enter"
+                placeholder="Add tag and press Enter…"
                 @keydown.enter.prevent="addTag"
               />
               <button type="button" class="btn btn-outline btn-sm" @click="addTag">Add</button>
@@ -81,7 +82,7 @@
               id="problem-text"
               v-model="form.questionText"
               class="form-input form-textarea"
-              placeholder="e.g. Solve for $x$: $2x + 5 = 13$"
+              placeholder="e.g. Solve for $x$: $2x + 5 = 13$…"
               required
             />
           </div>
@@ -147,7 +148,7 @@
               id="problem-answer"
               v-model="form.answer"
               class="form-input form-textarea form-textarea--short"
-              placeholder="e.g. $x = 4$"
+              placeholder="e.g. $x = 4$…"
               required
             />
             <select v-else-if="form.type === 'single_choice'" id="problem-answer" v-model="form.answer" class="form-input" required>
@@ -173,7 +174,7 @@
 
           <div class="form-group">
             <label class="form-label">Source / Reference</label>
-            <input v-model="form.source" class="form-input" placeholder="e.g. Chapter 3, Exercise 5" />
+            <input v-model="form.source" class="form-input" placeholder="e.g. Chapter 3, Exercise 5…" autocomplete="off" />
           </div>
 
           <div class="form-actions">
@@ -183,11 +184,11 @@
             <button type="button" class="btn btn-outline" @click="handleReset">Reset</button>
           </div>
 
-          <div v-if="submitError" class="success-banner" style="background:#fef2f2;border-color:#fecaca;color:#b91c1c">
+          <div v-if="submitError" class="success-banner" style="background:#fef2f2;border-color:#fecaca;color:#b91c1c" role="alert" aria-live="polite">
             {{ submitError }}
           </div>
 
-          <div v-if="submitted" class="success-banner">
+          <div v-if="submitted" class="success-banner" role="status" aria-live="polite">
             Problem saved successfully. <NuxtLink to="/questions">Open the workspace</NuxtLink>
           </div>
         </form>

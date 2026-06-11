@@ -16,7 +16,7 @@
         <button class="btn btn-primary" type="submit" :disabled="isSubmitting">
           {{ isSubmitting ? 'Signing in…' : 'Sign In' }}
         </button>
-        <p v-if="errorMessage" class="login-error">{{ errorMessage }}</p>
+        <p v-if="errorMessage" class="login-error" role="alert" aria-live="polite">{{ errorMessage }}</p>
       </form>
 
       <p class="register-prompt">
