@@ -10,7 +10,7 @@ export function useAuth () {
   const user = useState<AuthUser | null>('auth-user', () => null)
   const expiresAt = useState<string>('auth-expires-at', () => '')
   const isAuthReady = useState<boolean>('auth-ready', () => false)
-  const { apiFetch, authHeaders, refreshSessionCookie } = useApi()
+  const { apiFetch, refreshSessionCookie } = useApi()
 
   const isAuthenticated = computed(() => Boolean(user.value))
   const authFetch = apiFetch
@@ -134,7 +134,6 @@ export function useAuth () {
 
   return {
     authFetch,
-    authHeaders,
     clearSession,
     expiresAt,
     hasPermission,

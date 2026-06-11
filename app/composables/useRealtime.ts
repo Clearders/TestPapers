@@ -28,9 +28,6 @@ function clearTimers () {
 }
 
 export function useRealtime () {
-  const status = useState<RealtimeStatus>('realtime-status', () => 'idle')
-  const lastEvent = useState<string>('realtime-last-event', () => '')
-  const lastPayload = useState<unknown>('realtime-last-payload', () => null)
   const { isAuthenticated, refreshSession } = useAuth()
 
   function disconnect () {
@@ -44,7 +41,6 @@ export function useRealtime () {
       socket.close()
       socket = null
     }
-    status.value = 'disconnected'
   }
 
   async function scheduleReconnect () {
@@ -64,11 +60,9 @@ export function useRealtime () {
   function connect () {
     if (import.meta.server || !isAuthenticated.value || socket?.readyState === WebSocket.OPEN || socket?.readyState === WebSocket.CONNECTING) return
 
-    status.value = 'connecting'
     socket = new WebSocket(getRealtimeUrl())
 
     socket.onopen = () => {
-      status.value = 'connected'
       reconnectAttempts = 0
       if (heartbeatTimer) clearInterval(heartbeatTimer)
       heartbeatTimer = setInterval(() => {
@@ -82,23 +76,17 @@ export function useRealtime () {
       try {
         const message = JSON.parse(event.data) as { event?: string, payload?: unknown }
         if (!message.event) return
-        lastEvent.value = message.event
-        lastPayload.value = message.payload
         emit(message.event, message.payload)
       } catch {
-        lastEvent.value = 'error'
-        lastPayload.value = { message: 'Invalid realtime message' }
       }
     }
 
     socket.onerror = () => {
-      status.value = 'disconnected'
     }
 
     socket.onclose = () => {
       clearTimers()
       socket = null
-      status.value = 'disconnected'
       void scheduleReconnect()
     }
   }
@@ -117,9 +105,6 @@ export function useRealtime () {
   return {
     connect,
     disconnect,
-    lastEvent,
-    lastPayload,
-    on,
-    status
+    on
   }
 }

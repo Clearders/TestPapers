@@ -544,8 +544,6 @@ const {
 const { hasPermission, isAuthReady } = useAuth()
 const { apiFetch, getApiBase, refreshSessionCookie } = useApi()
 type ExportMode = 'paper' | 'categorized'
-type QuestionType = Question['type']
-type QuestionDifficulty = Question['difficulty']
 type BankMode = 'all' | 'mine'
 interface GenerationFormState {
   difficultyCoefficient: number
@@ -751,17 +749,7 @@ function toPositiveInteger (value: unknown, fallback: number, min = 1) {
   return Math.max(min, Math.round(parsed))
 }
 
-function toBoundedNumber (value: unknown, fallback: number, min: number, max: number) {
-  const parsed = Number(value)
-  if (!Number.isFinite(parsed)) return fallback
-  return Math.max(min, Math.min(max, parsed))
-}
-
-function toOptionalPositiveInteger (value: unknown) {
-  const parsed = Number(value)
-  if (!Number.isFinite(parsed) || parsed <= 0) return undefined
-  return Math.round(parsed)
-}
+import { boundedNumber, optionalPositiveInteger } from '~/domain/questions'
 
 function paperMetadataPayload (): PaperMetadataPayload {
   return {
@@ -776,7 +764,7 @@ function getPaperPayload (): PaperCreatePayload {
   return {
     ...paperMetadataPayload(),
     questions: paper.questions.map((question, index) => {
-      const marks = toOptionalPositiveInteger(question.marks)
+      const marks = optionalPositiveInteger(question.marks)
       return {
         questionId: question.id,
         orderNo: index + 1,
@@ -881,7 +869,7 @@ function buildPaperGeneratePayload (): PaperGeneratePayload | null {
     subjects: [...generationForm.subjects],
     duration: toPositiveInteger(paper.duration, DEFAULT_PAPER.duration),
     totalMarks: toPositiveInteger(paper.totalMarks, DEFAULT_PAPER.totalMarks),
-    difficultyCoefficient: toBoundedNumber(generationForm.difficultyCoefficient, 0.5, 0, 1),
+    difficultyCoefficient: boundedNumber(generationForm.difficultyCoefficient, 0.5, 0, 1),
     questionTypes: generationForm.questionTypes.map(type => ({
       questionType: type,
       count: generationForm.typeCounts[type] || 1
@@ -896,8 +884,8 @@ function normalizePaperQuestion (question: ApiPaperQuestion): PaperQuestion {
   const normalized = normalizeQuestion(question)
   return {
     ...normalized,
-    marks: toOptionalPositiveInteger(question.marks),
-    orderNo: toOptionalPositiveInteger(question.orderNo)
+    marks: optionalPositiveInteger(question.marks),
+    orderNo: optionalPositiveInteger(question.orderNo)
   }
 }
 
@@ -1087,9 +1075,7 @@ const difficultyBadgeClass = computed(() => {
   return 'badge-hard'
 })
 
-function formatScoreWeight (weight: number) {
-  return Number.isInteger(weight) ? String(weight) : weight.toFixed(1)
-}
+import { formatScoreWeight } from '~/utils/format'
 
 function toggleAnswer (id: number) {
   if (shownIds.has(id)) shownIds.delete(id)

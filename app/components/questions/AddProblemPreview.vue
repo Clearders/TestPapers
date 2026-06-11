@@ -86,25 +86,11 @@
 </template>
 
 <script setup lang="ts">
-import type { EssayBlankSpace, QuestionDifficulty, QuestionImage, QuestionType } from '~/types/question'
+import type { QuestionFormInput } from '~/types/question'
 import { isOptionQuestionType } from '~/domain/questions'
 
-interface ProblemFormPreview {
-  type: QuestionType
-  subject: string
-  difficulty: QuestionDifficulty | ''
-  tags: string[]
-  questionText: string
-  options: string[]
-  answer: string
-  source: string
-  essayBlankSpace: EssayBlankSpace
-  images: QuestionImage[]
-  scoreWeight: number
-}
-
 defineProps<{
-  form: ProblemFormPreview
+  form: QuestionFormInput
   essayBlankHeight: number
   cheatSheet: Array<{ label: string; code: string; formula: string }>
 }>()

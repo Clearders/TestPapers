@@ -1,4 +1,4 @@
-export interface LatexPart {
+interface LatexPart {
   isLatex: boolean
   content: string
   block: boolean

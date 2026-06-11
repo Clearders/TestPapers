@@ -212,6 +212,7 @@ import {
   DIFFICULTY_OPTIONS,
   LATEX_QUICK_REFERENCE,
   QUESTION_TYPE_OPTIONS,
+  clampScoreWeight,
   getEssayBlankHeightPx,
   isOptionQuestionType
 } from '~/domain/questions'
@@ -325,7 +326,7 @@ async function submitProblem () {
         ? form.answerMultiple.filter(Boolean)
         : form.answer.trim(),
       source: form.source.trim() || undefined,
-      scoreWeight: Math.max(0.01, Math.min(100, Number(form.scoreWeight) || 1)),
+      scoreWeight: clampScoreWeight(form.scoreWeight),
       essayBlankSpace: form.type === 'essay'
         ? {
             lines: form.essayBlankSpace.lines,

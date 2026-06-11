@@ -88,14 +88,12 @@ defineProps<{
   typeLabel: (type: Question['type']) => string
 }>()
 
+import { formatScoreWeight } from '~/utils/format'
+
 defineEmits<{
   'toggle-answer': [id: number]
   'toggle-question': [question: Question]
 }>()
-
-function formatScoreWeight (weight: number) {
-  return Number.isInteger(weight) ? String(weight) : weight.toFixed(1)
-}
 </script>
 
 <style scoped>

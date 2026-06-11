@@ -91,10 +91,6 @@ async function refreshSessionCookie () {
 }
 
 export function useApi () {
-  function authHeaders () {
-    return {}
-  }
-
   async function apiFetch<T> (path: string, options: ApiRequestOptions = {}) {
     const {
       auth = true,
@@ -172,7 +168,6 @@ export function useApi () {
 
   return {
     apiFetch,
-    authHeaders,
     getApiBase,
     refreshSessionCookie
   }

@@ -183,7 +183,6 @@ export function useQuestionBank () {
     uploadImage,
     loadMeta,
     canCreateQuestions: computed(() => hasPermission('questions:write')),
-    canDeleteQuestions: computed(() => hasPermission('questions:delete')),
     canReadAnswers: computed(() => hasPermission('answers:read')),
     error,
     isLoading,
