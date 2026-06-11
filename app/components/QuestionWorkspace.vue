@@ -543,6 +543,8 @@ const {
 } = useQuestionBank()
 const { hasPermission, isAuthReady } = useAuth()
 const { apiFetch, getApiBase, refreshSessionCookie } = useApi()
+const route = useRoute()
+const router = useRouter()
 type ExportMode = 'paper' | 'categorized'
 type BankMode = 'all' | 'mine'
 interface GenerationFormState {
@@ -562,14 +564,24 @@ const DEFAULT_PAPER = {
   totalMarks: 100
 }
 
-const search = ref('')
-const filterSubject = ref('')
-const filterDifficulty = ref<QuestionDifficulty | ''>('')
+function parseQuerySubject(): string {
+  const raw = route.query.subjects
+  return typeof raw === 'string' ? raw : ''
+}
+
+function parseQueryBank(): BankMode {
+  const raw = route.query.bank
+  return raw === 'mine' ? 'mine' : 'all'
+}
+
+const search = ref((route.query.q as string) || '')
+const filterSubject = ref(parseQuerySubject())
+const filterDifficulty = ref<QuestionDifficulty | ''>((route.query.difficulty as QuestionDifficulty) || '')
 const shownIds = reactive(new Set<number>())
 function isShown (id: number) { return shownIds.has(id) }
 const exportMode = ref<ExportMode>('paper')
 const includeAnswersInExport = ref(false)
-const bankMode = ref<BankMode>('all')
+const bankMode = ref<BankMode>(parseQueryBank())
 const pageSize = ref(20)
 const isGenerating = ref(false)
 const generationError = ref('')
@@ -625,8 +637,23 @@ watch(
 )
 
 watch([search, filterSubject, filterDifficulty], () => {
+  syncQuery()
   if (canReadQuestions.value) void loadCurrentPage(1)
 })
+
+watch([bankMode], () => {
+  syncQuery()
+})
+
+function syncQuery() {
+  const query: Record<string, string> = {}
+  const q = search.value.trim()
+  if (q) query.q = q
+  if (filterSubject.value) query.subjects = filterSubject.value
+  if (filterDifficulty.value) query.difficulty = filterDifficulty.value
+  if (bankMode.value !== 'all') query.bank = bankMode.value
+  router.replace({ query })
+}
 
 watch(canReadAnswers, (allowed) => {
   if (!allowed) includeAnswersInExport.value = false
@@ -665,13 +692,7 @@ function typeLabel (type: Question['type']) {
   return QUESTION_TYPE_LABELS[type] || type
 }
 
-const subjects = computed(() => {
-  const seen = new Set<string>()
-  for (const q of currentQuestions.value) {
-    for (const s of q.subjects) seen.add(s)
-  }
-  return [...seen].sort()
-})
+const subjects = computed(() => availableSubjects.value)
 
 const exportSections = computed(() => {
   if (exportMode.value !== 'categorized') {
