@@ -39,6 +39,7 @@
           width="160"
           height="120"
           class="q-image-thumb"
+          loading="lazy"
         />
       </div>
 

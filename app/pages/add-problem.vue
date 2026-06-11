@@ -80,6 +80,8 @@
                 id="problem-tags"
                 v-model="tagInput"
                 class="form-input"
+                name="problemTags"
+                autocomplete="off"
                 placeholder="Add tag and press Enter…"
                 @keydown.enter.prevent="addTag"
               />
@@ -102,6 +104,7 @@
               id="problem-text"
               v-model="form.text"
               class="form-input form-textarea"
+              spellcheck="false"
               placeholder="e.g. Solve for $x$: $2x + 5 = 13$…"
               required
             />
@@ -111,7 +114,7 @@
             <label class="form-label">Options <span class="required">*</span></label>
             <div v-for="(opt, index) in form.options" :key="index" class="option-row">
               <span class="option-label">{{ String.fromCharCode(65 + index) }}.</span>
-              <input v-model="form.options[index]" class="form-input" :placeholder="'Option ' + String.fromCharCode(65 + index)" required />
+              <input v-model="form.options[index]" class="form-input" name="optionText" autocomplete="off" :placeholder="'Option ' + String.fromCharCode(65 + index)" required />
             </div>
           </div>
 
@@ -142,6 +145,7 @@
                 <input
                   v-model.number="form.essayBlankSpace.lines"
                   class="form-input"
+                  name="essayLines"
                   type="number"
                   min="1"
                   max="20"
@@ -152,6 +156,7 @@
                 <input
                   v-model.number="form.essayBlankSpace.lineHeight"
                   class="form-input"
+                  name="essayLineHeight"
                   type="number"
                   min="20"
                   max="48"

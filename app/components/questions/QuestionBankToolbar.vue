@@ -38,12 +38,15 @@
       <input
         :value="search"
         class="form-input search-input"
+        name="search"
+        autocomplete="off"
         placeholder="Search questions…"
         @input="$emit('update:search', ($event.target as HTMLInputElement).value)"
       />
       <select
         :value="filterDifficulty"
         class="form-input"
+        name="difficulty"
         @change="onDifficultyChange"
       >
         <option value="">All difficulties</option>

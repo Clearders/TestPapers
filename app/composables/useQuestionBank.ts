@@ -38,9 +38,13 @@ export function useQuestionBank () {
   const { hasPermission } = useAuth()
   const { apiFetch, getApiBase } = useApi()
 
-  const loadQuestions = async (params: QuestionQueryParams = {}) => {
-    if (isLoading.value) return
+  if (import.meta.client) {
+    isLoading.value = false
+    isLoadingMine.value = false
+    isLoadingMeta.value = false
+  }
 
+  const loadQuestions = async (params: QuestionQueryParams = {}) => {
     isLoading.value = true
     error.value = ''
     try {

@@ -80,16 +80,16 @@
         <div class="card paper-meta-card">
           <div class="form-group">
             <label class="form-label" htmlFor="paper-title">Paper Title</label>
-            <input id="paper-title" v-model="paper.title" class="form-input" placeholder="e.g. Mid-term Examination 2026…" />
+            <input id="paper-title" v-model="paper.title" class="form-input" name="paperTitle" placeholder="e.g. Mid-term Examination 2026…" />
           </div>
           <div class="paper-meta-row">
             <div class="form-group paper-meta-field">
               <label class="form-label" htmlFor="paper-subject">Subject</label>
-              <input id="paper-subject" v-model="paper.subject" class="form-input" placeholder="e.g. Mathematics…" />
+              <input id="paper-subject" v-model="paper.subject" class="form-input" name="paperSubject" placeholder="e.g. Mathematics…" />
             </div>
             <div class="form-group paper-meta-field">
               <label class="form-label" htmlFor="paper-duration">Duration (min)</label>
-              <input id="paper-duration" v-model.number="paper.duration" type="number" min="1" class="form-input" placeholder="60…" />
+              <input id="paper-duration" v-model.number="paper.duration" type="number" min="1" class="form-input" name="paperDuration" placeholder="60…" />
             </div>
           </div>
           <label v-if="canReadAnswers" class="export-toggle">
@@ -303,8 +303,8 @@
           <TransitionGroup name="list" tag="div" class="paper-question-list" v-if="paper.questions.length">
             <div v-for="(q, idx) in paper.questions" :key="q.id" class="paper-q-item card">
               <div class="paper-q-controls">
-                <button class="icon-btn" :disabled="idx === 0" @click="moveUp(idx)" title="Up">Up</button>
-                <button class="icon-btn" :disabled="idx === paper.questions.length - 1" @click="moveDown(idx)" title="Down">Down</button>
+                <button class="icon-btn" :disabled="idx === 0" @click="moveUp(idx)" aria-label="Move question up">Up</button>
+                <button class="icon-btn" :disabled="idx === paper.questions.length - 1" @click="moveDown(idx)" aria-label="Move question down">Down</button>
               </div>
               <div class="paper-q-body">
                 <div class="paper-q-num">Q{{ idx + 1 }}</div>
@@ -419,6 +419,7 @@
                       width="160"
                       height="120"
                       class="export-image-thumb"
+                      loading="lazy"
                     />
                   </div>
 
@@ -628,7 +629,7 @@ const canDownloadDocx = computed(() => {
 watch(
   [isAuthReady, canReadQuestions],
   ([ready, allowed]) => {
-    if (ready && allowed) {
+    if (import.meta.client && ready && allowed) {
       void loadCurrentPage(1)
       void loadMeta()
     }
@@ -637,8 +638,10 @@ watch(
 )
 
 watch([search, filterSubject, filterDifficulty], () => {
-  syncQuery()
-  if (canReadQuestions.value) void loadCurrentPage(1)
+  if (import.meta.client) {
+    syncQuery()
+    if (canReadQuestions.value) void loadCurrentPage(1)
+  }
 })
 
 watch([bankMode], () => {

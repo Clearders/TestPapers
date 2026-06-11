@@ -107,6 +107,7 @@ watch(() => route.fullPath, closeNav)
   --color-border: #334155;
   --color-danger: #f87171;
   --shadow: 0 2px 12px rgba(0,0,0,.4);
+  color-scheme: dark;
 }
 
 a { color: inherit; text-decoration: none; }

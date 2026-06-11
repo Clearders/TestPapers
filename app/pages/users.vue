@@ -22,7 +22,7 @@
         </div>
         <div class="form-group">
           <label class="form-label" htmlFor="users-password">Password</label>
-          <input id="users-password" v-model="form.password" class="form-input" type="password" minlength="6" required />
+          <input id="users-password" v-model="form.password" class="form-input" type="password" autocomplete="new-password" minlength="6" required />
         </div>
         <div class="form-group">
           <label class="form-label" htmlFor="users-role">Role</label>

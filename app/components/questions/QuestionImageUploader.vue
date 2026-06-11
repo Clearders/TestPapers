@@ -18,6 +18,8 @@
           <input
             :value="img.caption"
             class="form-input form-input--sm"
+            name="imageCaption"
+            autocomplete="off"
             placeholder="Image caption (optional)…"
             @input="updateCaption(imgIdx, ($event.target as HTMLInputElement).value)"
           />
