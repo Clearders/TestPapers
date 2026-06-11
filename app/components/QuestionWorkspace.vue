@@ -114,17 +114,21 @@
 
           <div class="gen-controls">
             <div class="gen-field">
-              <label class="form-label" htmlFor="gen-subject-input">Subject</label>
-              <input
-                id="gen-subject-input"
-                v-model="generationForm.subject"
-                class="form-input"
-                list="gen-subjects"
-                placeholder="e.g. Mathematics…"
-              />
-              <datalist id="gen-subjects">
-                <option v-for="subject in availableSubjects" :key="subject" :value="subject" />
-              </datalist>
+              <label class="form-label">Subjects</label>
+              <div v-if="availableSubjects.length" class="gen-subject-pool">
+                <button
+                  v-for="subject in availableSubjects"
+                  :key="subject"
+                  type="button"
+                  class="gen-subject-chip"
+                  :class="{ 'gen-subject-chip--active': generationForm.subjects.includes(subject) }"
+                  @click="toggleSubject(subject)"
+                >{{ subject }}</button>
+              </div>
+              <div v-else-if="isLoadingMeta" class="gen-subject-loading" aria-live="polite">
+                Loading subjects…
+              </div>
+              <p v-else class="form-hint">No subjects available. Create questions with subjects first.</p>
             </div>
 
             <div class="gen-field">
@@ -245,7 +249,7 @@
             <button
               class="btn btn-primary gen-submit"
               type="submit"
-              :disabled="isGenerating || !generationForm.subject.trim() || !paper.title.trim() || !generationForm.questionTypes.length"
+              :disabled="isGenerating || !generationForm.subjects.length || !paper.title.trim() || !generationForm.questionTypes.length"
             >
               <span v-if="isGenerating" class="gen-spinner"></span>
               {{ isGenerating ? 'Generating…' : 'Generate Paper' }}
@@ -488,10 +492,14 @@ interface PaperCreatePayload extends PaperMetadataPayload {
   questions: PaperQuestionRefPayload[]
 }
 
-interface PaperGeneratePayload extends PaperMetadataPayload {
+interface PaperGeneratePayload {
+  title: string
+  duration: number
+  totalMarks: number
   difficultyCoefficient: number
   questionTypes: Array<{ questionType: QuestionType; count: number }>
   ownQuestionsOnly: boolean
+  subjects: string[]
   requiredTags?: string[]
   preferredTags?: string[]
 }
@@ -543,7 +551,7 @@ interface GenerationFormState {
   difficultyCoefficient: number
   questionTypes: QuestionType[]
   typeCounts: Record<string, number>
-  subject: string
+  subjects: string[]
   requiredTagsStr: string
   requiredTags: string[]
   preferredTagsStr: string
@@ -590,7 +598,7 @@ const generationForm = reactive<GenerationFormState>({
   difficultyCoefficient: 0.5,
   questionTypes: ['single_choice'],
   typeCounts: { single_choice: 5 },
-  subject: '',
+  subjects: [],
   requiredTagsStr: '',
   requiredTags: [],
   preferredTagsStr: '',
@@ -863,15 +871,14 @@ async function downloadDocx () {
 }
 
 function buildPaperGeneratePayload (): PaperGeneratePayload | null {
-  const subject = generationForm.subject.trim()
-  if (!paper.title.trim() || !subject) {
-    generationError.value = 'Please enter a paper title and generation subject.'
+  if (!paper.title.trim() || !generationForm.subjects.length) {
+    generationError.value = 'Please enter a paper title and select at least one subject.'
     return null
   }
 
   return {
     title: paper.title.trim(),
-    subject,
+    subjects: [...generationForm.subjects],
     duration: toPositiveInteger(paper.duration, DEFAULT_PAPER.duration),
     totalMarks: toPositiveInteger(paper.totalMarks, DEFAULT_PAPER.totalMarks),
     difficultyCoefficient: toBoundedNumber(generationForm.difficultyCoefficient, 0.5, 0, 1),
@@ -1002,6 +1009,15 @@ function toggleQuestionType (type: QuestionType) {
     const newCounts = { ...generationForm.typeCounts }
     delete newCounts[type]
     generationForm.typeCounts = newCounts
+  }
+}
+
+function toggleSubject (subject: string) {
+  const index = generationForm.subjects.indexOf(subject)
+  if (index === -1) {
+    generationForm.subjects = [...generationForm.subjects, subject]
+  } else {
+    generationForm.subjects = generationForm.subjects.filter(s => s !== subject)
   }
 }
 
@@ -1443,6 +1459,44 @@ function getEssayBlankStyle (question: Question) {
 }
 
 .gen-tag-loading {
+  font-size: .82rem;
+  color: var(--color-muted);
+  padding: 8px 0;
+}
+
+.gen-subject-pool {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-height: 140px;
+  overflow-y: auto;
+  padding: 2px 0;
+}
+.gen-subject-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  font-size: .78rem;
+  font-weight: 500;
+  color: var(--color-muted);
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
+}
+.gen-subject-chip:hover {
+  color: var(--color-text);
+  border-color: var(--color-primary);
+  background: rgba(79, 110, 247, 0.04);
+}
+.gen-subject-chip--active {
+  border-color: var(--color-primary);
+  background: rgba(79, 110, 247, 0.08);
+  color: var(--color-primary);
+  font-weight: 600;
+}
+.gen-subject-loading {
   font-size: .82rem;
   color: var(--color-muted);
   padding: 8px 0;
