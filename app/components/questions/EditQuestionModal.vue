@@ -116,7 +116,7 @@ const isSaving = ref(false)
 const errorMsg = ref('')
 
 const isChoiceType = computed(() => {
-  return props.question.type === 'single_choice' || props.question.type === 'multiple_choice' || props.question.type === 'true_false'
+  return form.type === 'single_choice' || form.type === 'multiple_choice' || form.type === 'true_false'
 })
 
 const form = reactive({
@@ -139,6 +139,15 @@ watch(() => props.visible, (val) => {
     form.answer = typeof props.question.answer === 'string' ? props.question.answer : props.question.answer.join(', ')
     form.source = props.question.source || ''
     errorMsg.value = ''
+  }
+})
+
+watch(() => form.type, (newType) => {
+  const choiceTypes = new Set(['single_choice', 'multiple_choice', 'true_false'])
+  if (choiceTypes.has(newType)) {
+    if (!form.options.length || form.options.length < 4) {
+      form.options = [...form.options, ...Array(4 - form.options.length).fill('')].slice(0, 4)
+    }
   }
 })
 

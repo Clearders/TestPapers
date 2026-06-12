@@ -448,6 +448,7 @@
 
   <EditQuestionModal
     v-if="editingQuestion"
+    :key="editingQuestion.id"
     :question="editingQuestion"
     :visible="!!editingQuestion"
     @close="closeEditModal"
@@ -456,6 +457,7 @@
 
   <QuestionCorrectionModal
     v-if="reportingQuestion"
+    :key="reportingQuestion.id"
     :question="reportingQuestion"
     :visible="!!reportingQuestion"
     @close="closeCorrectionModal"
