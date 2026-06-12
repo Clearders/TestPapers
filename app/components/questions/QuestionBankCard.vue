@@ -73,9 +73,9 @@
       </button>
     </div>
 
-    <QuestionRevisionHistory :question-id="question.id" />
+    <QuestionRevisionHistory v-if="canReview" :question-id="question.id" />
 
-    <div class="correction-panel">
+    <div v-if="canReview" class="correction-panel">
       <button class="correction-toggle" type="button" @click="toggleCorrections">
         <span>{{ correctionsOpen ? 'Hide Corrections' : 'Corrections' }}</span>
         <span v-if="!correctionsOpen && corrections.length" class="revision-count">{{ corrections.length }}</span>
@@ -132,6 +132,7 @@ const props = defineProps<{
   isAdded: boolean
   typeLabel: (type: Question['type']) => string
   canEdit: boolean
+  canReview: boolean
 }>()
 
 import { formatScoreWeight } from '~/utils/format'

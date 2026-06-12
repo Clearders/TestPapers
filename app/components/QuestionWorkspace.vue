@@ -48,6 +48,7 @@
             :is-added="isAdded(q.id)"
             :type-label="typeLabel"
             :can-edit="canEditQuestion(q)"
+            :can-review="canReview"
             @toggle-answer="toggleAnswer"
             @toggle-question="toggleQuestion"
             @edit="openEditModal"
@@ -629,6 +630,7 @@ const reportingQuestion = ref<Question | null>(null)
 const canReadQuestions = computed(() => hasPermission('questions:read'))
 const canWritePapers = computed(() => hasPermission('papers:write'))
 const isAdmin = computed(() => hasPermission('users:manage'))
+const canReview = computed(() => hasPermission('questions:write'))
 
 function canEditQuestion (q: Question) {
   if (!hasPermission('questions:write')) return false
