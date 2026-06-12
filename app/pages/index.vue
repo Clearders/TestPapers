@@ -60,6 +60,41 @@
 
 <script setup lang="ts">
 const { hasPermission, isAuthenticated } = useAuth()
+
+useSeoMeta({
+  title: 'TestPapers',
+  titleTemplate: '%s',
+  description: 'Create professional test papers and exams with live LaTeX rendering. Question bank manager, PDF/DOCX exports, and real-time collaboration.',
+  ogTitle: 'TestPapers — Professional Test Paper Creator',
+  ogDescription: 'Create, manage, and export professional exams and assignments seamlessly with live LaTeX rendering.',
+  ogImage: `${useRequestURL().origin}/og-image.png`,
+  twitterTitle: 'TestPapers — Professional Test Paper Creator',
+  twitterDescription: 'Create, manage, and export professional exams and assignments seamlessly with live LaTeX rendering.',
+  twitterImage: `${useRequestURL().origin}/og-image.png`
+})
+
+useHead({
+  script: [
+    {
+      type: 'application/ld+json',
+      innerHTML: JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'WebApplication',
+        name: 'TestPapers',
+        url: useRequestURL().origin,
+        description: 'Create professional test papers and exams with live LaTeX rendering. Question bank manager, PDF/DOCX exports, and real-time collaboration.',
+        applicationCategory: 'EducationalApplication',
+        operatingSystem: 'All',
+        offers: {
+          '@type': 'Offer',
+          price: '0',
+          priceCurrency: 'USD'
+        },
+        browserRequirements: 'Requires JavaScript'
+      })
+    }
+  ]
+})
 </script>
 
 <style scoped>

@@ -17,4 +17,10 @@ useHead({
     }
   ]
 })
+
+const baseUrl = useRequestURL().origin
+useSeoMeta({
+  ogUrl: baseUrl,
+  twitterSite: '@testpapers'
+})
 </script>

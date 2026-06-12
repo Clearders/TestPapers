@@ -58,8 +58,9 @@ const isSubmitting = ref(false)
 const message = ref('')
 const hasError = ref(false)
 
-useHead({
-  title: 'Create Account | TestPapers'
+useSeoMeta({
+  title: 'Create Account',
+  description: 'Create your free TestPapers account and start building professional test papers with live LaTeX rendering.'
 })
 
 async function submitRegister () {

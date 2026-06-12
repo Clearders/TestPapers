@@ -42,8 +42,9 @@ const password = ref('')
 const errorMessage = ref('')
 const isSubmitting = ref(false)
 
-useHead({
-  title: 'Login | TestPapers'
+useSeoMeta({
+  title: 'Login',
+  description: 'Sign in to TestPapers to access your question bank, create and manage test papers with live LaTeX support.'
 })
 
 const redirectTarget = computed(() => {

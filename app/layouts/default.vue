@@ -62,6 +62,20 @@ const route = useRoute()
 const isNavOpen = ref(false)
 const currentYear = new Date().getFullYear()
 
+const requestURL = useRequestURL()
+const canonicalUrl = computed(() => requestURL.origin + route.path)
+useSeoMeta({
+  ogSiteName: 'TestPapers',
+  ogLocale: 'en_US',
+  twitterCard: 'summary_large_image',
+  ogUrl: canonicalUrl
+})
+useHead({
+  link: [
+    { rel: 'canonical', href: canonicalUrl }
+  ]
+})
+
 function toggleNav () {
   isNavOpen.value = !isNavOpen.value
 }

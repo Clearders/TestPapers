@@ -8,7 +8,9 @@ definePageMeta({
   permissions: ['questions:read']
 })
 
-useHead({
-  title: 'Workspace | TestPapers'
+useSeoMeta({
+  title: 'Workspace',
+  description: 'Search, filter, and manage your question bank. Build test papers by selecting questions with drag-and-drop ordering.',
+  robots: 'noindex, nofollow'
 })
 </script>

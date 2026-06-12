@@ -30,7 +30,7 @@ export default defineNuxtConfig({
 
   routeRules: apiRouteRules,
 
-  css: ['katex/dist/katex.min.css', 'cropperjs/dist/cropper.css'],
+  css: ['katex/dist/katex.min.css'],
 
   vite: {
     server: {
@@ -56,9 +56,22 @@ export default defineNuxtConfig({
         lang: 'en'
       },
       title: 'TestPapers',
+      titleTemplate: '%s | TestPapers',
       meta: [
-        { name: 'description', content: 'A website for creating test papers with real-time LaTeX support.' },
-        { name: 'theme-color', content: '#f5f7fb' }
+        { name: 'description', content: 'Create professional test papers and exams with live LaTeX rendering. Question bank manager, PDF/DOCX exports, and real-time collaboration.' },
+        { name: 'keywords', content: 'test paper, exam generator, LaTeX editor, question bank, quiz maker, assessment tool' },
+        { name: 'theme-color', content: '#f5f7fb' },
+        { name: 'robots', content: 'index, follow' },
+
+        { property: 'og:title', content: 'TestPapers' },
+        { property: 'og:description', content: 'Create professional test papers and exams with live LaTeX rendering. Question bank manager, PDF/DOCX exports, and real-time collaboration.' },
+        { property: 'og:type', content: 'website' },
+        { property: 'og:site_name', content: 'TestPapers' },
+        { property: 'og:locale', content: 'en_US' },
+
+        { name: 'twitter:card', content: 'summary_large_image' },
+        { name: 'twitter:title', content: 'TestPapers' },
+        { name: 'twitter:description', content: 'Create professional test papers and exams with live LaTeX rendering.' }
       ]
     }
   }

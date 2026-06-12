@@ -89,8 +89,10 @@ const form = reactive({
   role: 'viewer' as UserRole
 })
 
-useHead({
-  title: 'User Permissions | TestPapers'
+useSeoMeta({
+  title: 'User Permissions',
+  description: 'Manage user roles and permissions for the TestPapers platform.',
+  robots: 'noindex, nofollow'
 })
 
 watch(

@@ -1,2 +1,8 @@
 User-Agent: *
-Disallow:
+Disallow: /account
+Disallow: /users
+Disallow: /add-problem
+Disallow: /questions
+Disallow: /api/
+
+Sitemap: https://testpapers.example.com/sitemap.xml

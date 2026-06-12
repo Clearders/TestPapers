@@ -247,6 +247,12 @@ definePageMeta({
   permissions: ['questions:write']
 })
 
+useSeoMeta({
+  title: 'Add Problem',
+  description: 'Compose a new problem with live LaTeX preview. Choose from multiple question types and difficulty levels.',
+  robots: 'noindex, nofollow'
+})
+
 const { addQuestion, uploadImage, availableSubjects, loadMeta } = useQuestionBank()
 const { hasPermission } = useAuth()
 

@@ -24,6 +24,7 @@
           class="form-input latex-textarea"
           placeholder="Type LaTeX here. Use $...$ for inline and $$...$$ for block formulas\u2026"
           spellcheck="false"
+          aria-label="LaTeX input"
         />
 
         <div class="input-actions">
@@ -92,6 +93,11 @@
 import LatexRenderer from '~/components/LatexRenderer.vue'
 import { parseLatexParts } from '~/composables/useLatexParts'
 import { LATEX_QUICK_REFERENCE } from '~/domain/questions'
+
+useSeoMeta({
+  title: 'LaTeX Preview',
+  description: 'A quick sandbox for typing and previewing LaTeX expressions in real time. Test your math syntax with instant rendering.'
+})
 
 const rawInput = ref('\\int_0^\\infty e^{-x^2}\\,dx = \\frac{\\sqrt{\\pi}}{2}')
 const debouncedInput = ref(rawInput.value)

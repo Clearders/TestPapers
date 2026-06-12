@@ -214,6 +214,12 @@ import AvatarCropper from '~/components/AvatarCropper.vue'
 
 definePageMeta({ requiresAuth: true })
 
+useSeoMeta({
+  title: 'Account Settings',
+  description: 'Manage your TestPapers profile, update your avatar, and change your password.',
+  robots: 'noindex, nofollow'
+})
+
 const { user, updateProfile, changePassword, uploadAvatar, deleteAccount } = useAuth()
 
 const profileForm = reactive({ username: '', displayName: '' })
