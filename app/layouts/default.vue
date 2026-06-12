@@ -34,9 +34,7 @@
           <button class="theme-toggle" type="button" @click.stop="toggleTheme">
             {{ isDark ? '☀ Light' : '☾ Dark' }}
           </button>
-          <button v-if="isAuthenticated" class="nav-link nav-button" type="button" @click="logout">
-            {{ user?.displayName || user?.username }} · Logout
-          </button>
+          <UserDropdown v-if="isAuthenticated" />
           <template v-else>
             <NuxtLink to="/register" class="nav-link">Register</NuxtLink>
             <NuxtLink to="/login" class="nav-link nav-link--highlight">Login</NuxtLink>
@@ -56,7 +54,9 @@
 </template>
 
 <script setup lang="ts">
-const { hasPermission, isAuthenticated, logout, user } = useAuth()
+import UserDropdown from '~/components/UserDropdown.vue'
+
+const { hasPermission, isAuthenticated } = useAuth()
 const { isDark, toggleTheme } = useTheme()
 const route = useRoute()
 const isNavOpen = ref(false)

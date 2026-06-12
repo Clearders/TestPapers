@@ -1,6 +1,7 @@
-import type { AuthSession, AuthUser, Permission, RegisterPayload } from '~/types/auth'
+import type { AuthSession, AuthUser, PasswordChangePayload, Permission, ProfileUpdatePayload, RegisterPayload } from '~/types/auth'
 
 export type { AuthSession, AuthUser, Permission, RegisterPayload, UserRole } from '~/types/auth'
+export type { PasswordChangePayload, ProfileUpdatePayload }
 
 const REFRESH_SKEW_MS = 2 * 60 * 1000
 let sessionLoadPromise: Promise<AuthUser | null> | null = null
@@ -132,9 +133,62 @@ export function useAuth () {
     }
   }
 
+  async function updateProfile (payload: ProfileUpdatePayload): Promise<AuthUser> {
+    const response = await apiFetch<AuthUser>('/auth/profile', {
+      method: 'PATCH',
+      body: payload
+    })
+    user.value = response.data
+    return response.data
+  }
+
+  async function changePassword (payload: PasswordChangePayload): Promise<void> {
+    await apiFetch('/auth/password', {
+      method: 'PUT',
+      body: payload
+    })
+  }
+
+  async function uploadAvatar (file: File): Promise<string> {
+    const base64 = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => {
+        const result = reader.result as string
+        const parts = result.split(',')
+        resolve(parts[1] || '')
+      }
+      reader.onerror = () => reject(new Error('Failed to read file'))
+      reader.readAsDataURL(file)
+    })
+    const response = await apiFetch<{ url: string }>('/auth/avatar', {
+      method: 'POST',
+      body: {
+        filename: file.name,
+        data: base64,
+        mimeType: file.type || 'image/png'
+      }
+    })
+    if (user.value) {
+      user.value = { ...user.value, avatarUrl: response.data.url }
+    }
+    return response.data.url
+  }
+
+  async function deleteAccount (): Promise<void> {
+    await apiFetch('/auth/account', {
+      method: 'DELETE',
+      auth: false,
+      retryOnUnauthorized: false
+    })
+    clearSession()
+    await navigateTo('/login')
+  }
+
   return {
     authFetch,
+    changePassword,
     clearSession,
+    deleteAccount,
     expiresAt,
     hasPermission,
     isAuthenticated,
@@ -145,6 +199,8 @@ export function useAuth () {
     refreshSession,
     register,
     scheduleRefresh,
+    updateProfile,
+    uploadAvatar,
     user
   }
 }
