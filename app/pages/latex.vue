@@ -1,16 +1,16 @@
 <template>
-  <section>
-    <h1 class="page-title">Real-time LaTeX Preview</h1>
-    <p class="page-sub">Type or compose LaTeX below. Rendered with a 200ms debounce for smooth performance.</p>
+  <section class="latex-page">
+    <h1 class="page-title">LaTeX Preview</h1>
+    <p class="page-sub">Type a single LaTeX expression and see it rendered in real time.</p>
 
     <div class="latex-layout">
-      <div class="input-panel">
-        <div class="symbol-toolbar card">
+      <div class="input-side">
+        <div class="symbol-strip">
           <button
             v-for="sym in symbols"
             :key="sym.label"
             type="button"
-            class="symbol-btn"
+            class="symbol-chip"
             :aria-label="'Insert ' + sym.label"
             :title="sym.label"
             @click="insertSymbol(sym.insert)"
@@ -21,24 +21,21 @@
 
         <textarea
           v-model="rawInput"
-          class="form-input latex-textarea"
-          placeholder="Type LaTeX here. Use $...$ for inline and $$...$$ for block formulas\u2026"
+          class="latex-input"
+          placeholder="e.g. \int_0^\infty e^{-x^2}\,dx = \frac{\sqrt{\pi}}{2}\u2026"
           spellcheck="false"
           aria-label="LaTeX input"
         />
 
-        <div class="input-actions">
-          <button type="button" class="btn btn-outline btn-sm" @click="copyPreview">Copy Rendered</button>
+        <div class="input-row">
+          <button type="button" class="btn btn-outline btn-sm" @click="copyPreview">Copy</button>
           <button type="button" class="btn btn-outline btn-sm" @click="clearInput">Clear</button>
-        </div>
-
-        <div class="preset-section">
-          <span class="form-hint">Templates:</span>
+          <span class="template-divider"></span>
           <button
             v-for="tmpl in templates"
             :key="tmpl.label"
             type="button"
-            class="btn btn-outline btn-sm"
+            class="template-link"
             @click="rawInput = tmpl.formula"
           >
             {{ tmpl.label }}
@@ -50,25 +47,18 @@
         </div>
       </div>
 
-      <div class="preview-panel card">
-        <div class="preview-head">
-          <span class="preview-label">Preview</span>
-          <span v-if="dirty" class="preview-hint">Rendering\u2026</span>
+      <div class="preview-side">
+        <div class="preview-stage" :class="{ 'is-stale': dirty }">
+          <LatexRenderer v-if="debouncedInput" :formula="debouncedInput" :block="true" />
+          <span v-else class="preview-placeholder">Start typing to preview\u2026</span>
         </div>
-        <div v-if="latexParts.length" class="preview-content">
-          <template v-for="(part, i) in latexParts" :key="i">
-            <LatexRenderer v-if="part.isLatex" :formula="part.content" :block="part.block" />
-            <span v-else class="plain-text">{{ part.content }}</span>
-          </template>
-        </div>
-        <span v-else class="placeholder-text">Start typing above\u2026</span>
       </div>
     </div>
 
-    <div class="cheatsheet card">
-      <h2>LaTeX Quick Reference</h2>
-      <div class="cheat-scroll">
-        <table class="cheat-table">
+    <div class="reference-section">
+      <h2 class="reference-title">Quick Reference</h2>
+      <div class="reference-scroll">
+        <table class="reference-table">
           <thead>
             <tr>
               <th>Type</th>
@@ -91,7 +81,6 @@
 
 <script setup lang="ts">
 import LatexRenderer from '~/components/LatexRenderer.vue'
-import { parseLatexParts } from '~/composables/useLatexParts'
 import { LATEX_QUICK_REFERENCE } from '~/domain/questions'
 
 useSeoMeta({
@@ -119,11 +108,6 @@ watch(rawInput, (val) => {
   scheduleRender(val)
 })
 
-const latexParts = computed(() => {
-  if (!debouncedInput.value.trim()) return []
-  return parseLatexParts(debouncedInput.value)
-})
-
 const cheatSheet = LATEX_QUICK_REFERENCE
 
 const symbols = [
@@ -138,20 +122,20 @@ const symbols = [
   { label: 'Beta', insert: '\\beta', display: '\\beta' },
   { label: 'Pi', insert: '\\pi', display: '\\pi' },
   { label: 'Infinity', insert: '\\infty', display: '\\infty' },
-  { label: 'Matrix 2x2', insert: '\\begin{pmatrix} a & b \\\\ c & d \\end{pmatrix}', display: '\\begin{pmatrix}a&b\\\\c&d\\end{pmatrix}' }
+  { label: 'Matrix 2\u00d72', insert: '\\begin{pmatrix} a & b \\\\ c & d \\end{pmatrix}', display: '\\begin{pmatrix}a&b\\\\c&d\\end{pmatrix}' }
 ]
 
 const templates = [
-  { label: 'Gaussian Integral', formula: '\\int_0^\\infty e^{-x^2}\\,dx = \\frac{\\sqrt{\\pi}}{2}' },
-  { label: 'Quadratic Formula', formula: 'x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}' },
-  { label: "Euler's Identity", formula: 'e^{i\\pi} + 1 = 0' },
-  { label: 'Taylor Series', formula: 'e^x = \\sum_{n=0}^{\\infty} \\frac{x^n}{n!}' },
+  { label: 'Gaussian', formula: '\\int_0^\\infty e^{-x^2}\\,dx = \\frac{\\sqrt{\\pi}}{2}' },
+  { label: 'Quadratic', formula: 'x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}' },
+  { label: "Euler's", formula: 'e^{i\\pi} + 1 = 0' },
+  { label: 'Series', formula: 'e^x = \\sum_{n=0}^{\\infty} \\frac{x^n}{n!}' },
   { label: 'Matrix', formula: '\\begin{pmatrix} 1 & 2 \\\\ 3 & 4 \\end{pmatrix}' },
-  { label: 'Multi-Formula', formula: '$x^2 + y^2 = r^2$ is the circle equation. So $$\\frac{d}{dx}\\sin x = \\cos x$$ follows.' }
+  { label: 'Limit', formula: '\\lim_{x \\to 0} \\frac{\\sin x}{x} = 1' }
 ]
 
 function insertSymbol(str: string) {
-  const textarea = document.querySelector('.latex-textarea') as HTMLTextAreaElement | null
+  const textarea = document.querySelector('.latex-input') as HTMLTextAreaElement | null
   if (!textarea) return
   const start = textarea.selectionStart
   const end = textarea.selectionEnd
@@ -178,167 +162,190 @@ async function copyPreview() {
 </script>
 
 <style scoped>
+.latex-page {
+  --preview-bg: #fafbfc;
+}
+
+[data-theme="dark"] .latex-page {
+  --preview-bg: #162032;
+}
+
 .latex-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 24px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+  gap: 32px;
   align-items: start;
 }
 
-.input-panel {
+.input-side {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
   min-width: 0;
 }
 
-.symbol-toolbar {
+.symbol-strip {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-  padding: 10px 14px;
+  gap: 4px;
+  padding: 4px 0;
 }
 
-.symbol-btn {
+.symbol-chip {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 38px;
-  height: 36px;
-  padding: 4px 8px;
+  min-width: 36px;
+  height: 32px;
+  padding: 2px 7px;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius);
+  border-radius: 6px;
   background: var(--color-surface);
   cursor: pointer;
-  transition: border-color 0.2s ease, background 0.2s ease, transform 0.15s ease;
+  transition: border-color 0.15s ease, transform 0.15s ease;
   color: var(--color-text);
+  font-size: .85rem;
 }
 
-.symbol-btn:hover {
+.symbol-chip:hover {
   border-color: var(--color-primary);
-  background: rgba(79, 110, 247, 0.06);
   transform: translateY(-1px);
 }
 
-.symbol-btn:active {
-  transform: scale(0.94);
+.symbol-chip:active {
+  transform: scale(0.93);
 }
 
-.latex-textarea {
+.latex-input {
   width: 100%;
-  min-height: 240px;
-  resize: vertical;
-  font-family: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', monospace;
-  font-size: .9rem;
-  line-height: 1.7;
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
-}
-
-.latex-textarea:focus {
-  box-shadow: 0 0 0 4px rgba(79, 110, 247, 0.15);
-}
-
-.input-actions {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.preset-section {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-}
-
-.preview-panel {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  min-height: 200px;
-}
-
-.preview-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.preview-label {
-  font-size: .75rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: var(--color-muted);
-}
-
-.preview-hint {
-  font-size: .78rem;
-  color: var(--color-muted);
-  font-style: italic;
-}
-
-.preview-content {
-  font-size: 1.05rem;
-  line-height: 2;
-  min-width: 0;
-  overflow-x: auto;
-  overflow-wrap: anywhere;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.plain-text {
+  min-height: 220px;
+  padding: 14px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-surface);
   color: var(--color-text);
-  white-space: pre-wrap;
+  font-family: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', monospace;
+  font-size: .92rem;
+  line-height: 1.75;
+  resize: vertical;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
 }
 
-.placeholder-text {
+.latex-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(79, 110, 247, 0.12);
+}
+
+.input-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.template-divider {
+  width: 1px;
+  height: 20px;
+  background: var(--color-border);
+  margin: 0 2px;
+}
+
+.template-link {
+  border: none;
+  background: transparent;
   color: var(--color-muted);
-  font-style: italic;
-  font-size: .9rem;
+  font-size: .78rem;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 2px 0;
+  transition: color 0.15s ease;
+  white-space: nowrap;
 }
 
-.cheatsheet {
-  margin-top: 32px;
+.template-link:hover {
+  color: var(--color-primary);
 }
 
-.cheatsheet h2 {
-  font-size: 1.05rem;
+.preview-side {
+  position: sticky;
+  top: calc(var(--header-h, 60px) + 20px);
+  min-width: 0;
+}
+
+.preview-stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 320px;
+  padding: 40px 32px;
+  border-radius: 12px;
+  background: var(--preview-bg);
+  border: 1px solid var(--color-border);
+  overflow-x: auto;
+  transition: opacity 0.2s ease;
+}
+
+.preview-stage.is-stale {
+  opacity: 0.5;
+}
+
+.preview-stage :deep(.katex-display) {
+  margin: 0;
+}
+
+.preview-stage :deep(.katex) {
+  font-size: 1.5rem;
+}
+
+.preview-placeholder {
+  color: var(--color-muted);
+  font-size: 1rem;
+  user-select: none;
+}
+
+.reference-section {
+  margin-top: 48px;
+  padding-top: 32px;
+  border-top: 1px solid var(--color-border);
+}
+
+.reference-title {
+  font-size: 1rem;
   font-weight: 700;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
+  color: var(--color-muted);
 }
 
-.cheat-scroll {
+.reference-scroll {
   overflow-x: auto;
 }
 
-.cheat-table {
+.reference-table {
   width: 100%;
   border-collapse: collapse;
   font-size: .85rem;
 }
 
-.cheat-table th,
-.cheat-table td {
-  padding: 8px 12px;
+.reference-table th,
+.reference-table td {
+  padding: 9px 14px;
   border-bottom: 1px solid var(--color-border);
   text-align: left;
   vertical-align: middle;
 }
 
-.cheat-table th {
-  font-size: .78rem;
+.reference-table th {
+  font-size: .75rem;
   text-transform: uppercase;
   color: var(--color-muted);
   font-weight: 600;
+  letter-spacing: 0.04em;
 }
 
 code {
   background: var(--color-bg);
-  padding: 1px 6px;
+  padding: 2px 7px;
   border-radius: 4px;
   font-size: .82rem;
   white-space: nowrap;
@@ -354,19 +361,15 @@ code {
   font-size: .875rem;
 }
 
-[data-theme="dark"] .preview-content {
+[data-theme="dark"] .preview-stage :deep(.katex) {
   color: var(--color-text);
 }
 
-[data-theme="dark"] .preview-content :deep(.katex) {
+[data-theme="dark"] .symbol-strip :deep(.katex) {
   color: var(--color-text);
 }
 
-[data-theme="dark"] .symbol-toolbar :deep(.katex) {
-  color: var(--color-text);
-}
-
-[data-theme="dark"] .cheat-table :deep(.katex) {
+[data-theme="dark"] .reference-table :deep(.katex) {
   color: var(--color-text);
 }
 
@@ -379,30 +382,50 @@ code {
 @media (max-width: 820px) {
   .latex-layout {
     grid-template-columns: 1fr;
+    gap: 20px;
   }
 
-  .latex-textarea {
+  .preview-side {
+    position: static;
+    order: -1;
+  }
+
+  .preview-stage {
     min-height: 200px;
+    padding: 28px 20px;
+  }
+
+  .preview-stage :deep(.katex) {
+    font-size: 1.2rem;
+  }
+
+  .latex-input {
+    min-height: 160px;
   }
 }
 
 @media (max-width: 560px) {
-  .symbol-toolbar {
-    padding: 8px 10px;
+  .symbol-strip {
+    gap: 3px;
   }
 
-  .symbol-btn {
-    min-width: 34px;
-    height: 32px;
+  .symbol-chip {
+    min-width: 32px;
+    height: 30px;
+    padding: 2px 5px;
+    font-size: .8rem;
   }
 
-  .input-actions .btn,
-  .preset-section .btn {
-    width: 100%;
+  .input-row .btn {
+    flex: 1;
   }
 
-  .cheat-table th,
-  .cheat-table td {
+  .template-divider {
+    display: none;
+  }
+
+  .reference-table th,
+  .reference-table td {
     padding: 6px 8px;
     font-size: .78rem;
   }
