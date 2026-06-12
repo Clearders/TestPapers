@@ -6,6 +6,11 @@ This frontend is compatible with a same-origin Nginx proxy layout:
 - Browser WebSocket requests use `/api/v1/ws`.
 - Nuxt server-side requests use `NUXT_API_BASE` and should point to the backend service directly.
 
+> **Important**: In production, the Nuxt server does **not** proxy `/api/v1` requests to the backend on its own. You **must** either:
+>
+> 1. Place a reverse proxy (Nginx) in front of both frontend and backend (recommended — see example below), or
+> 2. Set `NUXT_PUBLIC_API_BASE=https://your-backend.example.com/api/v1` to have the browser call the backend directly. Note that this requires CORS and cookie domain configuration on the backend.
+
 ## Runtime Variables
 
 Use these values when serving the frontend behind Nginx:
