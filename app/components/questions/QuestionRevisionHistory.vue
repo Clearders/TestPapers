@@ -19,7 +19,16 @@
             <span class="revision-summary">{{ rev.changeSummary }}</span>
             <span class="revision-date">{{ formatDate(rev.createdAt) }}</span>
           </div>
-          <span class="revision-chevron" :class="{ 'is-open': expandedIds.has(rev.id) }">&#9660;</span>
+          <div class="revision-item-actions">
+            <button
+              v-if="canDelete"
+              class="revision-delete-btn"
+              type="button"
+              aria-label="Delete revision"
+              @click.stop="handleDeleteRevision(rev.id)"
+            >&times;</button>
+            <span class="revision-chevron" :class="{ 'is-open': expandedIds.has(rev.id) }">&#9660;</span>
+          </div>
         </button>
         <div v-if="expandedIds.has(rev.id)" class="revision-detail">
           <table class="revision-diff-table">
@@ -47,9 +56,10 @@ import type { QuestionRevision } from '~/types/question'
 
 const props = defineProps<{
   questionId: number
+  canDelete: boolean
 }>()
 
-const { fetchRevisions } = useQuestionBank()
+const { fetchRevisions, deleteRevision } = useQuestionBank()
 const isOpen = ref(false)
 const loading = ref(false)
 const error = ref('')
@@ -98,6 +108,15 @@ function toggleRevision (id: number) {
 
 function formatDate (dateStr: string) {
   return new Date(dateStr).toLocaleString()
+}
+
+async function handleDeleteRevision (revisionId: number) {
+  try {
+    await deleteRevision(props.questionId, revisionId)
+    revisions.value = revisions.value.filter(r => r.id !== revisionId)
+  } catch {
+    // silently ignore
+  }
 }
 
 function formatFieldName (key: string) {
@@ -203,6 +222,30 @@ function formatFieldValue (value: unknown) {
 }
 .revision-chevron.is-open {
   transform: rotate(180deg);
+}
+.revision-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.revision-delete-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: transparent;
+  color: var(--color-muted);
+  font-size: .9rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: color 0.2s ease, background 0.2s ease;
+}
+.revision-delete-btn:hover {
+  color: var(--color-danger);
+  background: rgba(239, 68, 68, 0.08);
 }
 .revision-detail {
   padding: 0 12px 10px;

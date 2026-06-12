@@ -49,10 +49,12 @@
             :type-label="typeLabel"
             :can-edit="canEditQuestion(q)"
             :can-review="canReview"
+            :can-delete="canDelete"
             @toggle-answer="toggleAnswer"
             @toggle-question="toggleQuestion"
             @edit="openEditModal"
             @report="openCorrectionModal"
+            @delete="handleDeleteQuestion"
           />
         </TransitionGroup>
 
@@ -554,6 +556,7 @@ const {
   myQuestions,
   loadQuestions,
   loadMyQuestions,
+  deleteQuestion,
   isLoading,
   isLoadingMine,
   error: questionError,
@@ -631,6 +634,7 @@ const canReadQuestions = computed(() => hasPermission('questions:read'))
 const canWritePapers = computed(() => hasPermission('papers:write'))
 const isAdmin = computed(() => hasPermission('users:manage'))
 const canReview = computed(() => hasPermission('questions:write'))
+const canDelete = computed(() => hasPermission('questions:delete'))
 
 function canEditQuestion (q: Question) {
   if (!hasPermission('questions:write')) return false
@@ -1165,6 +1169,16 @@ function openCorrectionModal (question: Question) {
 
 function closeCorrectionModal () {
   reportingQuestion.value = null
+}
+
+async function handleDeleteQuestion (question: Question) {
+  if (!window.confirm(`Delete question #${question.id}? This will also remove all revision history and corrections. This cannot be undone.`)) return
+  try {
+    await deleteQuestion(question.id)
+    removeQuestion(question.id)
+  } catch {
+    // deletion may fail silently when local state already removed
+  }
 }
 </script>
 

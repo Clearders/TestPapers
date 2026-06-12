@@ -206,6 +206,18 @@ export function useQuestionBank () {
     return response.data
   }
 
+  const deleteRevision = async (questionId: number, revisionId: number) => {
+    await apiFetch(`/questions/${questionId}/revisions/${revisionId}`, {
+      method: 'DELETE'
+    })
+  }
+
+  const deleteCorrection = async (questionId: number, correctionId: number) => {
+    await apiFetch(`/questions/${questionId}/corrections/${correctionId}`, {
+      method: 'DELETE'
+    })
+  }
+
   return {
     questions,
     myQuestions,
@@ -229,6 +241,8 @@ export function useQuestionBank () {
     fetchRevisions,
     submitCorrection,
     fetchCorrections,
-    updateCorrectionStatus
+    updateCorrectionStatus,
+    deleteRevision,
+    deleteCorrection
   }
 }

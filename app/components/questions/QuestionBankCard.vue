@@ -71,9 +71,16 @@
         Report Issue
         <span v-if="openCorrectionCount" class="correction-badge">{{ openCorrectionCount }}</span>
       </button>
+      <button
+        v-if="canDelete"
+        class="btn btn-danger btn-sm"
+        @click="$emit('delete', question)"
+      >
+        Delete
+      </button>
     </div>
 
-    <QuestionRevisionHistory v-if="canReview" :question-id="question.id" />
+    <QuestionRevisionHistory v-if="canReview" :question-id="question.id" :can-delete="canDelete" />
 
     <div v-if="canReview" class="correction-panel">
       <button class="correction-toggle" type="button" @click="toggleCorrections">
@@ -91,7 +98,16 @@
         >
           <div class="correction-item-head">
             <span class="correction-item-category" :class="'corr-cat--' + corr.category">{{ formatCategory(corr.category) }}</span>
-            <span class="correction-item-status" :class="'corr-status--' + corr.status">{{ formatStatus(corr.status) }}</span>
+            <div class="correction-item-head-right">
+              <span class="correction-item-status" :class="'corr-status--' + corr.status">{{ formatStatus(corr.status) }}</span>
+              <button
+                v-if="canDelete"
+                class="correction-delete-btn"
+                type="button"
+                aria-label="Delete correction"
+                @click="handleDeleteCorrection(corr.id)"
+              >&times;</button>
+            </div>
           </div>
           <p class="correction-item-msg">{{ corr.message }}</p>
           <div v-if="canEdit && corr.status === 'open'" class="correction-item-actions">
@@ -133,6 +149,7 @@ const props = defineProps<{
   typeLabel: (type: Question['type']) => string
   canEdit: boolean
   canReview: boolean
+  canDelete: boolean
 }>()
 
 import { formatScoreWeight } from '~/utils/format'
@@ -142,9 +159,10 @@ defineEmits<{
   'toggle-question': [question: Question]
   edit: [question: Question]
   report: [question: Question]
+  delete: [question: Question]
 }>()
 
-const { fetchCorrections, updateCorrectionStatus } = useQuestionBank()
+const { fetchCorrections, updateCorrectionStatus, deleteCorrection } = useQuestionBank()
 const correctionsOpen = ref(false)
 const corrections = ref<QuestionCorrection[]>([])
 const correctionsLoading = ref(false)
@@ -184,6 +202,13 @@ async function handleReject (correctionId: number) {
   try {
     await updateCorrectionStatus(props.question.id, correctionId, 'rejected')
     await loadCorrections()
+  } catch { /* ignore */ }
+}
+
+async function handleDeleteCorrection (correctionId: number) {
+  try {
+    await deleteCorrection(props.question.id, correctionId)
+    corrections.value = corrections.value.filter(c => c.id !== correctionId)
   } catch { /* ignore */ }
 }
 
@@ -407,6 +432,30 @@ function formatStatus (status: string) {
   justify-content: space-between;
   gap: 8px;
   margin-bottom: 6px;
+}
+.correction-item-head-right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.correction-delete-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: none;
+  background: transparent;
+  color: var(--color-muted);
+  font-size: .85rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: color 0.2s ease, background 0.2s ease;
+}
+.correction-delete-btn:hover {
+  color: var(--color-danger);
+  background: rgba(239, 68, 68, 0.08);
 }
 .correction-item-category {
   font-size: .75rem;
