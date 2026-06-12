@@ -1,53 +1,55 @@
 <template>
-  <Transition name="modal">
-    <div v-if="visible" class="modal-overlay" @click.self="$emit('close')">
-      <div class="modal-panel" role="dialog" aria-modal="true" aria-label="Report issue">
-        <div class="modal-head">
-          <h2>Report Issue — Question #{{ question.id }}</h2>
-          <button class="modal-close" type="button" aria-label="Close" @click="$emit('close')">&times;</button>
-        </div>
+  <Teleport to="body">
+    <Transition name="modal">
+      <div v-if="visible" class="modal-overlay" @click.self="$emit('close')">
+        <div class="modal-panel" role="dialog" aria-modal="true" aria-label="Report issue">
+          <div class="modal-head">
+            <h2>Report Issue — Question #{{ question.id }}</h2>
+            <button class="modal-close" type="button" aria-label="Close" @click="$emit('close')">&times;</button>
+          </div>
 
-        <div class="modal-body">
-          <form @submit.prevent="handleSubmit">
-            <div class="form-group">
-              <label class="form-label" htmlFor="corr-category">Issue Type</label>
-              <select id="corr-category" v-model="category" class="form-input" required>
-                <option value="">Select a category…</option>
-                <option value="wrong_answer">Wrong Answer</option>
-                <option value="unclear">Unclear Description</option>
-                <option value="typo">Typo / Formatting</option>
-                <option value="other">Other</option>
-              </select>
-            </div>
+          <div class="modal-body">
+            <form @submit.prevent="handleSubmit">
+              <div class="form-group">
+                <label class="form-label" htmlFor="corr-category">Issue Type</label>
+                <select id="corr-category" v-model="category" class="form-input" required>
+                  <option value="">Select a category…</option>
+                  <option value="wrong_answer">Wrong Answer</option>
+                  <option value="unclear">Unclear Description</option>
+                  <option value="typo">Typo / Formatting</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
 
-            <div class="form-group">
-              <label class="form-label" htmlFor="corr-message">Description</label>
-              <textarea
-                id="corr-message"
-                v-model="message"
-                class="form-input form-textarea"
-                placeholder="Describe the issue with this question…"
-                maxlength="1000"
-                required
-              />
-              <span class="form-hint">{{ message.length }} / 1000</span>
-            </div>
+              <div class="form-group">
+                <label class="form-label" htmlFor="corr-message">Description</label>
+                <textarea
+                  id="corr-message"
+                  v-model="message"
+                  class="form-input form-textarea"
+                  placeholder="Describe the issue with this question…"
+                  maxlength="1000"
+                  required
+                />
+                <span class="form-hint">{{ message.length }} / 1000</span>
+              </div>
 
-            <div class="form-actions">
-              <button type="submit" class="btn btn-primary" :disabled="isSubmitting || !category || !message.trim()">
-                {{ isSubmitting ? 'Submitting…' : 'Submit Report' }}
-              </button>
-              <button type="button" class="btn btn-outline" @click="$emit('close')">Cancel</button>
-            </div>
+              <div class="form-actions">
+                <button type="submit" class="btn btn-primary" :disabled="isSubmitting || !category || !message.trim()">
+                  {{ isSubmitting ? 'Submitting…' : 'Submit Report' }}
+                </button>
+                <button type="button" class="btn btn-outline" @click="$emit('close')">Cancel</button>
+              </div>
 
-            <div v-if="errorMsg" class="status-banner status-banner--error">
-              {{ errorMsg }}
-            </div>
-          </form>
+              <div v-if="errorMsg" class="status-banner status-banner--error">
+                {{ errorMsg }}
+              </div>
+            </form>
+          </div>
         </div>
       </div>
-    </div>
-  </Transition>
+    </Transition>
+  </Teleport>
 </template>
 
 <script setup lang="ts">

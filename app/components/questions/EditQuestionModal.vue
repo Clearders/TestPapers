@@ -1,100 +1,102 @@
 <template>
-  <Transition name="modal">
-    <div v-if="visible" class="modal-overlay" @click.self="$emit('close')">
-      <div class="modal-panel" role="dialog" aria-modal="true" aria-label="Edit question">
-        <div class="modal-head">
-          <h2>Edit Question #{{ question.id }}</h2>
-          <button class="modal-close" type="button" aria-label="Close" @click="$emit('close')">&times;</button>
-        </div>
+  <Teleport to="body">
+    <Transition name="modal">
+      <div v-if="visible" class="modal-overlay" @click.self="$emit('close')">
+        <div class="modal-panel" role="dialog" aria-modal="true" aria-label="Edit question">
+          <div class="modal-head">
+            <h2>Edit Question #{{ question.id }}</h2>
+            <button class="modal-close" type="button" aria-label="Close" @click="$emit('close')">&times;</button>
+          </div>
 
-        <div class="modal-body">
-          <form @submit.prevent="handleSubmit">
-            <div class="form-row">
-              <div class="form-group" style="flex:1">
-                <label class="form-label" htmlFor="edit-type">Type</label>
-                <select id="edit-type" v-model="form.type" class="form-input" required>
-                  <option v-for="option in QUESTION_TYPE_OPTIONS" :key="option.value" :value="option.value">
-                    {{ option.label }}
-                  </option>
-                </select>
+          <div class="modal-body">
+            <form @submit.prevent="handleSubmit">
+              <div class="form-row">
+                <div class="form-group" style="flex:1">
+                  <label class="form-label" htmlFor="edit-type">Type</label>
+                  <select id="edit-type" v-model="form.type" class="form-input" required>
+                    <option v-for="option in QUESTION_TYPE_OPTIONS" :key="option.value" :value="option.value">
+                      {{ option.label }}
+                    </option>
+                  </select>
+                </div>
+                <div class="form-group" style="flex:1">
+                  <label class="form-label" htmlFor="edit-difficulty">Difficulty</label>
+                  <select id="edit-difficulty" v-model="form.difficulty" class="form-input" required>
+                    <option v-for="option in DIFFICULTY_OPTIONS" :key="option.value" :value="option.value">
+                      {{ option.label }}
+                    </option>
+                  </select>
+                </div>
+                <div class="form-group" style="flex:1">
+                  <label class="form-label" htmlFor="edit-scoreweight">Score Weight</label>
+                  <input
+                    id="edit-scoreweight"
+                    v-model.number="form.scoreWeight"
+                    class="form-input"
+                    type="number"
+                    min="0.01"
+                    max="100"
+                    step="0.1"
+                  />
+                </div>
               </div>
-              <div class="form-group" style="flex:1">
-                <label class="form-label" htmlFor="edit-difficulty">Difficulty</label>
-                <select id="edit-difficulty" v-model="form.difficulty" class="form-input" required>
-                  <option v-for="option in DIFFICULTY_OPTIONS" :key="option.value" :value="option.value">
-                    {{ option.label }}
-                  </option>
-                </select>
-              </div>
-              <div class="form-group" style="flex:1">
-                <label class="form-label" htmlFor="edit-scoreweight">Score Weight</label>
-                <input
-                  id="edit-scoreweight"
-                  v-model.number="form.scoreWeight"
-                  class="form-input"
-                  type="number"
-                  min="0.01"
-                  max="100"
-                  step="0.1"
+
+              <div class="form-group">
+                <label class="form-label" htmlFor="edit-text">Question Text</label>
+                <textarea
+                  id="edit-text"
+                  v-model="form.text"
+                  class="form-input form-textarea"
+                  required
                 />
               </div>
-            </div>
 
-            <div class="form-group">
-              <label class="form-label" htmlFor="edit-text">Question Text</label>
-              <textarea
-                id="edit-text"
-                v-model="form.text"
-                class="form-input form-textarea"
-                required
-              />
-            </div>
-
-            <div v-if="isChoiceType" class="form-group">
-              <label class="form-label">Options</label>
-              <div v-for="(opt, index) in form.options" :key="index" class="option-row">
-                <span class="option-label">{{ String.fromCharCode(65 + index) }}.</span>
-                <input v-model="form.options[index]" class="form-input" name="editOption" autocomplete="off" required />
+              <div v-if="isChoiceType" class="form-group">
+                <label class="form-label">Options</label>
+                <div v-for="(opt, index) in form.options" :key="index" class="option-row">
+                  <span class="option-label">{{ String.fromCharCode(65 + index) }}.</span>
+                  <input v-model="form.options[index]" class="form-input" name="editOption" autocomplete="off" required />
+                </div>
               </div>
-            </div>
 
-            <div class="form-group">
-              <label class="form-label" htmlFor="edit-answer">Answer</label>
-              <textarea
-                v-if="!isChoiceType"
-                id="edit-answer"
-                v-model="form.answer"
-                class="form-input form-textarea form-textarea--short"
-                required
-              />
-              <select v-else id="edit-answer" v-model="form.answer" class="form-input" required>
-                <option value="">Select Correct Option</option>
-                <option v-for="(opt, index) in form.options" :key="index" :value="opt.trim()">
-                  {{ String.fromCharCode(65 + index) }}. {{ opt.trim() }}
-                </option>
-              </select>
-            </div>
+              <div class="form-group">
+                <label class="form-label" htmlFor="edit-answer">Answer</label>
+                <textarea
+                  v-if="!isChoiceType"
+                  id="edit-answer"
+                  v-model="form.answer"
+                  class="form-input form-textarea form-textarea--short"
+                  required
+                />
+                <select v-else id="edit-answer" v-model="form.answer" class="form-input" required>
+                  <option value="">Select Correct Option</option>
+                  <option v-for="(opt, index) in form.options" :key="index" :value="opt.trim()">
+                    {{ String.fromCharCode(65 + index) }}. {{ opt.trim() }}
+                  </option>
+                </select>
+              </div>
 
-            <div class="form-group">
-              <label class="form-label" htmlFor="edit-source">Source / Reference</label>
-              <input id="edit-source" v-model="form.source" class="form-input" autocomplete="off" />
-            </div>
+              <div class="form-group">
+                <label class="form-label" htmlFor="edit-source">Source / Reference</label>
+                <input id="edit-source" v-model="form.source" class="form-input" autocomplete="off" />
+              </div>
 
-            <div class="form-actions">
-              <button type="submit" class="btn btn-primary" :disabled="isSaving">
-                {{ isSaving ? 'Saving…' : 'Save Changes' }}
-              </button>
-              <button type="button" class="btn btn-outline" @click="$emit('close')">Cancel</button>
-            </div>
+              <div class="form-actions">
+                <button type="submit" class="btn btn-primary" :disabled="isSaving">
+                  {{ isSaving ? 'Saving…' : 'Save Changes' }}
+                </button>
+                <button type="button" class="btn btn-outline" @click="$emit('close')">Cancel</button>
+              </div>
 
-            <div v-if="errorMsg" class="status-banner status-banner--error">
-              {{ errorMsg }}
-            </div>
-          </form>
+              <div v-if="errorMsg" class="status-banner status-banner--error">
+                {{ errorMsg }}
+              </div>
+            </form>
+          </div>
         </div>
       </div>
-    </div>
-  </Transition>
+    </Transition>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
