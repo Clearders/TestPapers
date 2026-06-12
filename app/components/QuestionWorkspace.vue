@@ -85,16 +85,16 @@
 
         <div class="card paper-meta-card">
           <div class="form-group">
-            <label class="form-label" htmlFor="paper-title">Paper Title</label>
+            <label class="form-label" for="paper-title">Paper Title</label>
             <input id="paper-title" v-model="paper.title" class="form-input" name="paperTitle" placeholder="e.g. Mid-term Examination 2026…" />
           </div>
           <div class="paper-meta-row">
             <div class="form-group paper-meta-field">
-              <label class="form-label" htmlFor="paper-subject">Subject</label>
+              <label class="form-label" for="paper-subject">Subject</label>
               <input id="paper-subject" v-model="paper.subject" class="form-input" name="paperSubject" placeholder="e.g. Mathematics…" />
             </div>
             <div class="form-group paper-meta-field">
-              <label class="form-label" htmlFor="paper-duration">Duration (min)</label>
+              <label class="form-label" for="paper-duration">Duration (min)</label>
               <input id="paper-duration" v-model.number="paper.duration" type="number" min="1" class="form-input" name="paperDuration" placeholder="60…" />
             </div>
           </div>
