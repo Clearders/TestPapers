@@ -209,7 +209,7 @@
             <button type="button" class="btn btn-outline" @click="handleReset">Reset</button>
           </div>
 
-          <div v-if="submitError" class="success-banner" style="background:#fef2f2;border-color:#fecaca;color:#b91c1c" role="alert" aria-live="polite">
+          <div v-if="submitError" class="success-banner success-banner--error" role="alert" aria-live="polite">
             {{ submitError }}
           </div>
 
@@ -531,6 +531,24 @@ const cheatSheet = LATEX_QUICK_REFERENCE
 .success-banner a {
   color: var(--color-primary);
   text-decoration: underline;
+}
+
+.success-banner--error {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #b91c1c;
+}
+
+[data-theme="dark"] .success-banner {
+  background: rgba(74, 222, 128, 0.08);
+  border-color: rgba(74, 222, 128, 0.2);
+  color: #86efac;
+}
+
+[data-theme="dark"] .success-banner--error {
+  background: rgba(248, 113, 113, 0.1);
+  border-color: rgba(248, 113, 113, 0.25);
+  color: #fca5a5;
 }
 .panel-head {
   display: flex;

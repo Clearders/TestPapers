@@ -319,6 +319,12 @@ function formatStatus (status: string) {
   padding: 12px 16px;
   font-size: .9rem;
 }
+
+[data-theme="dark"] .q-answer {
+  background: rgba(74, 222, 128, 0.08);
+  border-color: rgba(74, 222, 128, 0.2);
+  color: #86efac;
+}
 .q-type-tag {
   display: inline-block;
   font-size: .7rem;

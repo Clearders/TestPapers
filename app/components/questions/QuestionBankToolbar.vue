@@ -41,12 +41,14 @@
         name="search"
         autocomplete="off"
         placeholder="Search questions…"
+        aria-label="Search questions"
         @input="$emit('update:search', ($event.target as HTMLInputElement).value)"
       />
       <select
         :value="filterDifficulty"
         class="form-input"
         name="difficulty"
+        aria-label="Filter by difficulty"
         @change="onDifficultyChange"
       >
         <option value="">All difficulties</option>

@@ -1335,8 +1335,12 @@ async function handleDeleteQuestion (question: Question) {
   color: var(--color-text);
   background: rgba(255, 255, 255, 0.45);
 }
+
+[data-theme="dark"] .gen-pill:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
 .gen-pill--active {
-  background: #ffffff;
+  background: var(--color-surface);
   color: var(--color-primary);
   box-shadow: 0 1px 4px rgba(0,0,0,0.08);
 }
@@ -1348,7 +1352,8 @@ async function handleDeleteQuestion (question: Question) {
   padding: 5px;
   font-size: .82rem;
   font-weight: 500;
-  background: #ffffff;
+  background: var(--color-surface);
+  color: var(--color-text);
   box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
   transition: box-shadow 0.2s ease;
 }
@@ -1449,7 +1454,8 @@ async function handleDeleteQuestion (question: Question) {
   padding: 4px 6px;
   font-size: .82rem;
   font-weight: 500;
-  background: #ffffff;
+  background: var(--color-surface);
+  color: var(--color-text);
   box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
   transition: box-shadow 0.2s ease;
 }
@@ -1476,7 +1482,7 @@ async function handleDeleteQuestion (question: Question) {
   appearance: none;
   width: 18px;
   height: 18px;
-  background: #ffffff;
+  background: var(--color-surface);
   border: 2px solid var(--color-primary);
   border-radius: 50%;
   cursor: pointer;
@@ -1909,7 +1915,7 @@ async function handleDeleteQuestion (question: Question) {
   margin-top: 14px;
 }
 .export-preview {
-  background: #fff;
+  background: var(--color-surface);
   margin-top: 24px;
   overflow: hidden;
 }
@@ -2064,6 +2070,20 @@ async function handleDeleteQuestion (question: Question) {
   font-weight: 500;
   background: rgba(79, 110, 247, 0.1);
   color: var(--color-primary);
+}
+
+[data-theme="dark"] .status-banner {
+  background: rgba(30, 41, 59, 0.6);
+}
+
+[data-theme="dark"] .status-banner--error {
+  background: rgba(248, 113, 113, 0.1);
+  border-color: rgba(248, 113, 113, 0.25);
+  color: #fca5a5;
+}
+
+[data-theme="dark"] .export-answer {
+  background: rgba(30, 41, 59, 0.5);
 }
 </style>
 

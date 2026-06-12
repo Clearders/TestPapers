@@ -115,6 +115,7 @@ async function handleSubmit () {
   max-width: 480px;
   max-height: 90vh;
   overflow-y: auto;
+  overscroll-behavior: contain;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: 12px;
@@ -195,5 +196,11 @@ async function handleSubmit () {
     align-items: flex-end;
     padding: 0;
   }
+}
+
+[data-theme="dark"] .status-banner--error {
+  background: rgba(248, 113, 113, 0.1);
+  border-color: rgba(248, 113, 113, 0.25);
+  color: #fca5a5;
 }
 </style>
