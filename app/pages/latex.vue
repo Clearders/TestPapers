@@ -89,7 +89,6 @@
 </template>
 
 <script setup lang="ts">
-import { debounce } from 'perfect-debounce'
 import LatexRenderer from '~/components/LatexRenderer.vue'
 import { parseLatexParts } from '~/composables/useLatexParts'
 import { LATEX_QUICK_REFERENCE } from '~/domain/questions'
@@ -98,16 +97,20 @@ const rawInput = ref('\\int_0^\\infty e^{-x^2}\\,dx = \\frac{\\sqrt{\\pi}}{2}')
 const debouncedInput = ref(rawInput.value)
 const renderError = ref('')
 const dirty = ref(false)
+let debounceTimer: ReturnType<typeof setTimeout> | null = null
 
-const debouncedSet = debounce((val: string) => {
-  debouncedInput.value = val
-  dirty.value = false
-  renderError.value = ''
-}, 200)
+function scheduleRender(val: string) {
+  dirty.value = val !== debouncedInput.value
+  if (debounceTimer) clearTimeout(debounceTimer)
+  debounceTimer = setTimeout(() => {
+    debouncedInput.value = val
+    dirty.value = false
+    renderError.value = ''
+  }, 200)
+}
 
 watch(rawInput, (val) => {
-  dirty.value = val !== debouncedInput.value
-  debouncedSet(val)
+  scheduleRender(val)
 })
 
 const latexParts = computed(() => {
