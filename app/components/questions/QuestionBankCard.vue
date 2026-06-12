@@ -69,11 +69,38 @@
         @click="$emit('report', question)"
       >
         Report Issue
-        <span v-if="correctionCount" class="correction-badge">{{ correctionCount }}</span>
+        <span v-if="openCorrectionCount" class="correction-badge">{{ openCorrectionCount }}</span>
       </button>
     </div>
 
     <QuestionRevisionHistory :question-id="question.id" />
+
+    <div class="correction-panel">
+      <button class="correction-toggle" type="button" @click="toggleCorrections">
+        <span>{{ correctionsOpen ? 'Hide Corrections' : 'Corrections' }}</span>
+        <span v-if="!correctionsOpen && corrections.length" class="revision-count">{{ corrections.length }}</span>
+      </button>
+      <div v-if="correctionsOpen" class="correction-list">
+        <div v-if="correctionsLoading" class="correction-status-text">Loading…</div>
+        <div v-else-if="!corrections.length" class="correction-status-text">No corrections yet.</div>
+        <div
+          v-for="corr in corrections"
+          :key="corr.id"
+          class="correction-item"
+          :class="'corr-item--' + corr.status"
+        >
+          <div class="correction-item-head">
+            <span class="correction-item-category" :class="'corr-cat--' + corr.category">{{ formatCategory(corr.category) }}</span>
+            <span class="correction-item-status" :class="'corr-status--' + corr.status">{{ formatStatus(corr.status) }}</span>
+          </div>
+          <p class="correction-item-msg">{{ corr.message }}</p>
+          <div v-if="canEdit && corr.status === 'open'" class="correction-item-actions">
+            <button class="btn btn-sm btn-success" type="button" @click.stop="handleAccept(corr.id)">Accept</button>
+            <button class="btn btn-sm btn-danger" type="button" @click.stop="handleReject(corr.id)">Reject</button>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <div class="q-answer-wrapper" :class="{ 'is-open': isShown }">
       <div class="q-answer-inner">
@@ -93,10 +120,11 @@
 </template>
 
 <script setup lang="ts">
-import type { Question } from '~/types/question'
+import type { Question, QuestionCorrection } from '~/types/question'
 import { isOptionQuestionType } from '~/domain/questions'
+import QuestionRevisionHistory from '~/components/questions/QuestionRevisionHistory.vue'
 
-defineProps<{
+const props = defineProps<{
   question: Question
   index: number
   canReadAnswers: boolean
@@ -104,7 +132,6 @@ defineProps<{
   isAdded: boolean
   typeLabel: (type: Question['type']) => string
   canEdit: boolean
-  correctionCount: number
 }>()
 
 import { formatScoreWeight } from '~/utils/format'
@@ -115,6 +142,68 @@ defineEmits<{
   edit: [question: Question]
   report: [question: Question]
 }>()
+
+const { fetchCorrections, updateCorrectionStatus } = useQuestionBank()
+const correctionsOpen = ref(false)
+const corrections = ref<QuestionCorrection[]>([])
+const correctionsLoading = ref(false)
+
+const openCorrectionCount = computed(() => corrections.value.filter(c => c.status === 'open').length)
+
+onMounted(() => {
+  void loadCorrections()
+})
+
+async function toggleCorrections () {
+  correctionsOpen.value = !correctionsOpen.value
+  if (correctionsOpen.value && !corrections.value.length) {
+    await loadCorrections()
+  }
+}
+
+async function loadCorrections () {
+  correctionsLoading.value = true
+  try {
+    corrections.value = await fetchCorrections(props.question.id)
+  } catch {
+    corrections.value = []
+  } finally {
+    correctionsLoading.value = false
+  }
+}
+
+async function handleAccept (correctionId: number) {
+  try {
+    await updateCorrectionStatus(props.question.id, correctionId, 'accepted')
+    await loadCorrections()
+  } catch { /* ignore */ }
+}
+
+async function handleReject (correctionId: number) {
+  try {
+    await updateCorrectionStatus(props.question.id, correctionId, 'rejected')
+    await loadCorrections()
+  } catch { /* ignore */ }
+}
+
+function formatCategory (cat: string) {
+  const labels: Record<string, string> = {
+    wrong_answer: 'Wrong Answer',
+    unclear: 'Unclear',
+    typo: 'Typo',
+    other: 'Other'
+  }
+  return labels[cat] || cat
+}
+
+function formatStatus (status: string) {
+  const labels: Record<string, string> = {
+    open: 'Open',
+    accepted: 'Accepted',
+    rejected: 'Rejected'
+  }
+  return labels[status] || status
+}
 </script>
 
 <style scoped>
@@ -266,5 +355,108 @@ defineEmits<{
   font-weight: 700;
   padding: 0 4px;
   margin-left: 4px;
+}
+.correction-panel {
+  margin-top: 10px;
+}
+.correction-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: transparent;
+  color: var(--color-muted);
+  font-size: .8rem;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+.correction-toggle:hover {
+  color: var(--color-text);
+  background: var(--color-bg);
+}
+.correction-list {
+  margin-top: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.correction-status-text {
+  padding: 10px 12px;
+  font-size: .82rem;
+  color: var(--color-muted);
+}
+.correction-item {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--color-border);
+}
+.correction-item:last-child {
+  border-bottom: none;
+}
+.corr-item--accepted {
+  background: rgba(34, 197, 94, 0.04);
+}
+.corr-item--rejected {
+  opacity: 0.6;
+}
+.correction-item-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.correction-item-category {
+  font-size: .75rem;
+  font-weight: 600;
+  padding: 1px 8px;
+  border-radius: 4px;
+}
+.corr-cat--wrong_answer {
+  background: rgba(239, 68, 68, 0.1);
+  color: #b91c1c;
+}
+.corr-cat--unclear {
+  background: rgba(234, 179, 8, 0.1);
+  color: #a16207;
+}
+.corr-cat--typo {
+  background: rgba(59, 130, 246, 0.1);
+  color: #1d4ed8;
+}
+.corr-cat--other {
+  background: rgba(107, 114, 128, 0.1);
+  color: #4b5563;
+}
+.correction-item-status {
+  font-size: .7rem;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+.corr-status--open {
+  background: rgba(239, 68, 68, 0.1);
+  color: #b91c1c;
+}
+.corr-status--accepted {
+  background: rgba(34, 197, 94, 0.1);
+  color: #15803d;
+}
+.corr-status--rejected {
+  background: rgba(107, 114, 128, 0.1);
+  color: #4b5563;
+}
+.correction-item-msg {
+  font-size: .82rem;
+  color: var(--color-text);
+  line-height: 1.5;
+  margin: 0;
+}
+.correction-item-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
 }
 </style>

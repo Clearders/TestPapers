@@ -48,7 +48,6 @@
             :is-added="isAdded(q.id)"
             :type-label="typeLabel"
             :can-edit="canEditQuestion(q)"
-            :correction-count="correctionCounts[q.id] || 0"
             @toggle-answer="toggleAnswer"
             @toggle-question="toggleQuestion"
             @edit="openEditModal"
@@ -460,15 +459,15 @@
     :key="reportingQuestion.id"
     :question="reportingQuestion"
     :visible="!!reportingQuestion"
-    @close="closeCorrectionModal"
-    @submitted="onCorrectionSubmitted"
-  />
+    @close="closeCorrectionModal" />
 </template>
 
 <script setup lang="ts">
 import PaginationControls from '~/components/questions/PaginationControls.vue'
 import QuestionBankCard from '~/components/questions/QuestionBankCard.vue'
 import QuestionBankToolbar from '~/components/questions/QuestionBankToolbar.vue'
+import EditQuestionModal from '~/components/questions/EditQuestionModal.vue'
+import QuestionCorrectionModal from '~/components/questions/QuestionCorrectionModal.vue'
 import type { Question, QuestionDifficulty, QuestionEntity, QuestionType } from '~/types/question'
 import {
   QUESTION_TYPE_LABELS,
@@ -562,8 +561,7 @@ const {
   availableSubjects,
   availableTags,
   loadMeta,
-  isLoadingMeta,
-  fetchCorrections
+  isLoadingMeta
 } = useQuestionBank()
 const { hasPermission, isAuthReady, user } = useAuth()
 const { apiFetch, getApiBase, refreshSessionCookie } = useApi()
@@ -627,7 +625,6 @@ const exported = ref(false)
 
 const editingQuestion = ref<Question | null>(null)
 const reportingQuestion = ref<Question | null>(null)
-const correctionCounts = reactive<Record<number, number>>({})
 
 const canReadQuestions = computed(() => hasPermission('questions:read'))
 const canWritePapers = computed(() => hasPermission('papers:write'))
@@ -1167,28 +1164,6 @@ function openCorrectionModal (question: Question) {
 function closeCorrectionModal () {
   reportingQuestion.value = null
 }
-
-async function onCorrectionSubmitted () {
-  if (reportingQuestion.value) {
-    await loadCorrectionCount(reportingQuestion.value.id)
-  }
-}
-
-async function loadCorrectionCount (questionId: number) {
-  try {
-    const corrections = await fetchCorrections(questionId)
-    const openCount = corrections.filter(c => c.status === 'open').length
-    correctionCounts[questionId] = openCount
-  } catch {
-    correctionCounts[questionId] = 0
-  }
-}
-
-watch(currentQuestions, (newQuestions) => {
-  for (const q of newQuestions) {
-    void loadCorrectionCount(q.id)
-  }
-}, { immediate: true })
 </script>
 
 <style scoped>
