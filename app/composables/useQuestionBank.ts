@@ -108,8 +108,8 @@ export function useQuestionBank () {
     return normalized
   }
 
-  const updateQuestion = async (id: number, patch: Partial<Omit<Question, 'id'>>) => {
-    const response = await apiFetch<QuestionEntity>(`/questions/${id}`, {
+  const updateQuestion = async (publicId: string, patch: Partial<Omit<Question, 'id'>>) => {
+    const response = await apiFetch<QuestionEntity>(`/questions/${publicId}`, {
       method: 'PATCH',
       body: patch
     })
@@ -120,12 +120,20 @@ export function useQuestionBank () {
     return normalized
   }
 
-  const deleteQuestion = async (id: number) => {
-    await apiFetch(`/questions/${id}`, {
+  const deleteQuestion = async (publicId: string) => {
+    await apiFetch(`/questions/${publicId}`, {
       method: 'DELETE'
     })
-    removeQuestionById(questions, id)
-    removeQuestionById(myQuestions, id)
+    const idx = questions.value.findIndex(q => q.publicId === publicId)
+    if (idx !== -1) {
+      const q = questions.value[idx]
+      if (q) removeQuestionById(questions, q.id)
+    }
+    const myIdx = myQuestions.value.findIndex(q => q.publicId === publicId)
+    if (myIdx !== -1) {
+      const q = myQuestions.value[myIdx]
+      if (q) removeQuestionById(myQuestions, q.id)
+    }
   }
 
   const uploadImage = async (file: File): Promise<string> => {
@@ -176,44 +184,44 @@ export function useQuestionBank () {
     }
   }
 
-  const fetchRevisions = async (questionId: number) => {
-    const response = await apiFetch<QuestionRevision[]>(`/questions/${questionId}/revisions`, {
+  const fetchRevisions = async (questionPublicId: string) => {
+    const response = await apiFetch<QuestionRevision[]>(`/questions/${questionPublicId}/revisions`, {
       method: 'GET'
     })
     return response.data
   }
 
-  const submitCorrection = async (questionId: number, data: { category: CorrectionCategory; message: string }) => {
-    const response = await apiFetch<QuestionCorrection>(`/questions/${questionId}/corrections`, {
+  const submitCorrection = async (questionPublicId: string, data: { category: CorrectionCategory; message: string }) => {
+    const response = await apiFetch<QuestionCorrection>(`/questions/${questionPublicId}/corrections`, {
       method: 'POST',
       body: data
     })
     return response.data
   }
 
-  const fetchCorrections = async (questionId: number) => {
-    const response = await apiFetch<QuestionCorrection[]>(`/questions/${questionId}/corrections`, {
+  const fetchCorrections = async (questionPublicId: string) => {
+    const response = await apiFetch<QuestionCorrection[]>(`/questions/${questionPublicId}/corrections`, {
       method: 'GET'
     })
     return response.data
   }
 
-  const updateCorrectionStatus = async (questionId: number, correctionId: number, status: CorrectionStatus) => {
-    const response = await apiFetch<QuestionCorrection>(`/questions/${questionId}/corrections/${correctionId}`, {
+  const updateCorrectionStatus = async (questionPublicId: string, correctionId: number, status: CorrectionStatus) => {
+    const response = await apiFetch<QuestionCorrection>(`/questions/${questionPublicId}/corrections/${correctionId}`, {
       method: 'PATCH',
       body: { status }
     })
     return response.data
   }
 
-  const deleteRevision = async (questionId: number, revisionId: number) => {
-    await apiFetch(`/questions/${questionId}/revisions/${revisionId}`, {
+  const deleteRevision = async (questionPublicId: string, revisionId: number) => {
+    await apiFetch(`/questions/${questionPublicId}/revisions/${revisionId}`, {
       method: 'DELETE'
     })
   }
 
-  const deleteCorrection = async (questionId: number, correctionId: number) => {
-    await apiFetch(`/questions/${questionId}/corrections/${correctionId}`, {
+  const deleteCorrection = async (questionPublicId: string, correctionId: number) => {
+    await apiFetch(`/questions/${questionPublicId}/corrections/${correctionId}`, {
       method: 'DELETE'
     })
   }

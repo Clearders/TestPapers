@@ -55,7 +55,7 @@
 import type { QuestionRevision } from '~/types/question'
 
 const props = defineProps<{
-  questionId: number
+  questionId: string
   canDelete: boolean
 }>()
 

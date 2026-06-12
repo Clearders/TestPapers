@@ -80,7 +80,7 @@
       </button>
     </div>
 
-    <QuestionRevisionHistory v-if="canReview" :question-id="question.id" :can-delete="canDelete" />
+    <QuestionRevisionHistory v-if="canReview" :question-id="question.publicId" :can-delete="canDelete" />
 
     <div v-if="canReview" class="correction-panel">
       <button class="correction-toggle" type="button" @click="toggleCorrections">
@@ -183,7 +183,7 @@ async function toggleCorrections () {
 async function loadCorrections () {
   correctionsLoading.value = true
   try {
-    corrections.value = await fetchCorrections(props.question.id)
+    corrections.value = await fetchCorrections(props.question.publicId)
   } catch {
     corrections.value = []
   } finally {
@@ -193,21 +193,21 @@ async function loadCorrections () {
 
 async function handleAccept (correctionId: number) {
   try {
-    await updateCorrectionStatus(props.question.id, correctionId, 'accepted')
+    await updateCorrectionStatus(props.question.publicId, correctionId, 'accepted')
     await loadCorrections()
   } catch { /* ignore */ }
 }
 
 async function handleReject (correctionId: number) {
   try {
-    await updateCorrectionStatus(props.question.id, correctionId, 'rejected')
+    await updateCorrectionStatus(props.question.publicId, correctionId, 'rejected')
     await loadCorrections()
   } catch { /* ignore */ }
 }
 
 async function handleDeleteCorrection (correctionId: number) {
   try {
-    await deleteCorrection(props.question.id, correctionId)
+    await deleteCorrection(props.question.publicId, correctionId)
     corrections.value = corrections.value.filter(c => c.id !== correctionId)
   } catch { /* ignore */ }
 }

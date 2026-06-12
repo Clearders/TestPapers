@@ -508,7 +508,7 @@ interface PaperMetadataPayload {
 }
 
 interface PaperQuestionRefPayload {
-  questionId: number
+  questionPublicId: string
   orderNo: number
   marks?: number
 }
@@ -532,6 +532,7 @@ interface PaperGeneratePayload {
 interface GeneratedPaperResponse {
   paper: {
     id: number
+    publicId: string
     title: string
     subject: string
     duration: number
@@ -543,6 +544,7 @@ interface GeneratedPaperResponse {
 
 interface PaperEntityResponse {
   id: number
+  publicId: string
   title: string
   subject: string
   duration: number
@@ -612,7 +614,7 @@ const pageSize = ref(20)
 const isGenerating = ref(false)
 const generationError = ref('')
 const generationDiagnostics = ref<GenerationDiagnostics | null>(null)
-const savedPaperId = ref<number | null>(null)
+const savedPaperId = ref<string | null>(null)
 const savedPaperSignature = ref('')
 const isDownloadingDocx = ref(false)
 const downloadError = ref('')
@@ -829,7 +831,7 @@ function getPaperPayload (): PaperCreatePayload {
     questions: paper.questions.map((question, index) => {
       const marks = optionalPositiveInteger(question.marks)
       return {
-        questionId: question.id,
+        questionPublicId: question.publicId,
         orderNo: index + 1,
         ...(marks ? { marks } : {})
       }
@@ -851,30 +853,24 @@ async function ensureDownloadablePaper () {
     method: 'POST',
     body: getPaperPayload()
   })
-  savedPaperId.value = response.data.id
+  savedPaperId.value = response.data.publicId
   savedPaperSignature.value = signature
-  return response.data.id
+  return response.data.publicId
 }
 
-async function requestDocxDownload (paperId: number) {
+async function requestDocxDownload (paperPublicId: string) {
   const params = new URLSearchParams({
     format: 'docx',
     questionOrder: exportMode.value,
     includeAnswer: String(includeAnswersInExport.value && canReadAnswers.value)
   })
-  const response = await fetch(`${getApiBase()}/papers/${paperId}/download?${params.toString()}`, {
+  const response = await apiFetch<Response>(`/papers/${paperPublicId}/download`, {
     method: 'GET',
-    credentials: 'include'
+    query: Object.fromEntries(params),
+    responseType: 'blob',
+    rawResponse: true
   })
-
-  if (response.status !== 401 || !(await refreshSessionCookie())) {
-    return response
-  }
-
-  return await fetch(`${getApiBase()}/papers/${paperId}/download?${params.toString()}`, {
-    method: 'GET',
-    credentials: 'include'
-  })
+  return response as unknown as Response
 }
 
 function filenameFromDisposition (disposition: string | null) {
@@ -956,7 +952,7 @@ function setPaperQuestions (questions: ApiPaperQuestion[]) {
   paper.questions.splice(0, paper.questions.length, ...questions.map(normalizePaperQuestion))
 }
 
-function rememberSavedPaper (paperId: number) {
+function rememberSavedPaper (paperId: string) {
   savedPaperId.value = paperId
   savedPaperSignature.value = getPaperSignature()
 }
@@ -1027,7 +1023,7 @@ async function generatePaper () {
     paper.duration = response.data.paper.duration
     paper.totalMarks = response.data.paper.totalMarks
     setPaperQuestions(response.data.paper.questions)
-    rememberSavedPaper(response.data.paper.id)
+    rememberSavedPaper(response.data.paper.publicId)
     generationDiagnostics.value = response.data.diagnostics
     exported.value = false
     downloadError.value = ''
@@ -1174,7 +1170,7 @@ function closeCorrectionModal () {
 async function handleDeleteQuestion (question: Question) {
   if (!window.confirm(`Delete question #${question.id}? This will also remove all revision history and corrections. This cannot be undone.`)) return
   try {
-    await deleteQuestion(question.id)
+    await deleteQuestion(question.publicId)
     removeQuestion(question.id)
   } catch {
     // deletion may fail silently when local state already removed

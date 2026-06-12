@@ -13,6 +13,7 @@ export interface QuestionImage {
 
 export interface Question {
   id: number
+  publicId: string
   type: QuestionType
   subjects: string[]
   difficulty: QuestionDifficulty
@@ -48,7 +49,7 @@ export interface QuestionQueryParams {
   sortOrder?: 'asc' | 'desc'
 }
 
-export interface QuestionFormInput extends Omit<Question, 'id' | 'hasLatex'> {
+export interface QuestionFormInput extends Omit<Question, 'id' | 'publicId' | 'hasLatex'> {
   hasLatex?: boolean
 }
 

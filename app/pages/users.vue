@@ -54,7 +54,7 @@
               <input v-model="item.isActive" type="checkbox" @change="updateUser(item)" />
               <span>Active</span>
             </label>
-            <button class="btn btn-danger btn-sm" type="button" :disabled="item.id === user?.id" @click="deleteUser(item.id)">
+            <button class="btn btn-danger btn-sm" type="button" :disabled="item.id === user?.id" @click="deleteUser(item.publicId)">
               Delete
             </button>
           </div>
@@ -133,7 +133,7 @@ async function createUser () {
 }
 
 async function updateUser (item: AuthUser) {
-  await authFetch<AuthUser>(`/users/${item.id}`, {
+  await authFetch<AuthUser>(`/users/${item.publicId}`, {
     method: 'PATCH',
     body: {
       role: item.role,
@@ -143,10 +143,10 @@ async function updateUser (item: AuthUser) {
   await loadUsers()
 }
 
-async function deleteUser (id: number) {
+async function deleteUser (publicId: string) {
   if (!window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) return
-  await authFetch(`/users/${id}`, { method: 'DELETE' })
-  users.value = users.value.filter(item => item.id !== id)
+  await authFetch(`/users/${publicId}`, { method: 'DELETE' })
+  users.value = users.value.filter(item => item.publicId !== publicId)
 }
 </script>
 

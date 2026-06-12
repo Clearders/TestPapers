@@ -23,6 +23,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import LatexRenderer from '~/components/LatexRenderer.vue'
 
 const demoFormula = ref('\\int_0^\\infty e^{-x^2}\\,dx = \\frac{\\sqrt{\\pi}}{2}')
 </script>

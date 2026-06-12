@@ -171,7 +171,7 @@ async function handleSubmit () {
       patch.options = undefined
       patch.answer = form.answer.trim()
     }
-    const updated = await updateQuestion(props.question.id, patch)
+    const updated = await updateQuestion(props.question.publicId, patch)
     emit('saved', updated)
     emit('close')
   } catch (err) {

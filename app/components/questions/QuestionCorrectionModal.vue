@@ -84,7 +84,7 @@ async function handleSubmit () {
   errorMsg.value = ''
   isSubmitting.value = true
   try {
-    await submitCorrection(props.question.id, {
+    await submitCorrection(props.question.publicId, {
       category: category.value as CorrectionCategory,
       message: message.value.trim()
     })

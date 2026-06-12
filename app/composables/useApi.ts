@@ -11,6 +11,8 @@ export interface ApiRequestOptions {
   retry?: number
   retryOnUnauthorized?: boolean
   timeoutMs?: number
+  responseType?: 'json' | 'blob'
+  rawResponse?: boolean
 }
 
 let refreshPromise: Promise<boolean> | null = null
@@ -52,6 +54,15 @@ function syncAuthSession (session: AuthSession | null) {
   const expiresAt = useState<string>('auth-expires-at', () => '')
   user.value = session?.user || null
   expiresAt.value = session?.expiresAt || ''
+
+  if (import.meta.client && session) {
+    const expires = new Date(session.expiresAt).getTime()
+    const skew = 2 * 60 * 1000
+    const delay = Math.max(5_000, expires - skew - Date.now())
+    setTimeout(() => {
+      void refreshSessionCookie()
+    }, delay)
+  }
 }
 
 async function refreshSessionCookie () {
@@ -99,20 +110,76 @@ export function useApi () {
       method = 'GET',
       retry,
       timeoutMs = DEFAULT_TIMEOUT_MS,
+      responseType = 'json',
+      rawResponse = false,
       ...fetchOptions
     } = options
     const retryLimit = retry ?? (method === 'GET' ? 1 : 0)
 
-    // Only fetch request headers on server side
     const requestHeaders = import.meta.server ? useRequestHeaders(['cookie']) : {}
 
-    // Include CSRF token for non-safe requests on the client side
     const csrfHeaders: Record<string, string> = {}
     if (import.meta.client && !SAFE_METHODS.has(method)) {
       const csrfToken = readCookie(CSRF_COOKIE_NAME)
       if (csrfToken) {
         csrfHeaders['x-csrf-token'] = csrfToken
       }
+    }
+
+    const mergedHeaders = { ...requestHeaders, ...csrfHeaders, ...headers }
+
+    if (responseType === 'blob') {
+      const baseUrl = getApiBase()
+      const queryString = options.query
+        ? '?' + new URLSearchParams(
+            Object.entries(options.query).reduce((acc, [k, v]) => { acc[k] = String(v); return acc }, {} as Record<string, string>)
+          ).toString()
+        : ''
+
+      const doBlobRequest = async () => {
+        for (let attempt = 0; attempt <= retryLimit; attempt += 1) {
+          const controller = new AbortController()
+          const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+          try {
+            const resp = await fetch(`${baseUrl}${path}${queryString}`, {
+              method,
+              credentials: 'include',
+              headers: {
+                ...mergedHeaders,
+                ...(options.body && typeof options.body === 'string' ? { 'Content-Type': 'application/json' } : {})
+              } as Record<string, string>,
+              body: options.body && typeof options.body !== 'string' ? JSON.stringify(options.body) : (options.body as BodyInit | null | undefined),
+              signal: controller.signal
+            })
+            clearTimeout(timeoutId)
+            if (resp.status === 401 && auth && retryOnUnauthorized && path !== '/auth/refresh' && import.meta.client) {
+              if (await refreshSessionCookie()) {
+                const retryResp = await fetch(`${baseUrl}${path}${queryString}`, {
+                  method,
+                  credentials: 'include',
+                  headers: {
+                    ...mergedHeaders,
+                    ...(options.body && typeof options.body === 'string' ? { 'Content-Type': 'application/json' } : {})
+                  } as Record<string, string>,
+                  body: options.body && typeof options.body !== 'string' ? JSON.stringify(options.body) : (options.body as BodyInit | null | undefined)
+                })
+                if (rawResponse) return retryResp as unknown as ApiEnvelope<T>
+                return { data: await retryResp.blob() as unknown as T } as unknown as ApiEnvelope<T>
+              }
+            }
+            if (!resp.ok) throw { status: resp.status, statusCode: resp.status, message: await resp.text().catch(() => '') }
+            if (rawResponse) return resp as unknown as ApiEnvelope<T>
+            return { data: await resp.blob() as unknown as T } as unknown as ApiEnvelope<T>
+          } catch (error: any) {
+            clearTimeout(timeoutId)
+            if (attempt >= retryLimit || !shouldRetryRequest(error, method)) throw error
+            await waitForRetry(attempt)
+          }
+        }
+        throw new Error('API request failed')
+      }
+
+      return await doBlobRequest()
     }
 
     const makeRequest = async () => {
@@ -125,11 +192,7 @@ export function useApi () {
             ...fetchOptions,
             retry: 0,
             timeout: timeoutMs,
-            headers: {
-              ...requestHeaders,
-              ...csrfHeaders,
-              ...headers
-            }
+            headers: mergedHeaders
           })
         } catch (error) {
           if (attempt >= retryLimit || !shouldRetryRequest(error, method)) throw error
@@ -147,11 +210,7 @@ export function useApi () {
       ...fetchOptions,
       retry: 0,
       timeout: timeoutMs,
-      headers: {
-        ...requestHeaders,
-        ...csrfHeaders,
-        ...headers
-      }
+      headers: mergedHeaders
     })
 
     try {

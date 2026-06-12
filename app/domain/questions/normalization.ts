@@ -73,6 +73,7 @@ export function normalizeQuestion (question: Partial<QuestionEntity> & { id: num
 
   return {
     id: question.id,
+    publicId: question.publicId || '',
     type: question.type as Question['type'],
     subjects: Array.isArray(question.subjects) ? question.subjects : [],
     difficulty: question.difficulty as Question['difficulty'] || 'medium',
