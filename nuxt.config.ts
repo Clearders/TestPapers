@@ -37,6 +37,16 @@ export default defineNuxtConfig({
       fs: {
         allow: ['.']
       }
+    },
+    build: {
+      rollupOptions: {
+        onwarn (warning, handler) {
+          if (warning.plugin === 'nuxt:module-preload-polyfill' && warning.message?.includes('Sourcemap')) {
+            return
+          }
+          handler(warning)
+        }
+      }
     }
   },
 
