@@ -57,7 +57,23 @@
       >
         {{ isAdded ? 'Remove from Paper' : 'Add to Paper' }}
       </button>
+      <button
+        v-if="canEdit"
+        class="btn btn-outline btn-sm"
+        @click="$emit('edit', question)"
+      >
+        Edit
+      </button>
+      <button
+        class="btn btn-outline btn-sm correction-report-btn"
+        @click="$emit('report', question)"
+      >
+        Report Issue
+        <span v-if="correctionCount" class="correction-badge">{{ correctionCount }}</span>
+      </button>
     </div>
+
+    <QuestionRevisionHistory :question-id="question.id" />
 
     <div class="q-answer-wrapper" :class="{ 'is-open': isShown }">
       <div class="q-answer-inner">
@@ -87,6 +103,8 @@ defineProps<{
   isShown: boolean
   isAdded: boolean
   typeLabel: (type: Question['type']) => string
+  canEdit: boolean
+  correctionCount: number
 }>()
 
 import { formatScoreWeight } from '~/utils/format'
@@ -94,6 +112,8 @@ import { formatScoreWeight } from '~/utils/format'
 defineEmits<{
   'toggle-answer': [id: number]
   'toggle-question': [question: Question]
+  edit: [question: Question]
+  report: [question: Question]
 }>()
 </script>
 
@@ -229,5 +249,22 @@ defineEmits<{
   .q-image-thumb {
     max-width: 100%;
   }
+}
+.correction-report-btn {
+  position: relative;
+}
+.correction-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: var(--color-danger);
+  color: #fff;
+  font-size: .65rem;
+  font-weight: 700;
+  padding: 0 4px;
+  margin-left: 4px;
 }
 </style>

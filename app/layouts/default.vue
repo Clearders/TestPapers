@@ -550,4 +550,8 @@ a, button, [role="button"] { -webkit-tap-highlight-color: transparent; }
 [data-theme="dark"] .badge-hard { background: rgba(248, 113, 113, 0.15); color: #f87171; }
 [data-theme="dark"] .tag { background: rgba(129, 140, 248, 0.15); color: var(--color-primary); }
 [data-theme="dark"] .form-input { background: var(--color-surface); border-color: var(--color-border); color: var(--color-text); }
+[data-theme="dark"] .correction-report-btn:hover { background: rgba(248, 113, 113, 0.08); }
+[data-theme="dark"] .revision-diff-table th { background: var(--color-bg); }
+[data-theme="dark"] .revision-diff-table td { border-color: var(--color-border); }
+[data-theme="dark"] .revision-item:hover { background: var(--color-bg); }
 </style>

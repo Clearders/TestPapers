@@ -51,3 +51,26 @@ export interface QuestionQueryParams {
 export interface QuestionFormInput extends Omit<Question, 'id' | 'hasLatex'> {
   hasLatex?: boolean
 }
+
+export type CorrectionCategory = 'wrong_answer' | 'unclear' | 'typo' | 'other'
+export type CorrectionStatus = 'open' | 'accepted' | 'rejected'
+
+export interface QuestionCorrection {
+  id: number
+  questionId: number
+  userId: number | null
+  category: CorrectionCategory
+  message: string
+  status: CorrectionStatus
+  createdAt: string
+  updatedAt: string
+}
+
+export interface QuestionRevision {
+  id: number
+  questionId: number
+  userId: number | null
+  patch: Record<string, unknown>
+  changeSummary: string
+  createdAt: string
+}

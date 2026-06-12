@@ -47,8 +47,12 @@
             :is-shown="isShown(q.id)"
             :is-added="isAdded(q.id)"
             :type-label="typeLabel"
+            :can-edit="canEditQuestion(q)"
+            :correction-count="correctionCounts[q.id] || 0"
             @toggle-answer="toggleAnswer"
             @toggle-question="toggleQuestion"
+            @edit="openEditModal"
+            @report="openCorrectionModal"
           />
         </TransitionGroup>
 
@@ -441,6 +445,22 @@
       </div>
     </div>
   </section>
+
+  <EditQuestionModal
+    v-if="editingQuestion"
+    :question="editingQuestion"
+    :visible="!!editingQuestion"
+    @close="closeEditModal"
+    @saved="onQuestionEdited"
+  />
+
+  <QuestionCorrectionModal
+    v-if="reportingQuestion"
+    :question="reportingQuestion"
+    :visible="!!reportingQuestion"
+    @close="closeCorrectionModal"
+    @submitted="onCorrectionSubmitted"
+  />
 </template>
 
 <script setup lang="ts">
@@ -540,9 +560,10 @@ const {
   availableSubjects,
   availableTags,
   loadMeta,
-  isLoadingMeta
+  isLoadingMeta,
+  fetchCorrections
 } = useQuestionBank()
-const { hasPermission, isAuthReady } = useAuth()
+const { hasPermission, isAuthReady, user } = useAuth()
 const { apiFetch, getApiBase, refreshSessionCookie } = useApi()
 const route = useRoute()
 const router = useRouter()
@@ -602,8 +623,19 @@ const paper = reactive({
 
 const exported = ref(false)
 
+const editingQuestion = ref<Question | null>(null)
+const reportingQuestion = ref<Question | null>(null)
+const correctionCounts = reactive<Record<number, number>>({})
+
 const canReadQuestions = computed(() => hasPermission('questions:read'))
 const canWritePapers = computed(() => hasPermission('papers:write'))
+const isAdmin = computed(() => hasPermission('users:manage'))
+
+function canEditQuestion (q: Question) {
+  if (!hasPermission('questions:write')) return false
+  if (isAdmin.value) return true
+  return q.ownerId === null || q.ownerId === user.value?.id
+}
 
 const generationForm = reactive<GenerationFormState>({
   difficultyCoefficient: 0.5,
@@ -1113,6 +1145,48 @@ function getEssayBlankStyle (question: Question) {
     minHeight: `${getEssayBlankHeightPx(question.essayBlankSpace)}px`
   }
 }
+
+function openEditModal (question: Question) {
+  editingQuestion.value = question
+}
+
+function closeEditModal () {
+  editingQuestion.value = null
+}
+
+function onQuestionEdited () {
+  void loadCurrentPage(1)
+}
+
+function openCorrectionModal (question: Question) {
+  reportingQuestion.value = question
+}
+
+function closeCorrectionModal () {
+  reportingQuestion.value = null
+}
+
+async function onCorrectionSubmitted () {
+  if (reportingQuestion.value) {
+    await loadCorrectionCount(reportingQuestion.value.id)
+  }
+}
+
+async function loadCorrectionCount (questionId: number) {
+  try {
+    const corrections = await fetchCorrections(questionId)
+    const openCount = corrections.filter(c => c.status === 'open').length
+    correctionCounts[questionId] = openCount
+  } catch {
+    correctionCounts[questionId] = 0
+  }
+}
+
+watch(currentQuestions, (newQuestions) => {
+  for (const q of newQuestions) {
+    void loadCorrectionCount(q.id)
+  }
+}, { immediate: true })
 </script>
 
 <style scoped>

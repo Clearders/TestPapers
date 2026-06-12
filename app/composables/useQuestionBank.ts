@@ -1,12 +1,12 @@
 import type { ApiPagination, PaginatedData } from '~/types/api'
-import type { Question, QuestionEntity, QuestionFormInput, QuestionQueryParams } from '~/types/question'
+import type { CorrectionCategory, CorrectionStatus, Question, QuestionCorrection, QuestionEntity, QuestionFormInput, QuestionQueryParams, QuestionRevision } from '~/types/question'
 import {
   MAX_IMAGE_UPLOAD_BYTES,
   normalizeQuestion,
   toQuestionPayload
 } from '~/domain/questions'
 
-export type { EssayBlankSpace, Question, QuestionEntity, QuestionFormInput, QuestionImage, QuestionQueryParams } from '~/types/question'
+export type { CorrectionCategory, CorrectionStatus, EssayBlankSpace, Question, QuestionCorrection, QuestionEntity, QuestionFormInput, QuestionImage, QuestionQueryParams, QuestionRevision } from '~/types/question'
 
 function upsertQuestion (state: { value: Question[] }, question: Question) {
   const existingIndex = state.value.findIndex(item => item.id === question.id)
@@ -176,6 +176,36 @@ export function useQuestionBank () {
     }
   }
 
+  const fetchRevisions = async (questionId: number) => {
+    const response = await apiFetch<QuestionRevision[]>(`/questions/${questionId}/revisions`, {
+      method: 'GET'
+    })
+    return response.data
+  }
+
+  const submitCorrection = async (questionId: number, data: { category: CorrectionCategory; message: string }) => {
+    const response = await apiFetch<QuestionCorrection>(`/questions/${questionId}/corrections`, {
+      method: 'POST',
+      body: data
+    })
+    return response.data
+  }
+
+  const fetchCorrections = async (questionId: number) => {
+    const response = await apiFetch<QuestionCorrection[]>(`/questions/${questionId}/corrections`, {
+      method: 'GET'
+    })
+    return response.data
+  }
+
+  const updateCorrectionStatus = async (questionId: number, correctionId: number, status: CorrectionStatus) => {
+    const response = await apiFetch<QuestionCorrection>(`/questions/${questionId}/corrections/${correctionId}`, {
+      method: 'PATCH',
+      body: { status }
+    })
+    return response.data
+  }
+
   return {
     questions,
     myQuestions,
@@ -195,6 +225,10 @@ export function useQuestionBank () {
     questionPagination,
     myQuestionPagination,
     availableSubjects,
-    availableTags
+    availableTags,
+    fetchRevisions,
+    submitCorrection,
+    fetchCorrections,
+    updateCorrectionStatus
   }
 }
