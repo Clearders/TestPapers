@@ -136,6 +136,14 @@
             </label>
             <span class="form-hint" v-if="avatarFile">{{ avatarFile.name }}</span>
             <button
+              v-if="avatarFile"
+              class="btn btn-outline"
+              type="button"
+              @click="openCropper"
+            >
+              Edit
+            </button>
+            <button
               class="btn btn-primary"
               :disabled="avatarUploading || !avatarFile"
               @click="uploadAvatarFile"
@@ -147,6 +155,13 @@
         <span class="action-feedback" v-if="avatarMessage" :class="{ 'is-error': avatarError }" aria-live="polite">
           {{ avatarMessage }}
         </span>
+
+        <AvatarCropper
+          :file="avatarFile"
+          :visible="showCropper"
+          @close="showCropper = false"
+          @cropped="onCropped"
+        />
       </section>
 
       <section class="card account-section account-section--danger">
@@ -195,6 +210,8 @@
 </template>
 
 <script setup lang="ts">
+import AvatarCropper from '~/components/AvatarCropper.vue'
+
 definePageMeta({ requiresAuth: true })
 
 const { user, updateProfile, changePassword, uploadAvatar, deleteAccount } = useAuth()
@@ -213,6 +230,7 @@ const avatarFile = ref<File | null>(null)
 const avatarUploading = ref(false)
 const avatarMessage = ref('')
 const avatarError = ref(false)
+const showCropper = ref(false)
 
 const showDeleteConfirm = ref(false)
 const deleteConfirmText = ref('')
@@ -290,6 +308,15 @@ function handleAvatarSelected (event: Event) {
   if (file) {
     avatarFile.value = file
   }
+}
+
+function openCropper() {
+  showCropper.value = true
+}
+
+function onCropped(file: File) {
+  avatarFile.value = file
+  showCropper.value = false
 }
 
 async function uploadAvatarFile () {

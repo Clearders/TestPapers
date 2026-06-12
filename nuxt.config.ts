@@ -30,7 +30,7 @@ export default defineNuxtConfig({
 
   routeRules: apiRouteRules,
 
-  css: ['katex/dist/katex.min.css'],
+  css: ['katex/dist/katex.min.css', 'cropperjs/dist/cropper.css'],
 
   vite: {
     server: {
