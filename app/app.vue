@@ -23,4 +23,11 @@ useSeoMeta({
   ogUrl: baseUrl,
   twitterSite: '@testpapers'
 })
+
+onErrorCaptured((err, instance, info) => {
+  if (import.meta.client) {
+    console.error('[TestPapers] Captured error:', err, info)
+  }
+  return false
+})
 </script>

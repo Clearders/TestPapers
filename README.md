@@ -1,10 +1,10 @@
 # TestPapers Frontend
 
-> **版本**: (Nuxt 4.3 / Vue 3.5)
+> **版本**: 0.1.0 (Nuxt 4.4 / Vue 3.5)
 > **依赖**: `package.json`
-> **最后更新**: 2026-06-12
+> **最后更新**: 2026-06-14
 
-Nuxt 4 frontend for creating, managing, generating, and exporting test papers with live LaTeX rendering.
+Nuxt 4 frontend for creating, managing, generating, and exporting test papers with real-time LaTeX rendering.
 
 ## Tech Stack
 
@@ -12,8 +12,8 @@ Nuxt 4 frontend for creating, managing, generating, and exporting test papers wi
 |---|---|---|
 | Nuxt | ^4.4.8 | Vue 3 framework with SSR/SSG support |
 | Vue | ^3.5.32 | UI framework |
-| Vue Router | ^4.5.1 | Client-side routing |
 | KaTeX | ^0.16.21 | Real-time LaTeX math formula rendering |
+| Cropper.js | ^2.1.1 | Avatar image cropping |
 | TypeScript | ^5.7.0 | Type safety throughout the codebase |
 | PM2 | — | Production process manager |
 
@@ -24,6 +24,7 @@ TestPapers/
   app/
     app.vue                     # Root component
     components/
+      AvatarCropper.vue         # Avatar image cropping (cropperjs)
       LatexRenderer.vue         # KaTeX-based LaTeX rendering component
       QuestionWorkspace.vue     # Main question bank workspace + paper assembly
       UserDropdown.vue          # Authenticated user menu

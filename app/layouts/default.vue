@@ -44,7 +44,16 @@
     </header>
 
     <main id="main-content" class="site-main">
-      <slot />
+      <NuxtErrorBoundary>
+        <slot />
+        <template #error="{ error, clearError }">
+          <div class="error-fallback card">
+            <h2>Something went wrong</h2>
+            <p>{{ error?.message || 'An unexpected error occurred.' }}</p>
+            <button class="btn btn-primary" @click="clearError">Retry</button>
+          </div>
+        </template>
+      </NuxtErrorBoundary>
     </main>
 
     <footer class="site-footer">

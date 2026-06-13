@@ -1,9 +1,9 @@
 # TestPapers 前后端 API 接口文档
 
-> **版本**: v7
-> **后端框架**: FastAPI 1.0.0 (Python 3.14)
-> **前端框架**: Nuxt 4.3 (TypeScript)
-> **最后更新**: 2026-06-12
+> **版本**: v8
+> **后端框架**: FastAPI 0.136 (Python 3.14+)
+> **前端框架**: Nuxt 4.4 (TypeScript)
+> **最后更新**: 2026-06-14
 
 ---
 
@@ -1197,7 +1197,7 @@ GET /api/v1/tasks/{task_id}
 ### 8.3 异步导出试卷
 
 ```http
-POST /api/v1/tasks/export-paper/{paper_id}
+POST /api/v1/tasks/export-paper/{paper_public_id}
 ```
 
 > **所需权限**：`papers:read`
@@ -1210,7 +1210,7 @@ POST /api/v1/tasks/export-paper/{paper_id}
 | `include_answer`  | boolean | `true`     | 是否包含答案（需 `answers:read` 权限）                    |
 | `question_order`  | string  | `"paper"`  | 排序方式：`paper`（编排顺序）/ `categorized`（题型分组）   |
 
-**成功响应** (200)：返回 `taskId`、`paperId` 和 `status: "dispatched"`。
+**成功响应** (200)：返回 `taskId`、`paperId`（即传入的 `paper_public_id`）和 `status: "dispatched"`。
 
 ### 8.4 验证全部试题
 
@@ -1225,12 +1225,12 @@ POST /api/v1/tasks/validate-questions
 ### 8.5 验证单个试题
 
 ```http
-POST /api/v1/tasks/validate-question/{question_id}
+POST /api/v1/tasks/validate-question/{question_public_id}
 ```
 
 > **所需权限**：`questions:read`
 
-**成功响应** (200)：返回 `taskId`、`questionId` 和 `status: "dispatched"`。
+**成功响应** (200)：返回 `taskId`、`questionId`（即传入的 `question_public_id`）和 `status: "dispatched"`。
 
 ### 8.6 清理过期认证令牌
 
@@ -1607,9 +1607,9 @@ interface QuestionCorrectionEntity {
 | `GET`    | `/api/v1/papers/{publicId}/download`                    | `papers:read`        | 下载 DOCX 试卷          |
 | `POST`   | `/api/v1/tasks/ping`                                    | `questions:read`     | Worker 健康检查         |
 | `GET`    | `/api/v1/tasks/{task_id}`                               | `questions:read`     | 查询任务状态            |
-| `POST`   | `/api/v1/tasks/export-paper/{paper_id}`                 | `papers:read`        | 异步导出试卷            |
+| `POST`   | `/api/v1/tasks/export-paper/{paper_public_id}`          | `papers:read`        | 异步导出试卷            |
 | `POST`   | `/api/v1/tasks/validate-questions`                      | `questions:read`     | 验证全部试题            |
-| `POST`   | `/api/v1/tasks/validate-question/{question_id}`         | `questions:read`     | 验证单个试题            |
+| `POST`   | `/api/v1/tasks/validate-question/{question_public_id}`  | `questions:read`     | 验证单个试题            |
 | `POST`   | `/api/v1/tasks/cleanup-expired-sessions`                | `users:manage`       | 清理过期会话            |
 | `GET`    | `/api/v1/tasks/stats/questions`                         | `questions:read`     | 试题统计信息            |
 | `GET`    | `/api/v1/health/postgres`                               | 无                   | PostgreSQL 健康检查     |

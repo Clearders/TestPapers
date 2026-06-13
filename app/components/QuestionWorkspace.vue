@@ -29,47 +29,24 @@
           @switch-bank-mode="switchBankMode"
         />
 
-        <div v-if="questionError" class="status-banner status-banner--error">
-          {{ questionError }}
-        </div>
-
-        <div v-if="activeLoading" class="status-banner" aria-live="polite">
-          Loading questions…
-        </div>
-
-        <TransitionGroup name="list" tag="div" class="q-list" v-if="currentQuestions.length">
-          <QuestionBankCard
-            v-for="(q, index) in currentQuestions"
-            :key="q.id"
-            :question="q"
-            :index="index"
-            :can-read-answers="canReadAnswers"
-            :is-shown="isShown(q.id)"
-            :is-added="isAdded(q.id)"
-            :type-label="typeLabel"
-            :can-edit="canEditQuestion(q)"
-            :can-review="canReview"
-            :can-delete="canDelete"
-            @toggle-answer="toggleAnswer"
-            @toggle-question="toggleQuestion"
-            @edit="openEditModal"
-            @report="openCorrectionModal"
-            @delete="handleDeleteQuestion"
-          />
-        </TransitionGroup>
-
-        <PaginationControls
-          :pagination="activePagination"
+        <QuestionCardList
+          :questions="currentQuestions"
+          :paper-question-ids="paperQuestionIds"
           :loading="activeLoading"
-          @change="goToPage"
+          :question-error="questionError"
+          :shown-ids="shownIds"
+          :pagination="activePagination"
+          :can-read-answers="canReadAnswers"
+          :can-review="canReview"
+          :can-delete="canDelete"
+          :can-edit-question="canEditQuestion"
+          :can-create-questions="canCreateQuestions"
+          @toggle-question="toggleQuestion"
+          @edit="openEditModal"
+          @report="openCorrectionModal"
+          @delete="onDeleteQuestionFromCard"
+          @page-change="goToPage"
         />
-
-        <Transition name="fade">
-          <div v-if="!activeLoading && !currentQuestions.length" class="empty-state card">
-            <p>No questions match the current filters.</p>
-            <NuxtLink v-if="canCreateQuestions" to="/add-problem" class="btn btn-primary">Create a Problem</NuxtLink>
-          </div>
-        </Transition>
       </div>
 
       <div class="paper-panel">
@@ -104,206 +81,21 @@
           </label>
         </div>
 
-        <form v-if="canWritePapers" class="card generation-card" @submit.prevent="generatePaper">
-          <div class="gen-header">
-            <div class="gen-header__text">
-              <h2>Auto Generate</h2>
-              <p>Use a genetic algorithm to compose a balanced paper from the question bank.</p>
-            </div>
-            <Transition name="gen-stat-pop">
-              <div v-if="generationDiagnostics" class="gen-fitness-badge" :class="fitnessClass" :title="'Generations run: ' + generationDiagnostics.generationsRun">
-                <span class="gen-fitness-value">{{ generationDiagnostics.fitness.toFixed(2) }}</span>
-                <span class="gen-fitness-label">fitness</span>
-              </div>
-            </Transition>
-          </div>
-
-          <div class="gen-controls">
-            <div class="gen-field">
-              <label class="form-label">Subjects</label>
-              <div v-if="availableSubjects.length" class="gen-subject-pool">
-                <button
-                  v-for="subject in availableSubjects"
-                  :key="subject"
-                  type="button"
-                  class="gen-subject-chip"
-                  :class="{ 'gen-subject-chip--active': generationForm.subjects.includes(subject) }"
-                  @click="toggleSubject(subject)"
-                >{{ subject }}</button>
-              </div>
-              <div v-else-if="isLoadingMeta" class="gen-subject-loading" aria-live="polite">
-                Loading subjects…
-              </div>
-              <p v-else class="form-hint">No subjects available. Create questions with subjects first.</p>
-            </div>
-
-            <div class="gen-field">
-              <label class="form-label">Total Score</label>
-              <div class="gen-pill-group">
-                <button
-                  v-for="score in [50, 100, 120, 150]"
-                  :key="score"
-                  type="button"
-                  class="gen-pill"
-                  :class="{ 'gen-pill--active': paper.totalMarks === score }"
-                  @click="paper.totalMarks = score"
-                >{{ score }}</button>
-                <input
-                  v-model.number="paper.totalMarks"
-                  class="gen-pill-input"
-                  type="number"
-                  min="1"
-                  placeholder="Custom"
-                />
-              </div>
-            </div>
-
-            <div class="gen-field">
-              <label class="form-label">Question Type</label>
-              <div
-                class="gen-type-list"
-                role="listbox"
-                aria-label="Question types"
-                aria-multiselectable="true"
-              >
-                <button
-                  v-for="type in QUESTION_TYPE_ORDER"
-                  :key="type"
-                  type="button"
-                  class="gen-type-option"
-                  :class="{ 'gen-type-option--active': generationForm.questionTypes.includes(type) }"
-                  role="option"
-                  :aria-selected="generationForm.questionTypes.includes(type)"
-                  @click="toggleQuestionType(type)"
-                >
-                  <span class="gen-type-option-label">{{ QUESTION_TYPE_LABELS[type] }}</span>
-                  <span v-if="generationForm.questionTypes.includes(type)" class="gen-type-option-check">✓</span>
-                </button>
-              </div>
-              <div v-if="generationForm.questionTypes.length" class="gen-type-counts">
-                <div v-for="type in generationForm.questionTypes" :key="type" class="gen-type-count-row">
-                  <span class="gen-type-count-label">{{ QUESTION_TYPE_LABELS[type] }}</span>
-                  <input
-                    v-model.number="generationForm.typeCounts[type]"
-                    class="gen-type-count-input"
-                    type="number"
-                    min="1"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div class="gen-field">
-              <div class="gen-field__label-row">
-                <label class="form-label">Difficulty</label>
-                <span class="gen-diff-badge" :class="difficultyBadgeClass">{{ difficultyLabel }}</span>
-              </div>
-              <div class="gen-range-wrap">
-                <input
-                  v-model.number="generationForm.difficultyCoefficient"
-                  class="gen-range"
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.05"
-                />
-                <div class="gen-range-ticks">
-                  <span>Easy</span>
-                  <span>Medium</span>
-                  <span>Hard</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="gen-field">
-              <label class="form-label">Tag Filters <span class="gen-optional">(optional)</span></label>
-              <div v-if="availableTags.length" class="gen-tag-pool">
-                <button
-                  v-for="tag in availableTags"
-                  :key="tag"
-                  type="button"
-                  class="gen-tag-chip"
-                  :class="tagChipClass(tag)"
-                  @click="toggleTag($event, tag)"
-                >{{ tag }}</button>
-              </div>
-              <div v-else-if="isLoadingMeta" class="gen-tag-loading" aria-live="polite">
-                Loading tags…
-              </div>
-              <div v-if="selectedTagsDisplay.length" class="gen-selected-tags">
-                <span
-                  v-for="tag in selectedTagsDisplay"
-                  :key="tag.value"
-                  class="gen-selected-pill"
-                  :class="'gen-spill--' + tag.group"
-                >
-                  {{ tag.value }}
-                  <button type="button" class="gen-pill-remove" @click="removeTag(tag.value)" aria-label="Remove">×</button>
-                </span>
-              </div>
-              <input
-                v-model="generationForm.customTagInput"
-                class="form-input gen-tag-input"
-                placeholder="Type custom tag and press Enter…"
-                @keydown.enter.prevent="addCustomTag"
-              />
-              <p class="form-hint">Click a tag to add as Required; Shift+click for Preferred. Tap × to remove.</p>
-            </div>
-          </div>
-
-          <div class="gen-action">
-            <button
-              class="btn btn-primary gen-submit"
-              type="submit"
-              :disabled="isGenerating || !generationForm.subjects.length || !paper.title.trim() || !generationForm.questionTypes.length"
-            >
-              <span v-if="isGenerating" class="gen-spinner"></span>
-              {{ isGenerating ? 'Generating…' : 'Generate Paper' }}
-            </button>
-            <span class="form-hint">Uses the paper title, duration, and the generation subject above.</span>
-          </div>
-
-          <Transition name="gen-banner">
-            <div v-if="generationError" class="status-banner status-banner--error" aria-live="polite">
-              {{ generationError }}
-            </div>
-          </Transition>
-
-          <Transition name="gen-banner">
-            <div v-if="generationDiagnostics" class="gen-result">
-              <div class="gen-result-header">
-                <span class="gen-result-title">Generation Result</span>
-                <span class="gen-result-meta">{{ generationDiagnostics.questionCount }} questions · {{ generationDiagnostics.candidateCount }} candidates · {{ generationDiagnostics.generationsRun }} generations</span>
-              </div>
-              <div class="gen-stats">
-                <div class="gen-stat">
-                  <span class="gen-stat-label">Marks</span>
-                  <span class="gen-stat-value">{{ generationDiagnostics.marksActual }}</span>
-                </div>
-                <div class="gen-stat">
-                  <span class="gen-stat-label">Weight</span>
-                  <span class="gen-stat-value">{{ generationDiagnostics.scoreWeightActual }}</span>
-                </div>
-                <div class="gen-stat">
-                  <span class="gen-stat-label">Difficulty</span>
-                  <span class="gen-stat-value gen-stat--small">{{ formatDistribution(generationDiagnostics.difficultyActual) }}</span>
-                </div>
-                <div class="gen-stat">
-                  <span class="gen-stat-label">Type</span>
-                  <span class="gen-stat-value gen-stat--small">{{ formatDistribution(generationDiagnostics.typeActual) }}</span>
-                </div>
-              </div>
-            </div>
-          </Transition>
-        </form>
-        <div v-else class="card generation-card">
-          <div class="gen-header">
-            <div class="gen-header__text">
-              <h2>Auto Generate</h2>
-              <p>Paper generation requires <strong>papers:write</strong> permission.</p>
-            </div>
-          </div>
-        </div>
+        <PaperGenerationForm
+          :generation-form="generationForm"
+          :can-write-papers="canWritePapers"
+          :is-generating="isGenerating"
+          :generation-error="generationError"
+          :generation-diagnostics="generationDiagnostics"
+          :available-subjects="availableSubjects"
+          :available-tags="availableTags"
+          :is-loading-meta="isLoadingMeta"
+          :total-marks="paper.totalMarks"
+          :paper-title="paper.title"
+          @update:generation-form="Object.assign(generationForm, $event)"
+          @update:total-marks="paper.totalMarks = $event"
+          @generate="generatePaper"
+        />
 
         <Transition name="fade" mode="out-in">
           <TransitionGroup name="list" tag="div" class="paper-question-list" v-if="paper.questions.length">
@@ -354,96 +146,17 @@
           {{ downloadError }}
         </div>
 
-        <Transition name="fade">
-          <div v-if="exported" class="export-preview card">
-            <div class="export-preview-head">
-              <div>
-                <h3>{{ paper.title }}</h3>
-                <p>
-                  Subject: {{ paper.subject || '-' }} |
-                  Duration: {{ paper.duration }} min |
-                  Total: {{ paper.totalMarks }} marks
-                </p>
-              </div>
-              <div class="export-mode-actions" aria-label="Export question order">
-                <button
-                  class="btn btn-sm"
-                  :class="exportMode === 'paper' ? 'btn-primary' : 'btn-outline'"
-                  @click="exportMode = 'paper'"
-                >
-                  Paper Order
-                </button>
-                <button
-                  class="btn btn-sm"
-                  :class="exportMode === 'categorized' ? 'btn-primary' : 'btn-outline'"
-                  @click="exportMode = 'categorized'"
-                >
-                  By Type
-                </button>
-              </div>
-            </div>
-            <p class="export-preview-note">
-              {{ exportMode === 'categorized' ? 'Questions are grouped as multiple-choice, fill-in-the-blank, and essay, with forward numbering across sections.' : 'Questions follow the order from the paper builder.' }}
-            </p>
-            <section v-for="section in exportSections" :key="section.key" class="export-section">
-              <h4 v-if="section.title" class="export-section-title">{{ section.title }}</h4>
-              <ol class="export-q-list" :start="section.start">
-                <li v-for="q in section.questions" :key="q.id" class="export-question">
-                  <span v-if="q.marks" class="export-mark">{{ q.marks }} mark{{ q.marks !== 1 ? 's' : '' }}</span>
-                  <div class="export-q-text">
-                    <template v-for="(part, i) in parseLatexParts(q.text)" :key="i">
-                      <LatexRenderer v-if="part.isLatex" :formula="part.content" :block="part.block" />
-                      <span v-else>{{ part.content }}</span>
-                    </template>
-                  </div>
-
-                  <div v-if="isOptionQuestionType(q.type) && q.options?.length" class="export-options">
-                    <div v-for="(opt, idx) in q.options" :key="idx" class="export-option">
-                      <span class="q-option-label">{{ String.fromCharCode(65 + idx) }}.</span>
-                      <span>
-                        <template v-for="(part, i) in parseLatexParts(opt)" :key="i">
-                          <LatexRenderer v-if="part.isLatex" :formula="part.content" />
-                          <span v-else>{{ part.content }}</span>
-                        </template>
-                      </span>
-                    </div>
-                  </div>
-
-                  <div
-                    v-if="q.type === 'essay'"
-                    class="export-essay-space"
-                    :style="getEssayBlankStyle(q)"
-                  />
-
-                  <div v-if="q.images?.length" class="export-images">
-                    <img
-                      v-for="(img, imgIdx) in q.images"
-                      :key="imgIdx"
-                      :src="img.url"
-                      :alt="img.caption || 'Question image'"
-                      :title="img.caption || ''"
-                      width="160"
-                      height="120"
-                      class="export-image-thumb"
-                      loading="lazy"
-                    />
-                  </div>
-
-                  <div v-if="includeAnswersInExport && canReadAnswers" class="export-answer">
-                    <strong>Answer:</strong>
-                    <template v-if="Array.isArray(q.answer)">
-                      {{ q.answer.join(', ') }}
-                    </template>
-                    <template v-else v-for="(part, i) in parseLatexParts(q.answer)" :key="i">
-                      <LatexRenderer v-if="part.isLatex" :formula="part.content" />
-                      <span v-else>{{ part.content }}</span>
-                    </template>
-                  </div>
-                </li>
-              </ol>
-            </section>
-          </div>
-        </Transition>
+        <PaperExportPanel
+          :visible="exported"
+          :paper-title="paper.title"
+          :paper-subject="paper.subject"
+          :paper-duration="paper.duration"
+          :paper-total-marks="paper.totalMarks"
+          :paper-questions="paper.questions"
+          v-model:export-mode="exportMode"
+          v-model:include-answers-in-export="includeAnswersInExport"
+          :can-read-answers="canReadAnswers"
+        />
       </div>
     </div>
   </section>
@@ -466,36 +179,15 @@
 </template>
 
 <script setup lang="ts">
-import PaginationControls from '~/components/questions/PaginationControls.vue'
-import QuestionBankCard from '~/components/questions/QuestionBankCard.vue'
 import QuestionBankToolbar from '~/components/questions/QuestionBankToolbar.vue'
 import EditQuestionModal from '~/components/questions/EditQuestionModal.vue'
 import QuestionCorrectionModal from '~/components/questions/QuestionCorrectionModal.vue'
+import PaperGenerationForm from '~/components/PaperGenerationForm.vue'
+import PaperExportPanel from '~/components/PaperExportPanel.vue'
+import QuestionCardList from '~/components/QuestionCardList.vue'
 import type { Question, QuestionDifficulty, QuestionEntity, QuestionType } from '~/types/question'
-import {
-  QUESTION_TYPE_LABELS,
-  QUESTION_TYPE_ORDER,
-  getEssayBlankHeightPx,
-  isOptionQuestionType,
-  normalizeQuestion
-} from '~/domain/questions'
-
-interface GenerationDiagnostics {
-  fitness: number
-  candidateCount: number
-  questionCount: number
-  ownQuestionsOnly: boolean
-  difficultyActual: Record<string, number>
-  difficultyTargets: Record<string, number>
-  typeActual: Record<string, number>
-  typeTargets: Record<string, number>
-  difficultyCoefficient: number
-  scoreWeightActual: number
-  marksActual: number
-  generationsRun: number
-  requiredTags: string[]
-  preferredTags: string[]
-}
+import type { GenerationDiagnostics, GenerationFormState, ExportMode } from '~/types/generation'
+import { normalizeQuestion } from '~/domain/questions'
 
 type PaperQuestion = Question & { marks?: number; orderNo?: number }
 type ApiPaperQuestion = Partial<QuestionEntity> & { id: number; marks?: number | null; orderNo?: number | null }
@@ -573,19 +265,7 @@ const { hasPermission, isAuthReady, user } = useAuth()
 const { apiFetch, getApiBase, refreshSessionCookie } = useApi()
 const route = useRoute()
 const router = useRouter()
-type ExportMode = 'paper' | 'categorized'
 type BankMode = 'all' | 'mine'
-interface GenerationFormState {
-  difficultyCoefficient: number
-  questionTypes: QuestionType[]
-  typeCounts: Record<string, number>
-  subjects: string[]
-  requiredTagsStr: string
-  requiredTags: string[]
-  preferredTagsStr: string
-  preferredTags: string[]
-  customTagInput: string
-}
 
 const DEFAULT_PAPER = {
   duration: 60,
@@ -606,7 +286,6 @@ const search = ref((route.query.q as string) || '')
 const filterSubject = ref(parseQuerySubject())
 const filterDifficulty = ref<QuestionDifficulty | ''>((route.query.difficulty as QuestionDifficulty) || '')
 const shownIds = reactive(new Set<number>())
-function isShown (id: number) { return shownIds.has(id) }
 const exportMode = ref<ExportMode>('paper')
 const includeAnswersInExport = ref(false)
 const bankMode = ref<BankMode>(parseQueryBank())
@@ -730,34 +409,7 @@ function goToPage (page: number) {
   void loadCurrentPage(page)
 }
 
-function typeLabel (type: Question['type']) {
-  return QUESTION_TYPE_LABELS[type] || type
-}
-
 const subjects = computed(() => availableSubjects.value)
-
-const exportSections = computed(() => {
-  if (exportMode.value !== 'categorized') {
-    return [{ key: 'paper', title: '', questions: paper.questions, start: 1 }]
-  }
-
-  const byType = new Map<QuestionType, PaperQuestion[]>()
-  for (const q of paper.questions) {
-    const list = byType.get(q.type)
-    if (list) list.push(q)
-    else byType.set(q.type, [q])
-  }
-
-  const sections: { key: string; title: string; questions: PaperQuestion[]; start: number }[] = []
-  let start = 1
-  for (const type of QUESTION_TYPE_ORDER) {
-    const questions = byType.get(type)
-    if (!questions || !questions.length) continue
-    sections.push({ key: type, title: QUESTION_TYPE_LABELS[type], questions, start })
-    start += questions.length
-  }
-  return sections
-})
 
 const paperQuestionIds = computed(() => {
   const ids = new Set<number>()
@@ -779,6 +431,10 @@ function toggleQuestion (question: Question) {
 function removeQuestion (id: number) {
   const idx = paper.questions.findIndex(q => q.id === id)
   if (idx !== -1) paper.questions.splice(idx, 1)
+}
+
+function onDeleteQuestionFromCard (question: Question) {
+  removeQuestion(question.id)
 }
 
 function moveUp (idx: number) {
@@ -1034,118 +690,7 @@ async function generatePaper () {
   }
 }
 
-function formatDistribution (distribution: Record<string, number>) {
-  return Object.entries(distribution)
-    .map(([key, value]) => `${key} ${value}`)
-    .join(', ') || '-'
-}
-
-function tagChipClass (tag: string) {
-  if (generationForm.requiredTags.includes(tag)) return 'gen-chip--required'
-  if (generationForm.preferredTags.includes(tag)) return 'gen-chip--preferred'
-  return ''
-}
-
-function toggleQuestionType (type: QuestionType) {
-  const index = generationForm.questionTypes.indexOf(type)
-  if (index === -1) {
-    generationForm.questionTypes = [...generationForm.questionTypes, type]
-    generationForm.typeCounts = { ...generationForm.typeCounts, [type]: generationForm.typeCounts[type] || 1 }
-  } else {
-    generationForm.questionTypes = generationForm.questionTypes.filter(t => t !== type)
-    const newCounts = { ...generationForm.typeCounts }
-    delete newCounts[type]
-    generationForm.typeCounts = newCounts
-  }
-}
-
-function toggleSubject (subject: string) {
-  const index = generationForm.subjects.indexOf(subject)
-  if (index === -1) {
-    generationForm.subjects = [...generationForm.subjects, subject]
-  } else {
-    generationForm.subjects = generationForm.subjects.filter(s => s !== subject)
-  }
-}
-
-function toggleTag (event: MouseEvent, tag: string) {
-  const shift = event.shiftKey
-  if (generationForm.requiredTags.includes(tag)) {
-    generationForm.requiredTags = generationForm.requiredTags.filter(t => t !== tag)
-  } else if (generationForm.preferredTags.includes(tag)) {
-    generationForm.preferredTags = generationForm.preferredTags.filter(t => t !== tag)
-  } else if (shift) {
-    generationForm.preferredTags = [...generationForm.preferredTags, tag]
-  } else {
-    generationForm.requiredTags = [...generationForm.requiredTags, tag]
-  }
-}
-
-function removeTag (tag: string) {
-  generationForm.requiredTags = generationForm.requiredTags.filter(t => t !== tag)
-  generationForm.preferredTags = generationForm.preferredTags.filter(t => t !== tag)
-}
-
-const selectedTagsDisplay = computed(() => {
-  const display: { value: string; group: string }[] = []
-  for (const tag of generationForm.requiredTags) {
-    if (!display.some(d => d.value === tag)) display.push({ value: tag, group: 'required' })
-  }
-  for (const tag of generationForm.preferredTags) {
-    const existing = display.find(d => d.value === tag)
-    if (existing) existing.group = 'both'
-    else display.push({ value: tag, group: 'preferred' })
-  }
-  return display
-})
-
-function addCustomTag () {
-  const input = generationForm.customTagInput.trim()
-  if (!input) return
-  const tags = input.split(',').map(t => t.trim().toLowerCase()).filter(Boolean)
-  for (const tag of tags) {
-    if (!generationForm.requiredTags.includes(tag) && !generationForm.preferredTags.includes(tag)) {
-      generationForm.requiredTags = [...generationForm.requiredTags, tag]
-    }
-  }
-  generationForm.customTagInput = ''
-}
-
-const fitnessClass = computed(() => {
-  if (!generationDiagnostics.value) return ''
-  const f = generationDiagnostics.value.fitness
-  if (f >= 0.85) return 'gen-fitness--high'
-  if (f >= 0.60) return 'gen-fitness--mid'
-  return 'gen-fitness--low'
-})
-
-const difficultyLabel = computed(() => {
-  const coeff = generationForm.difficultyCoefficient
-  if (coeff <= 0.3) return 'Easy'
-  if (coeff <= 0.55) return 'Easy-Medium'
-  if (coeff <= 0.75) return 'Medium-Hard'
-  return 'Hard'
-})
-
-const difficultyBadgeClass = computed(() => {
-  const coeff = generationForm.difficultyCoefficient
-  if (coeff <= 0.3) return 'badge-easy'
-  if (coeff <= 0.55) return 'badge-medium'
-  return 'badge-hard'
-})
-
 import { formatScoreWeight } from '~/utils/format'
-
-function toggleAnswer (id: number) {
-  if (shownIds.has(id)) shownIds.delete(id)
-  else shownIds.add(id)
-}
-
-function getEssayBlankStyle (question: Question) {
-  return {
-    minHeight: `${getEssayBlankHeightPx(question.essayBlankSpace)}px`
-  }
-}
 
 function openEditModal (question: Question) {
   editingQuestion.value = question
@@ -1165,16 +710,6 @@ function openCorrectionModal (question: Question) {
 
 function closeCorrectionModal () {
   reportingQuestion.value = null
-}
-
-async function handleDeleteQuestion (question: Question) {
-  if (!window.confirm(`Delete question #${question.id}? This will also remove all revision history and corrections. This cannot be undone.`)) return
-  try {
-    await deleteQuestion(question.publicId)
-    removeQuestion(question.id)
-  } catch {
-    // deletion may fail silently when local state already removed
-  }
 }
 </script>
 
@@ -2086,6 +1621,3 @@ async function handleDeleteQuestion (question: Question) {
   background: rgba(30, 41, 59, 0.5);
 }
 </style>
-
-
-
