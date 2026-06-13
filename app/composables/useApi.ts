@@ -16,6 +16,7 @@ export interface ApiRequestOptions {
 }
 
 let refreshPromise: Promise<boolean> | null = null
+let refreshTimerId: ReturnType<typeof setTimeout> | null = null
 const DEFAULT_TIMEOUT_MS = 15_000
 const RETRYABLE_STATUS_CODES = new Set([408, 429, 500, 502, 503, 504])
 const CSRF_COOKIE_NAME = 'testpapers_csrf'
@@ -59,7 +60,11 @@ function syncAuthSession (session: AuthSession | null) {
     const expires = new Date(session.expiresAt).getTime()
     const skew = 2 * 60 * 1000
     const delay = Math.max(5_000, expires - skew - Date.now())
-    setTimeout(() => {
+    if (refreshTimerId !== null) {
+      clearTimeout(refreshTimerId)
+    }
+    refreshTimerId = setTimeout(() => {
+      refreshTimerId = null
       void refreshSessionCookie()
     }, delay)
   }

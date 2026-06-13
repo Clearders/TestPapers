@@ -226,6 +226,23 @@ export function useQuestionBank () {
     })
   }
 
+  const addQuestionLocally = (question: QuestionEntity) => {
+    const normalized = normalizeQuestion(question)
+    upsertQuestion(questions, normalized)
+    upsertQuestion(myQuestions, normalized)
+  }
+
+  const replaceQuestionLocally = (question: QuestionEntity) => {
+    const normalized = normalizeQuestion(question)
+    replaceQuestion(questions, normalized)
+    replaceQuestion(myQuestions, normalized)
+  }
+
+  const removeQuestionLocally = (questionId: number) => {
+    removeQuestionById(questions, questionId)
+    removeQuestionById(myQuestions, questionId)
+  }
+
   return {
     questions,
     myQuestions,
@@ -251,6 +268,9 @@ export function useQuestionBank () {
     fetchCorrections,
     updateCorrectionStatus,
     deleteRevision,
-    deleteCorrection
+    deleteCorrection,
+    addQuestionLocally,
+    replaceQuestionLocally,
+    removeQuestionLocally
   }
 }

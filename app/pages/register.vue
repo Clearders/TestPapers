@@ -67,6 +67,19 @@ async function submitRegister () {
   message.value = ''
   hasError.value = false
 
+  if (form.password.length < 8) {
+    message.value = 'Password must be at least 8 characters.'
+    hasError.value = true
+    registerPasswordInput.value?.focus()
+    return
+  }
+  if (!/[A-Za-z]/.test(form.password) || !/\d/.test(form.password)) {
+    message.value = 'Password must contain both letters and numbers.'
+    hasError.value = true
+    registerPasswordInput.value?.focus()
+    return
+  }
+
   if (form.password !== confirmPassword.value) {
     message.value = 'Passwords do not match.'
     hasError.value = true
