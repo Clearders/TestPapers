@@ -43,7 +43,6 @@
 </template>
 
 <script setup lang="ts">
-import { reactive } from 'vue'
 import type { Question } from '~/types/question'
 import type { ApiPagination } from '~/types/api'
 import { QUESTION_TYPE_LABELS } from '~/domain/questions'
@@ -107,3 +106,42 @@ async function handleDeleteQuestion (question: Question) {
   }
 }
 </script>
+
+<style scoped>
+.q-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  position: relative;
+}
+
+.status-banner {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: #f8fafc;
+  color: var(--color-muted);
+  padding: 10px 12px;
+  margin-bottom: 14px;
+  font-size: .875rem;
+}
+.status-banner--error {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.empty-state {
+  text-align: center;
+  color: var(--color-muted);
+}
+
+[data-theme="dark"] .status-banner {
+  background: rgba(30, 41, 59, 0.6);
+}
+
+[data-theme="dark"] .status-banner--error {
+  background: rgba(248, 113, 113, 0.1);
+  border-color: rgba(248, 113, 113, 0.25);
+  color: #fca5a5;
+}
+</style>

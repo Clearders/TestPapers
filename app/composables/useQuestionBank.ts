@@ -178,7 +178,8 @@ export function useQuestionBank () {
       ])
       availableSubjects.value = subjectsRes.data
       availableTags.value = tagsRes.data
-    } catch {
+    } catch (e) {
+      console.error('[QuestionBank] Failed to load meta data', e)
     } finally {
       isLoadingMeta.value = false
     }

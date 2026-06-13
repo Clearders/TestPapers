@@ -138,6 +138,7 @@
 <script setup lang="ts">
 import type { Question, QuestionCorrection } from '~/types/question'
 import { isOptionQuestionType } from '~/domain/questions'
+import { formatScoreWeight } from '~/utils/format'
 import QuestionRevisionHistory from '~/components/questions/QuestionRevisionHistory.vue'
 
 const props = defineProps<{
@@ -151,8 +152,6 @@ const props = defineProps<{
   canReview: boolean
   canDelete: boolean
 }>()
-
-import { formatScoreWeight } from '~/utils/format'
 
 defineEmits<{
   'toggle-answer': [id: number]

@@ -191,7 +191,7 @@
             <button class="btn btn-outline" @click="showDeleteConfirm = false">Cancel</button>
             <button
               class="btn btn-danger"
-              :disabled="deleteConfirmText !== 'DELETE' || deleteSaving"
+              :disabled="deleteConfirmText.trim() !== 'DELETE' || deleteSaving"
               @click="handleDeleteAccount"
             >
               {{ deleteSaving ? 'Deleting…' : 'Delete Account' }}

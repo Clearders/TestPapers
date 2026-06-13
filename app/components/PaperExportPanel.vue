@@ -150,3 +150,133 @@ const exportSections = computed(() => {
   return sections
 })
 </script>
+
+<style scoped>
+.export-preview {
+  background: var(--color-surface);
+  margin-top: 24px;
+  overflow: hidden;
+}
+.export-preview-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.export-preview-head h3 {
+  margin-bottom: 6px;
+}
+.export-preview-head p {
+  color: var(--color-muted);
+  font-size: .875rem;
+}
+.export-preview-note {
+  color: var(--color-muted);
+  font-size: .875rem;
+  margin-bottom: 16px;
+}
+.export-mode-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+.export-section {
+  margin-top: 18px;
+}
+.export-section-title {
+  padding-bottom: 8px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--color-border);
+  font-size: .95rem;
+  font-weight: 700;
+}
+.export-q-list {
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.export-q-list li {
+  font-size: .95rem;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+.export-q-text {
+  display: inline;
+}
+.export-mark {
+  display: inline-block;
+  margin-right: 8px;
+  color: var(--color-muted);
+  font-size: .82rem;
+}
+.export-options {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px 16px;
+}
+.export-option {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  min-width: 0;
+}
+.export-essay-space {
+  margin-top: 14px;
+}
+.export-answer {
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: #f8fafc;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+}
+.export-image-thumb {
+  max-width: 160px;
+  max-height: 120px;
+  object-fit: contain;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+}
+.export-images {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+:deep(.katex-display),
+:deep(.latex-block) {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+@media (max-width: 700px) {
+  .export-preview-head,
+  .export-mode-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+@media (max-width: 560px) {
+  .export-mode-actions .btn {
+    width: 100%;
+  }
+
+  .export-image-thumb {
+    max-width: 100%;
+    width: 100%;
+  }
+}
+
+.q-option-label {
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+[data-theme="dark"] .export-answer {
+  background: rgba(30, 41, 59, 0.5);
+}
+</style>

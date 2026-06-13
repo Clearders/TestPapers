@@ -188,14 +188,12 @@ function zoomOut() {
 function flipHorizontal() {
   const image = cropper?.getCropperImage()
   if (!image) return
-  const matrix = image.$getTransform()
   image.$scale(-1, 1)
 }
 
 function flipVertical() {
   const image = cropper?.getCropperImage()
   if (!image) return
-  const matrix = image.$getTransform()
   image.$scale(1, -1)
 }
 

@@ -81,7 +81,8 @@ export function useRealtime () {
       }
     }
 
-    socket.onerror = () => {
+    socket.onerror = (event) => {
+      console.error('[Realtime] WebSocket error', event)
     }
 
     socket.onclose = () => {
