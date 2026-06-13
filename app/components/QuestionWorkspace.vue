@@ -46,6 +46,7 @@
           @report="openCorrectionModal"
           @delete="onDeleteQuestionFromCard"
           @page-change="goToPage"
+          @toggle-answer="onToggleAnswer"
         />
       </div>
 
@@ -427,6 +428,11 @@ function toggleQuestion (question: Question) {
     return
   }
   paper.questions.push({ ...question })
+}
+
+function onToggleAnswer (id: number) {
+  if (shownIds.has(id)) shownIds.delete(id)
+  else shownIds.add(id)
 }
 
 function removeQuestion (id: number) {

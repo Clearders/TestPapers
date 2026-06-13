@@ -83,8 +83,6 @@ function isAdded (id: number) {
 }
 
 function toggleAnswer (id: number) {
-  if (props.shownIds.has(id)) props.shownIds.delete(id)
-  else props.shownIds.add(id)
   emit('toggle-answer', id)
 }
 

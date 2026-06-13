@@ -239,9 +239,13 @@ export function useQuestionBank () {
     replaceQuestion(myQuestions, normalized)
   }
 
-  const removeQuestionLocally = (questionId: number) => {
-    removeQuestionById(questions, questionId)
-    removeQuestionById(myQuestions, questionId)
+  const removeQuestionLocally = (publicId: string) => {
+    const removeByPublicId = (state: { value: Question[] }, pid: string) => {
+      const idx = state.value.findIndex(q => q.publicId === pid)
+      if (idx !== -1) state.value.splice(idx, 1)
+    }
+    removeByPublicId(questions, publicId)
+    removeByPublicId(myQuestions, publicId)
   }
 
   return {

@@ -80,8 +80,9 @@ async function submitLogin () {
   try {
     await login(username.value, password.value)
     await navigateTo(redirectTarget.value)
-  } catch (error) {
-    errorMessage.value = error instanceof Error ? error.message : 'Login failed.'
+  } catch (err: any) {
+    const detail = err?.data?.detail
+    errorMessage.value = detail?.message || (err instanceof Error ? err.message : 'Login failed.')
   } finally {
     isSubmitting.value = false
   }

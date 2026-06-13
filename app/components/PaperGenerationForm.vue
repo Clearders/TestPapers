@@ -931,21 +931,10 @@ function formatDistribution (distribution: Record<string, number>) {
     align-items: stretch;
     flex-direction: column;
   }
-}
-@media (max-width: 560px) {
+
   .gen-action .btn {
     width: 100%;
   }
-}
-
-.subject-pill {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: .75rem;
-  font-weight: 500;
-  background: rgba(79, 110, 247, 0.1);
-  color: var(--color-primary);
 }
 
 [data-theme="dark"] .status-banner {

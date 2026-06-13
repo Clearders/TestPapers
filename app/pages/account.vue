@@ -80,8 +80,8 @@
             name="new-password"
             autocomplete="new-password"
             class="form-input"
-             placeholder="Enter new password (min 6 characters)…"
-            minlength="6"
+             placeholder="Enter new password (min 8 characters)…"
+            minlength="8"
             maxlength="128"
           />
         </div>
@@ -258,7 +258,7 @@ const passwordMismatch = computed(() => {
 
 const canChangePassword = computed(() => {
   return passwordForm.currentPassword &&
-    passwordForm.newPassword.length >= 6 &&
+    passwordForm.newPassword.length >= 8 &&
     passwordForm.confirmPassword.length > 0 &&
     !passwordMismatch.value
 })
@@ -344,7 +344,7 @@ async function uploadAvatarFile () {
 }
 
 async function handleDeleteAccount () {
-  if (deleteConfirmText.value !== 'DELETE') return
+  if (deleteConfirmText.value.trim() !== 'DELETE') return
   deleteSaving.value = true
   deleteError.value = false
   deleteMessage.value = ''
