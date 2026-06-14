@@ -131,7 +131,7 @@
 | ------------------- | ---------------- | :---: | :-----: | :----: |
 | `questions:read`    | 查看试题列表/详情 |   ✓   |    ✓    |   ✓   |
 | `questions:write`   | 创建/编辑试题     |   ✓   |    ✓    |   ✗   |
-| `questions:delete`  | 删除试题          |   ✓   |    ✗    |   ✗   |
+| `questions:delete`  | 删除试题          |   ✓   | ✓（自己的） |   ✗   |
 | `answers:read`      | 查看答案          |   ✓   |    ✓    |   ✗   |
 | `papers:read`       | 查看试卷          |   ✓   |    ✓    |   ✓   |
 | `papers:write`      | 创建/编辑试卷     |   ✓   |    ✓    |   ✗   |
@@ -370,7 +370,6 @@ WS /api/v1/ws
 **认证**：连接握手以以下优先级进行认证：
 1. `Authorization: Bearer <token>` 请求头
 2. HttpOnly `testpapers_session` Cookie
-3. `?token=<token>` 查询参数（适用于跨域场景）
 
 连接成功后服务端发送 `auth.connected` 事件。客户端发送 `{ "event": "ping" }` 时，服务端返回 `{ "event": "pong" }`。
 
@@ -1245,7 +1244,7 @@ POST /api/v1/tasks/cleanup-expired-sessions
 ### 8.7 试题统计信息
 
 ```http
-GET /api/v1/tasks/stats/questions
+POST /api/v1/tasks/stats/questions
 ```
 
 > **所需权限**：`questions:read`
@@ -1520,7 +1519,7 @@ interface QuestionCorrectionEntity {
 
 ### 14.3 WebSocket 实时通信
 
-- 认证优先级：`Authorization: Bearer` → Cookie `testpapers_session` → 查询参数 `?token=`。
+- 认证优先级：`Authorization: Bearer` → Cookie `testpapers_session`。令牌不允许出现在 URL 查询参数中。
 - 连接成功后服务端发送 `auth.connected` 事件。
 - 广播事件：`question.created` / `question.updated` / `question.deleted` / `paper.created` / `paper.updated` / `paper.questions.added` / `paper.question.removed` / `paper.questions.reordered`。
 - 前端通过 `useRealtime.ts` composable 管理 WebSocket 连接生命周期，含心跳和指数退避重连。
@@ -1611,7 +1610,7 @@ interface QuestionCorrectionEntity {
 | `POST`   | `/api/v1/tasks/validate-questions`                      | `questions:read`     | 验证全部试题            |
 | `POST`   | `/api/v1/tasks/validate-question/{question_public_id}`  | `questions:read`     | 验证单个试题            |
 | `POST`   | `/api/v1/tasks/cleanup-expired-sessions`                | `users:manage`       | 清理过期会话            |
-| `GET`    | `/api/v1/tasks/stats/questions`                         | `questions:read`     | 试题统计信息            |
+| `POST`   | `/api/v1/tasks/stats/questions`                         | `questions:read`     | 试题统计信息            |
 | `GET`    | `/api/v1/health/postgres`                               | 无                   | PostgreSQL 健康检查     |
 | `GET`    | `/api/v1/health/redis`                                  | 无                   | Redis 健康检查          |
 | `GET`    | `/`                                                     | 无                   | 服务信息                |

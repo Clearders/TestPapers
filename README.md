@@ -153,7 +153,7 @@ When `NUXT_PUBLIC_API_BASE` is a relative path (starting with `/`), Nuxt proxies
 
 ### Realtime Updates
 - WebSocket connection managed by `useRealtime.ts`
-- Authentication via Cookie, Bearer token, or `?token=` query param
+- Authentication via HttpOnly Cookie or Bearer token; tokens are not accepted in URLs
 - Heartbeat ping/pong (25s interval)
 - Exponential backoff reconnection
 - Receives broadcast events for question and paper changes

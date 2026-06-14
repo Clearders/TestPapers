@@ -38,7 +38,7 @@
           :pagination="activePagination"
           :can-read-answers="canReadAnswers"
           :can-review="canReview"
-          :can-delete="canDelete"
+          :can-delete-question="canDeleteQuestion"
           :can-edit-question="canEditQuestion"
           :can-create-questions="canCreateQuestions"
           @toggle-question="toggleQuestion"
@@ -299,6 +299,7 @@ const savedPaperId = ref<string | null>(null)
 const savedPaperSignature = ref('')
 const isDownloadingDocx = ref(false)
 const downloadError = ref('')
+let searchLoadTimer: ReturnType<typeof setTimeout> | null = null
 
 const paper = reactive({
   title: '',
@@ -317,10 +318,14 @@ const canReadQuestions = computed(() => hasPermission('questions:read'))
 const canWritePapers = computed(() => hasPermission('papers:write'))
 const isAdmin = computed(() => hasPermission('users:manage'))
 const canReview = computed(() => hasPermission('questions:write'))
-const canDelete = computed(() => hasPermission('questions:delete'))
-
 function canEditQuestion (q: Question) {
   if (!hasPermission('questions:write')) return false
+  if (isAdmin.value) return true
+  return q.ownerId === null || q.ownerId === user.value?.id
+}
+
+function canDeleteQuestion (q: Question) {
+  if (!hasPermission('questions:delete')) return false
   if (isAdmin.value) return true
   return q.ownerId === null || q.ownerId === user.value?.id
 }
@@ -360,8 +365,16 @@ watch(
 watch([search, filterSubject, filterDifficulty], () => {
   if (import.meta.client) {
     syncQuery()
-    if (canReadQuestions.value) void loadCurrentPage(1)
+    if (searchLoadTimer) clearTimeout(searchLoadTimer)
+    searchLoadTimer = setTimeout(() => {
+      searchLoadTimer = null
+      if (canReadQuestions.value) void loadCurrentPage(1)
+    }, 250)
   }
+})
+
+onBeforeUnmount(() => {
+  if (searchLoadTimer) clearTimeout(searchLoadTimer)
 })
 
 watch([bankMode], () => {

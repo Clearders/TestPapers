@@ -19,7 +19,7 @@
       :type-label="typeLabel"
       :can-edit="canEditQuestion(q)"
       :can-review="canReview"
-      :can-delete="canDelete"
+      :can-delete="canDeleteQuestion(q)"
       @toggle-answer="toggleAnswer"
       @toggle-question="$emit('toggle-question', q)"
       @edit="$emit('edit', q)"
@@ -58,7 +58,7 @@ const props = defineProps<{
   pagination: ApiPagination
   canReadAnswers: boolean
   canReview: boolean
-  canDelete: boolean
+  canDeleteQuestion: (q: Question) => boolean
   canEditQuestion: (q: Question) => boolean
   canCreateQuestions: boolean
 }>()

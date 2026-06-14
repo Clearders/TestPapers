@@ -56,13 +56,19 @@ function syncAuthSession (session: AuthSession | null) {
   user.value = session?.user || null
   expiresAt.value = session?.expiresAt || ''
 
-  if (import.meta.client && session) {
-    const expires = new Date(session.expiresAt).getTime()
+  scheduleSessionRefresh(session?.expiresAt || '')
+}
+
+function scheduleSessionRefresh (expiresAt: string) {
+  if (import.meta.server) return
+  if (refreshTimerId !== null) {
+    clearTimeout(refreshTimerId)
+    refreshTimerId = null
+  }
+  if (expiresAt) {
+    const expires = new Date(expiresAt).getTime()
     const skew = 2 * 60 * 1000
     const delay = Math.max(5_000, expires - skew - Date.now())
-    if (refreshTimerId !== null) {
-      clearTimeout(refreshTimerId)
-    }
     refreshTimerId = setTimeout(() => {
       refreshTimerId = null
       void refreshSessionCookie()
@@ -184,6 +190,13 @@ export function useApi () {
                   } as Record<string, string>,
                   body: options.body && typeof options.body !== 'string' ? JSON.stringify(options.body) : (options.body as BodyInit | null | undefined)
                 })
+                if (!retryResp.ok) {
+                  throw {
+                    status: retryResp.status,
+                    statusCode: retryResp.status,
+                    message: await retryResp.text().catch(() => '')
+                  }
+                }
                 if (rawResponse) return retryResp as unknown as ApiEnvelope<T>
                 return { data: await retryResp.blob() as unknown as T } as unknown as ApiEnvelope<T>
               }
@@ -249,6 +262,7 @@ export function useApi () {
   return {
     apiFetch,
     getApiBase,
-    refreshSessionCookie
+    refreshSessionCookie,
+    scheduleSessionRefresh
   }
 }

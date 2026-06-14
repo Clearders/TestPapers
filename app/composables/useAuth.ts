@@ -3,15 +3,13 @@ import type { AuthSession, AuthUser, PasswordChangePayload, Permission, ProfileU
 export type { AuthSession, AuthUser, Permission, RegisterPayload, UserRole } from '~/types/auth'
 export type { PasswordChangePayload, ProfileUpdatePayload }
 
-const REFRESH_SKEW_MS = 2 * 60 * 1000
 let sessionLoadPromise: Promise<AuthUser | null> | null = null
-let refreshTimer: ReturnType<typeof setTimeout> | null = null
 
 export function useAuth () {
   const user = useState<AuthUser | null>('auth-user', () => null)
   const expiresAt = useState<string>('auth-expires-at', () => '')
   const isAuthReady = useState<boolean>('auth-ready', () => false)
-  const { apiFetch, refreshSessionCookie } = useApi()
+  const { apiFetch, refreshSessionCookie, scheduleSessionRefresh } = useApi()
 
   const isAuthenticated = computed(() => Boolean(user.value))
   const authFetch = apiFetch
@@ -32,17 +30,7 @@ export function useAuth () {
   }
 
   function scheduleRefresh () {
-    if (import.meta.server) return
-    if (refreshTimer) clearTimeout(refreshTimer)
-    refreshTimer = null
-
-    if (!expiresAt.value) return
-    const refreshAt = new Date(expiresAt.value).getTime() - REFRESH_SKEW_MS
-    const delay = Math.max(5_000, refreshAt - Date.now())
-
-    refreshTimer = setTimeout(() => {
-      void refreshSession()
-    }, delay)
+    scheduleSessionRefresh(expiresAt.value)
   }
 
   async function refreshSession () {

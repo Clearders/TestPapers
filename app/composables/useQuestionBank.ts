@@ -25,6 +25,8 @@ function removeQuestionById (state: { value: Question[] }, id: number) {
 }
 
 export function useQuestionBank () {
+  const questionRequestSequence = useState<number>('question-request-sequence', () => 0)
+  const myQuestionRequestSequence = useState<number>('my-question-request-sequence', () => 0)
   const questions = useState<Question[]>('question-bank', () => [])
   const myQuestions = useState<Question[]>('my-question-bank', () => [])
   const isLoading = useState<boolean>('question-bank-loading', () => false)
@@ -45,6 +47,7 @@ export function useQuestionBank () {
   }
 
   const loadQuestions = async (params: QuestionQueryParams = {}) => {
+    const requestSequence = ++questionRequestSequence.value
     isLoading.value = true
     error.value = ''
     try {
@@ -59,18 +62,22 @@ export function useQuestionBank () {
           ...params
         }
       })
-      questions.value = (response.data.items || []).map((item) => normalizeQuestion(item))
+      const loadedQuestions = (response.data.items || []).map((item) => normalizeQuestion(item))
+      if (requestSequence !== questionRequestSequence.value) return questions.value
+      questions.value = loadedQuestions
       questionPagination.value = response.data.pagination
       return questions.value
     } catch (err) {
+      if (requestSequence !== questionRequestSequence.value) return questions.value
       error.value = err instanceof Error ? err.message : 'Failed to load questions.'
       throw err
     } finally {
-      isLoading.value = false
+      if (requestSequence === questionRequestSequence.value) isLoading.value = false
     }
   }
 
   const loadMyQuestions = async (params: QuestionQueryParams = {}) => {
+    const requestSequence = ++myQuestionRequestSequence.value
     isLoadingMine.value = true
     error.value = ''
     try {
@@ -85,14 +92,17 @@ export function useQuestionBank () {
           ...params
         }
       })
-      myQuestions.value = (response.data.items || []).map((item) => normalizeQuestion(item))
+      const loadedQuestions = (response.data.items || []).map((item) => normalizeQuestion(item))
+      if (requestSequence !== myQuestionRequestSequence.value) return myQuestions.value
+      myQuestions.value = loadedQuestions
       myQuestionPagination.value = response.data.pagination
       return myQuestions.value
     } catch (err) {
+      if (requestSequence !== myQuestionRequestSequence.value) return myQuestions.value
       error.value = err instanceof Error ? err.message : 'Failed to load your questions.'
       throw err
     } finally {
-      isLoadingMine.value = false
+      if (requestSequence === myQuestionRequestSequence.value) isLoadingMine.value = false
     }
   }
 
@@ -223,16 +233,21 @@ type QuestionUpdatePayload = Partial<Omit<Question, 'id' | 'publicId' | 'created
     })
   }
 
-  const addQuestionLocally = (question: QuestionEntity) => {
+  const addQuestionLocally = (question: QuestionEntity, currentUserId?: number) => {
     const normalized = normalizeQuestion(question)
     upsertQuestion(questions, normalized)
-    upsertQuestion(myQuestions, normalized)
+    if (normalized.ownerId === currentUserId) upsertQuestion(myQuestions, normalized)
   }
 
-  const replaceQuestionLocally = (question: QuestionEntity) => {
+  const replaceQuestionLocally = (question: QuestionEntity, currentUserId?: number) => {
     const normalized = normalizeQuestion(question)
     replaceQuestion(questions, normalized)
-    replaceQuestion(myQuestions, normalized)
+    if (normalized.ownerId === currentUserId) {
+      upsertQuestion(myQuestions, normalized)
+    } else {
+      const index = myQuestions.value.findIndex(item => item.publicId === normalized.publicId)
+      if (index !== -1) myQuestions.value.splice(index, 1)
+    }
   }
 
   const removeQuestionLocally = (publicId: string) => {

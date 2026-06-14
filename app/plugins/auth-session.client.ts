@@ -13,13 +13,13 @@ export default defineNuxtPlugin(async () => {
   realtime.on('question.created', (payload: any) => {
     if (!payload?.question) return
     if (auth.hasPermission('questions:read') && payload.actorId !== user.value?.id) {
-      questionBank.addQuestionLocally(payload.question)
+      questionBank.addQuestionLocally(payload.question, user.value?.id)
     }
   })
   realtime.on('question.updated', (payload: any) => {
     if (!payload?.question) return
     if (auth.hasPermission('questions:read') && payload.actorId !== user.value?.id) {
-      questionBank.replaceQuestionLocally(payload.question)
+      questionBank.replaceQuestionLocally(payload.question, user.value?.id)
     }
   })
   realtime.on('question.deleted', (payload: any) => {

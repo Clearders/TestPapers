@@ -15,9 +15,20 @@ const apiRouteRules = publicApiBase.startsWith('/')
       }
     }
   : {}
+const connectSources = ["'self'", 'ws:', 'wss:']
+for (const endpoint of [publicApiBase, env.NUXT_PUBLIC_WS_BASE || '']) {
+  if (/^(https?|wss?):\/\//.test(endpoint)) connectSources.push(new URL(endpoint).origin)
+}
+const securityHeaders = {
+  'content-security-policy': `default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob:; connect-src ${[...new Set(connectSources)].join(' ')}; frame-ancestors 'none'; base-uri 'self'; form-action 'self'`,
+  'referrer-policy': 'same-origin',
+  'x-content-type-options': 'nosniff',
+  'x-frame-options': 'DENY'
+}
 
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
+  buildDir: env.NUXT_BUILD_DIR || undefined,
   devtools: { enabled: true },
 
   runtimeConfig: {
@@ -28,7 +39,10 @@ export default defineNuxtConfig({
     }
   },
 
-  routeRules: apiRouteRules,
+  routeRules: {
+    '/**': { headers: securityHeaders },
+    ...apiRouteRules
+  },
 
   css: ['katex/dist/katex.min.css'],
 
