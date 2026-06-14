@@ -200,8 +200,8 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   min-width: 36px;
-  height: 32px;
-  padding: 2px 7px;
+  min-height: 32px;
+  padding: 1px 7px;
   border: 1px solid var(--color-border);
   border-radius: 6px;
   background: var(--color-surface);
@@ -415,8 +415,8 @@ code {
 
   .symbol-chip {
     min-width: 32px;
-    height: 30px;
-    padding: 2px 5px;
+    min-height: 30px;
+    padding: 1px 5px;
     font-size: .8rem;
   }
 
