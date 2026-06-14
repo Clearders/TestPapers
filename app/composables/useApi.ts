@@ -106,6 +106,15 @@ async function refreshSessionCookie () {
   return await refreshPromise
 }
 
+function extractErrorInfo(error: any): { code: string, message: string, status: number } {
+  const errorBody = error?.data?.error || error?.data?.detail
+  return {
+    status: error?.status || error?.statusCode || 0,
+    code: (typeof errorBody === 'object' && errorBody?.code) ? errorBody.code : 'UNKNOWN_ERROR',
+    message: (typeof errorBody === 'object' && errorBody?.message) ? errorBody.message : (error?.message || 'An error occurred'),
+  }
+}
+
 export function useApi () {
   async function apiFetch<T> (path: string, options: ApiRequestOptions = {}) {
     const {
@@ -151,7 +160,8 @@ export function useApi () {
               credentials: 'include',
               headers: {
                 ...mergedHeaders,
-                ...(options.body && typeof options.body === 'string' ? { 'Content-Type': 'application/json' } : {})
+                ...(options.body && typeof options.body !== 'string' && !(options.body instanceof FormData) && !(options.body instanceof Blob)
+                  ? { 'Content-Type': 'application/json' } : {})
               } as Record<string, string>,
               body: options.body && typeof options.body !== 'string' ? JSON.stringify(options.body) : (options.body as BodyInit | null | undefined),
               signal: controller.signal
@@ -159,12 +169,18 @@ export function useApi () {
             clearTimeout(timeoutId)
             if (resp.status === 401 && auth && retryOnUnauthorized && path !== '/auth/refresh' && import.meta.client) {
               if (await refreshSessionCookie()) {
+                const retryCsrf: Record<string, string> = {}
+                const newCsrfToken = readCookie(CSRF_COOKIE_NAME)
+                if (newCsrfToken) retryCsrf['x-csrf-token'] = newCsrfToken
                 const retryResp = await fetch(`${baseUrl}${path}${queryString}`, {
                   method,
                   credentials: 'include',
                   headers: {
-                    ...mergedHeaders,
-                    ...(options.body && typeof options.body === 'string' ? { 'Content-Type': 'application/json' } : {})
+                    ...requestHeaders,
+                    ...headers,
+                    ...retryCsrf,
+                    ...(options.body && typeof options.body !== 'string' && !(options.body instanceof FormData) && !(options.body instanceof Blob)
+                      ? { 'Content-Type': 'application/json' } : {})
                   } as Record<string, string>,
                   body: options.body && typeof options.body !== 'string' ? JSON.stringify(options.body) : (options.body as BodyInit | null | undefined)
                 })
@@ -177,7 +193,7 @@ export function useApi () {
             return { data: await resp.blob() as unknown as T } as unknown as ApiEnvelope<T>
           } catch (error: any) {
             clearTimeout(timeoutId)
-            if (attempt >= retryLimit || !shouldRetryRequest(error, method)) throw error
+            if (attempt >= retryLimit || !shouldRetryRequest(error, method)) throw extractErrorInfo(error)
             await waitForRetry(attempt)
           }
         }
@@ -223,7 +239,7 @@ export function useApi () {
     } catch (error) {
       const shouldRefresh = import.meta.client && auth && retryOnUnauthorized && path !== '/auth/refresh' && getStatusCode(error) === 401
       if (!shouldRefresh || !(await refreshSessionCookie())) {
-        throw error
+        throw extractErrorInfo(error)
       }
 
       return await requestOnce()

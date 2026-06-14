@@ -159,6 +159,10 @@ async function copyPreview() {
     renderError.value = 'Failed to copy to clipboard.'
   }
 }
+
+onUnmounted(() => {
+  if (debounceTimer) clearTimeout(debounceTimer)
+})
 </script>
 
 <style scoped>
@@ -231,7 +235,7 @@ async function copyPreview() {
   transition: border-color 0.25s ease, box-shadow 0.25s ease;
 }
 
-.latex-input:focus {
+.latex-input:focus-visible {
   outline: none;
   border-color: var(--color-primary);
   box-shadow: 0 0 0 3px rgba(79, 110, 247, 0.12);

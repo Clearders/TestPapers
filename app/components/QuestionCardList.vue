@@ -99,8 +99,10 @@ async function handleDeleteQuestion (question: Question) {
   try {
     await deleteQuestion(question.publicId)
     emit('delete', question)
-  } catch {
-    // deletion may fail silently when local state already removed
+  } catch (err) {
+    console.error('[QuestionCardList] Failed to delete question:', err)
+    if (!window.confirm('Failed to delete. Remove from local list anyway?')) return
+    emit('delete', question)
   }
 }
 </script>

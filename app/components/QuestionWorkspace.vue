@@ -365,7 +365,7 @@ watch([search, filterSubject, filterDifficulty], () => {
 })
 
 watch([bankMode], () => {
-  syncQuery()
+  if (import.meta.client) syncQuery()
 })
 
 function syncQuery() {
@@ -427,7 +427,7 @@ function toggleQuestion (question: Question) {
     removeQuestion(question.id)
     return
   }
-  paper.questions.push({ ...question })
+  paper.questions.push(structuredClone(question))
 }
 
 function onToggleAnswer (id: number) {
@@ -446,16 +446,16 @@ function onDeleteQuestionFromCard (question: Question) {
 
 function moveUp (idx: number) {
   if (idx === 0 || idx >= paper.questions.length) return
-  const [question] = paper.questions.splice(idx, 1)
-  if (!question) return
-  paper.questions.splice(idx - 1, 0, question)
+  const [removed] = paper.questions.splice(idx, 1)
+  if (!removed) return
+  paper.questions.splice(idx - 1, 0, removed)
 }
 
 function moveDown (idx: number) {
   if (idx >= paper.questions.length - 1) return
-  const [question] = paper.questions.splice(idx, 1)
-  if (!question) return
-  paper.questions.splice(idx + 1, 0, question)
+  const [removed] = paper.questions.splice(idx, 1)
+  if (!removed) return
+  paper.questions.splice(idx + 1, 0, removed)
 }
 
 function clearPaper () {

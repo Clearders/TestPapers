@@ -292,6 +292,9 @@ function formatStatus (status: string) {
 .q-source {
   font-size: .82rem;
   color: var(--color-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .q-footer {
   display: flex;

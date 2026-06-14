@@ -39,18 +39,18 @@ export default defineNuxtPlugin(async () => {
     }
   })
   realtime.on('paper.questions.added', (payload: any) => {
-    if (payload?.paperId) {
-      console.info('[Session] Questions added to paper:', payload.paperId)
+    if (payload?.paper?.publicId) {
+      console.info('[Session] Questions added to paper:', payload.paper.publicId)
     }
   })
   realtime.on('paper.question.removed', (payload: any) => {
-    if (payload?.paperId) {
-      console.info('[Session] Question removed from paper:', payload.paperId)
+    if (payload?.paper?.publicId) {
+      console.info('[Session] Question removed from paper:', payload.paper.publicId)
     }
   })
   realtime.on('paper.questions.reordered', (payload: any) => {
-    if (payload?.paperId) {
-      console.info('[Session] Paper questions reordered:', payload.paperId)
+    if (payload?.paper?.publicId) {
+      console.info('[Session] Paper questions reordered:', payload.paper.publicId)
     }
   })
 

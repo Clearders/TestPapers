@@ -107,7 +107,15 @@ function toggleRevision (id: number) {
 }
 
 function formatDate (dateStr: string) {
-  return new Date(dateStr).toLocaleString()
+  const date = new Date(dateStr)
+  if (isNaN(date.getTime())) return dateStr || 'Unknown date'
+  return new Intl.DateTimeFormat(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(date)
 }
 
 async function handleDeleteRevision (revisionId: number) {

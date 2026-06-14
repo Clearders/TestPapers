@@ -15,8 +15,8 @@
 
     <div class="gen-controls">
       <div class="gen-field">
-        <label class="form-label">Subjects</label>
-        <div v-if="availableSubjects.length" class="gen-subject-pool">
+        <label class="form-label" id="gen-subjects-label">Subjects</label>
+        <div v-if="availableSubjects.length" class="gen-subject-pool" role="group" aria-labelledby="gen-subjects-label">
           <button
             v-for="subject in availableSubjects"
             :key="subject"
@@ -33,8 +33,8 @@
       </div>
 
       <div class="gen-field">
-        <label class="form-label">Total Score</label>
-        <div class="gen-pill-group">
+        <label class="form-label" id="gen-score-label">Total Score</label>
+        <div class="gen-pill-group" role="group" aria-labelledby="gen-score-label">
           <button
             v-for="score in [50, 100, 120, 150]"
             :key="score"
@@ -92,11 +92,12 @@
 
       <div class="gen-field">
         <div class="gen-field__label-row">
-          <label class="form-label">Difficulty</label>
+          <label class="form-label" htmlFor="gen-difficulty">Difficulty</label>
           <span class="gen-diff-badge" :class="difficultyBadgeClass">{{ difficultyLabel }}</span>
         </div>
         <div class="gen-range-wrap">
           <input
+            id="gen-difficulty"
             :value="generationForm.difficultyCoefficient"
             class="gen-range"
             type="range"
@@ -114,8 +115,8 @@
       </div>
 
       <div class="gen-field">
-        <label class="form-label">Tag Filters <span class="gen-optional">(optional)</span></label>
-        <div v-if="availableTags.length" class="gen-tag-pool">
+        <label class="form-label" id="gen-tags-label">Tag Filters <span class="gen-optional">(optional)</span></label>
+        <div v-if="availableTags.length" class="gen-tag-pool" role="group" aria-labelledby="gen-tags-label">
           <button
             v-for="tag in availableTags"
             :key="tag"
@@ -139,9 +140,12 @@
             <button type="button" class="gen-pill-remove" @click="removeTag(tag.value)" aria-label="Remove">×</button>
           </span>
         </div>
+        <label class="form-label" htmlFor="gen-custom-tag">Custom Tag</label>
         <input
+          id="gen-custom-tag"
           v-model="customTagInputModel"
           class="form-input gen-tag-input"
+          name="customTag"
           placeholder="Type custom tag and press Enter…"
           @keydown.enter.prevent="addCustomTag"
         />
@@ -205,7 +209,6 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
 import type { QuestionType } from '~/types/question'
 import type { GenerationDiagnostics, GenerationFormState } from '~/types/generation'
 import { QUESTION_TYPE_LABELS, QUESTION_TYPE_ORDER } from '~/domain/questions'
@@ -229,11 +232,7 @@ const emit = defineEmits<{
   generate: []
 }>()
 
-const customTagInputModel = ref(props.generationForm.customTagInput)
-
-watch(() => props.generationForm.customTagInput, (val) => {
-  customTagInputModel.value = val
-})
+const customTagInputModel = ref('')
 
 function toggleQuestionType (type: QuestionType) {
   const form = { ...props.generationForm }
@@ -306,6 +305,7 @@ function addCustomTag () {
     }
   }
   customTagInputModel.value = ''
+  form.customTagInput = ''
   emit('update:generationForm', form)
 }
 
@@ -945,5 +945,11 @@ function formatDistribution (distribution: Record<string, number>) {
   background: rgba(248, 113, 113, 0.1);
   border-color: rgba(248, 113, 113, 0.25);
   color: #fca5a5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gen-submit:not(:disabled) {
+    animation: none;
+  }
 }
 </style>

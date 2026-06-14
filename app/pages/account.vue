@@ -92,7 +92,7 @@
             id="pwd-confirm"
             v-model="passwordForm.confirmPassword"
             type="password"
-            name="new-password"
+            name="confirm-new-password"
             autocomplete="new-password"
             class="form-input"
             placeholder="Confirm new password…"
@@ -259,6 +259,8 @@ const passwordMismatch = computed(() => {
 const canChangePassword = computed(() => {
   return passwordForm.currentPassword &&
     passwordForm.newPassword.length >= 8 &&
+    /[A-Za-z]/.test(passwordForm.newPassword) &&
+    /\d/.test(passwordForm.newPassword) &&
     passwordForm.confirmPassword.length > 0 &&
     !passwordMismatch.value
 })
@@ -278,8 +280,8 @@ async function saveProfile () {
     profileMessage.value = 'Profile updated successfully.'
   } catch (err: any) {
     profileError.value = true
-    const detail = err?.data?.detail
-    profileMessage.value = detail?.message || 'Failed to update profile.'
+    const errorBody = err?.data?.error
+    profileMessage.value = (typeof errorBody === 'object' && errorBody?.message) || 'Failed to update profile.'
   } finally {
     profileSaving.value = false
   }
@@ -301,8 +303,8 @@ async function savePassword () {
     passwordMessage.value = 'Password changed successfully.'
   } catch (err: any) {
     passwordError.value = true
-    const detail = err?.data?.detail
-    passwordMessage.value = detail?.message || 'Failed to change password.'
+    const errorBody = err?.data?.error
+    passwordMessage.value = (typeof errorBody === 'object' && errorBody?.message) || 'Failed to change password.'
   } finally {
     passwordSaving.value = false
   }
@@ -336,8 +338,8 @@ async function uploadAvatarFile () {
     avatarMessage.value = 'Avatar updated successfully.'
   } catch (err: any) {
     avatarError.value = true
-    const detail = err?.data?.detail
-    avatarMessage.value = detail?.message || 'Failed to upload avatar.'
+    const errorBody = err?.data?.error
+    avatarMessage.value = (typeof errorBody === 'object' && errorBody?.message) || 'Failed to upload avatar.'
   } finally {
     avatarUploading.value = false
   }
@@ -352,8 +354,9 @@ async function handleDeleteAccount () {
     await deleteAccount()
   } catch (err: any) {
     deleteError.value = true
-    const detail = err?.data?.detail
-    deleteMessage.value = detail?.message || 'Failed to delete account.'
+    const errorBody = err?.data?.error
+    deleteMessage.value = (typeof errorBody === 'object' && errorBody?.message) || 'Failed to delete account.'
+  } finally {
     deleteSaving.value = false
   }
 }

@@ -22,7 +22,7 @@
         </div>
         <div class="form-group">
           <label class="form-label" htmlFor="users-password">Password</label>
-          <input id="users-password" v-model="form.password" class="form-input" type="password" autocomplete="new-password" minlength="6" required />
+          <input id="users-password" v-model="form.password" class="form-input" type="password" autocomplete="new-password" minlength="8" required />
         </div>
         <div class="form-group">
           <label class="form-label" htmlFor="users-role">Role</label>
@@ -45,7 +45,7 @@
             <p class="user-meta">@{{ item.username }} · {{ item.role }}</p>
           </div>
           <div class="user-controls">
-            <select v-model="item.role" class="form-input" @change="updateUser(item)">
+            <select v-model="item.role" class="form-input" aria-label="User role" @change="updateUser(item)">
               <option value="admin">Admin</option>
               <option value="teacher">Teacher</option>
               <option value="viewer">Viewer</option>
@@ -78,6 +78,7 @@ definePageMeta({
 const { authFetch, hasPermission, isAuthReady, user } = useAuth()
 
 const users = ref<AuthUser[]>([])
+const usersOriginal = ref(new Map<string, { role: string, isActive: boolean }>())
 const isSaving = ref(false)
 const message = ref('')
 const canManageUsers = computed(() => hasPermission('users:manage'))
@@ -106,6 +107,10 @@ watch(
 async function loadUsers () {
   const response = await authFetch<AuthUser[]>('/users', { method: 'GET' })
   users.value = response.data
+  usersOriginal.value.clear()
+  for (const u of users.value) {
+    usersOriginal.value.set(u.publicId, { role: u.role, isActive: u.isActive })
+  }
 }
 
 async function createUser () {
@@ -127,28 +132,42 @@ async function createUser () {
     form.role = 'viewer'
     message.value = 'User created.'
     await loadUsers()
-  } catch (error) {
-    message.value = error instanceof Error ? error.message : 'Failed to create user.'
+  } catch (err: any) {
+    const errorBody = err?.data?.error
+    message.value = (typeof errorBody === 'object' && errorBody?.message) || (err instanceof Error ? err.message : 'Failed to create user.')
   } finally {
     isSaving.value = false
   }
 }
 
 async function updateUser (item: AuthUser) {
-  await authFetch<AuthUser>(`/users/${item.publicId}`, {
-    method: 'PATCH',
-    body: {
-      role: item.role,
-      isActive: item.isActive
-    }
-  })
-  await loadUsers()
+  const orig = usersOriginal.value.get(item.publicId)
+  const body: Record<string, unknown> = {}
+  if (!orig || item.role !== orig.role) body.role = item.role
+  if (!orig || item.isActive !== orig.isActive) body.isActive = item.isActive
+  if (!Object.keys(body).length) return
+  try {
+    await authFetch<AuthUser>(`/users/${item.publicId}`, {
+      method: 'PATCH',
+      body
+    })
+    await loadUsers()
+  } catch (err: any) {
+    const errorBody = err?.data?.error
+    message.value = (typeof errorBody === 'object' && errorBody?.message) || (err instanceof Error ? err.message : 'Failed to update user.')
+    await loadUsers()
+  }
 }
 
 async function deleteUser (publicId: string) {
   if (!window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) return
-  await authFetch(`/users/${publicId}`, { method: 'DELETE' })
-  users.value = users.value.filter(item => item.publicId !== publicId)
+  try {
+    await authFetch(`/users/${publicId}`, { method: 'DELETE' })
+    users.value = users.value.filter(item => item.publicId !== publicId)
+  } catch (err: any) {
+    const errorBody = err?.data?.error
+    message.value = (typeof errorBody === 'object' && errorBody?.message) || (err instanceof Error ? err.message : 'Failed to delete user.')
+  }
 }
 </script>
 

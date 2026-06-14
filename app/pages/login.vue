@@ -7,11 +7,11 @@
       <form @submit.prevent="submitLogin">
         <div class="form-group">
           <label class="form-label" htmlFor="login-username">Username</label>
-          <input id="login-username" v-model="username" class="form-input" autocomplete="username" required />
+          <input id="login-username" v-model="username" class="form-input" autocomplete="username" name="username" required />
         </div>
         <div class="form-group">
           <label class="form-label" htmlFor="login-password">Password</label>
-          <input id="login-password" v-model="password" class="form-input" type="password" autocomplete="current-password" required />
+          <input id="login-password" v-model="password" class="form-input" type="password" autocomplete="current-password" name="password" required />
         </div>
         <button class="btn btn-primary" type="submit" :disabled="isSubmitting">
           {{ isSubmitting ? 'Signing in…' : 'Sign In' }}
@@ -36,11 +36,9 @@ definePageMeta({
 
 const { login } = useAuth()
 const route = useRoute()
+const { username, password, isSubmitting } = useAuthForm()
 
-const username = ref('')
-const password = ref('')
 const errorMessage = ref('')
-const isSubmitting = ref(false)
 
 useSeoMeta({
   title: 'Login',
@@ -81,8 +79,8 @@ async function submitLogin () {
     await login(username.value, password.value)
     await navigateTo(redirectTarget.value)
   } catch (err: any) {
-    const detail = err?.data?.detail
-    errorMessage.value = detail?.message || (err instanceof Error ? err.message : 'Login failed.')
+    const errorBody = err?.data?.error
+    errorMessage.value = (typeof errorBody === 'object' && errorBody?.message) || (err instanceof Error ? err.message : 'Login failed.')
   } finally {
     isSubmitting.value = false
   }

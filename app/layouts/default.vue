@@ -31,7 +31,7 @@
           <NuxtLink to="/latex" class="nav-link">LaTeX Preview</NuxtLink>
           <NuxtLink v-if="hasPermission('questions:write')" to="/add-problem" class="nav-link nav-link--highlight">+ Add Problem</NuxtLink>
           <NuxtLink v-if="hasPermission('users:manage')" to="/users" class="nav-link">Users</NuxtLink>
-          <button class="theme-toggle" type="button" @click.stop="toggleTheme">
+          <button class="theme-toggle" type="button" aria-label="Toggle theme" @click.stop="toggleTheme">
             {{ isDark ? '☀ Light' : '☾ Dark' }}
           </button>
           <UserDropdown v-if="isAuthenticated" />
@@ -152,7 +152,7 @@ a, button, [role="button"] { -webkit-tap-highlight-color: transparent; }
   font-weight: 600;
   font-size: .9rem;
 }
-.skip-link:focus {
+.skip-link:focus-visible {
   top: 0;
 }
 
@@ -440,7 +440,7 @@ a, button, [role="button"] { -webkit-tap-highlight-color: transparent; }
   background: var(--color-surface);
   transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
-.form-input:focus {
+.form-input:focus-visible {
   outline: none;
   border-color: var(--color-primary);
   box-shadow: 0 0 0 3px rgba(79, 110, 247, 0.15);
@@ -577,4 +577,19 @@ a, button, [role="button"] { -webkit-tap-highlight-color: transparent; }
 [data-theme="dark"] .revision-diff-table th { background: var(--color-bg); }
 [data-theme="dark"] .revision-diff-table td { border-color: var(--color-border); }
 [data-theme="dark"] .revision-item:hover { background: var(--color-bg); }
+
+.error-fallback {
+  max-width: 520px;
+  margin: 48px auto;
+  padding: 32px;
+  text-align: center;
+}
+.error-fallback h2 {
+  font-size: 1.25rem;
+  margin-bottom: 12px;
+}
+.error-fallback p {
+  color: var(--color-muted);
+  margin-bottom: 20px;
+}
 </style>

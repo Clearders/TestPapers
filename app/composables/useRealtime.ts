@@ -33,6 +33,7 @@ export function useRealtime () {
   function disconnect () {
     clearTimers()
     reconnectAttempts = 0
+    handlers.clear()
     if (socket) {
       socket.onopen = null
       socket.onclose = null

@@ -52,10 +52,12 @@
               </div>
 
               <div v-if="isChoiceType" class="form-group">
-                <label class="form-label">Options</label>
+                <label class="form-label" id="edit-options-label">Options</label>
+                <div role="group" aria-labelledby="edit-options-label">
                 <div v-for="(opt, index) in form.options" :key="index" class="option-row">
                   <span class="option-label">{{ String.fromCharCode(65 + index) }}.</span>
                   <input v-model="form.options[index]" class="form-input" name="editOption" autocomplete="off" required />
+                </div>
                 </div>
               </div>
 

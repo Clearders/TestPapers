@@ -62,6 +62,7 @@
 </template>
 
 <script setup lang="ts">
+import { onUnmounted } from 'vue'
 import Cropper from 'cropperjs'
 
 const props = defineProps<{
@@ -144,6 +145,9 @@ watch(() => props.visible, (val) => {
       })
     }
   } else {
+    if (imgRef.value && imgRef.value.parentNode === document.body) {
+      document.body.removeChild(imgRef.value)
+    }
     if (cropper) {
       cropper.destroy()
       cropper = null
@@ -159,6 +163,9 @@ watch(() => props.visible, (val) => {
 })
 
 onUnmounted(() => {
+  if (imgRef.value?.parentNode === document.body) {
+    document.body.removeChild(imgRef.value)
+  }
   if (cropper) {
     cropper.destroy()
     cropper = null

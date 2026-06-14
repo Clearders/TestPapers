@@ -6,22 +6,22 @@
 
       <div class="form-group">
         <label class="form-label" htmlFor="register-username">Username</label>
-        <input id="register-username" v-model="form.username" class="form-input" autocomplete="username" minlength="3" maxlength="64" required />
+        <input id="register-username" v-model="username" class="form-input" autocomplete="username" name="username" minlength="3" maxlength="64" required />
       </div>
 
       <div class="form-group">
         <label class="form-label" htmlFor="register-displayname">Display Name</label>
-        <input id="register-displayname" v-model="form.displayName" class="form-input" autocomplete="name" maxlength="120" required />
+        <input id="register-displayname" v-model="displayName" class="form-input" autocomplete="name" name="displayName" maxlength="120" required />
       </div>
 
       <div class="form-group">
         <label class="form-label" htmlFor="register-password">Password</label>
-        <input id="register-password" ref="registerPasswordInput" v-model="form.password" class="form-input" type="password" autocomplete="new-password" minlength="6" maxlength="128" required />
+        <input id="register-password" ref="registerPasswordInput" v-model="password" class="form-input" type="password" autocomplete="new-password" name="new-password" minlength="8" maxlength="128" required />
       </div>
 
       <div class="form-group">
         <label class="form-label" htmlFor="register-confirmpassword">Confirm Password</label>
-        <input id="register-confirmpassword" v-model="confirmPassword" class="form-input" type="password" autocomplete="new-password" minlength="6" maxlength="128" required />
+        <input id="register-confirmpassword" v-model="confirmPassword" class="form-input" type="password" autocomplete="new-password" name="confirm-password" minlength="8" maxlength="128" required />
       </div>
 
       <button class="btn btn-primary" type="submit" :disabled="isSubmitting">
@@ -46,15 +46,11 @@ definePageMeta({
 })
 
 const { register } = useAuth()
+const { username, password, isSubmitting } = useAuthForm()
 
-const form = reactive({
-  username: '',
-  displayName: '',
-  password: ''
-})
+const displayName = ref('')
 const confirmPassword = ref('')
 const registerPasswordInput = ref<HTMLInputElement | null>(null)
-const isSubmitting = ref(false)
 const message = ref('')
 const hasError = ref(false)
 
@@ -67,20 +63,20 @@ async function submitRegister () {
   message.value = ''
   hasError.value = false
 
-  if (form.password.length < 8) {
+  if (password.value.length < 8) {
     message.value = 'Password must be at least 8 characters.'
     hasError.value = true
     registerPasswordInput.value?.focus()
     return
   }
-  if (!/[A-Za-z]/.test(form.password) || !/\d/.test(form.password)) {
+  if (!/[A-Za-z]/.test(password.value) || !/\d/.test(password.value)) {
     message.value = 'Password must contain both letters and numbers.'
     hasError.value = true
     registerPasswordInput.value?.focus()
     return
   }
 
-  if (form.password !== confirmPassword.value) {
+  if (password.value !== confirmPassword.value) {
     message.value = 'Passwords do not match.'
     hasError.value = true
     registerPasswordInput.value?.focus()
@@ -91,13 +87,14 @@ async function submitRegister () {
 
   try {
     await register({
-      username: form.username,
-      displayName: form.displayName,
-      password: form.password
+      username: username.value,
+      displayName: displayName.value,
+      password: password.value
     })
     await navigateTo('/questions')
-  } catch (error) {
-    message.value = error instanceof Error ? error.message : 'Registration failed.'
+  } catch (err: any) {
+    const errorBody = err?.data?.error
+    message.value = (typeof errorBody === 'object' && errorBody?.message) || 'Registration failed.'
     hasError.value = true
   } finally {
     isSubmitting.value = false

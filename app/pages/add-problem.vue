@@ -111,15 +111,18 @@
           </div>
 
           <div v-if="form.type === 'single_choice' || form.type === 'multiple_choice'" class="form-group">
-            <label class="form-label">Options <span class="required">*</span></label>
+            <label class="form-label" id="options-label">Options <span class="required">*</span></label>
+            <div role="group" aria-labelledby="options-label">
             <div v-for="(opt, index) in form.options" :key="index" class="option-row">
               <span class="option-label">{{ String.fromCharCode(65 + index) }}.</span>
               <input v-model="form.options[index]" class="form-input" name="optionText" autocomplete="off" :placeholder="'Option ' + String.fromCharCode(65 + index)" required />
             </div>
+            </div>
           </div>
 
           <div v-if="form.type === 'true_false'" class="form-group">
-            <label class="form-label">Options <span class="required">*</span></label>
+            <label class="form-label" id="tf-options-label">Options <span class="required">*</span></label>
+            <div role="group" aria-labelledby="tf-options-label">
             <div class="option-row">
               <span class="option-label">A.</span>
               <input :value="form.options[0]" class="form-input" disabled placeholder="True" />
@@ -127,6 +130,7 @@
             <div class="option-row">
               <span class="option-label">B.</span>
               <input :value="form.options[1]" class="form-input" disabled placeholder="False" />
+            </div>
             </div>
           </div>
 
@@ -138,11 +142,12 @@
           />
 
           <div v-if="form.type === 'essay'" class="form-group">
-            <label class="form-label">Essay Blank Space</label>
-            <div class="form-row">
+            <label class="form-label" id="essay-blank-label">Essay Blank Space</label>
+            <div class="form-row" aria-labelledby="essay-blank-label" role="group">
               <div class="form-group compact-field">
-                <label class="form-label form-label--sub">Lines</label>
+                <label class="form-label form-label--sub" htmlFor="essay-lines">Lines</label>
                 <input
+                  id="essay-lines"
                   v-model.number="form.essayBlankSpace.lines"
                   class="form-input"
                   name="essayLines"
@@ -152,8 +157,9 @@
                 />
               </div>
               <div class="form-group compact-field">
-                <label class="form-label form-label--sub">Line Height (px)</label>
+                <label class="form-label form-label--sub" htmlFor="essay-lineheight">Line Height (px)</label>
                 <input
+                  id="essay-lineheight"
                   v-model.number="form.essayBlankSpace.lineHeight"
                   class="form-input"
                   name="essayLineHeight"
@@ -198,8 +204,8 @@
           </div>
 
           <div class="form-group">
-            <label class="form-label">Source / Reference</label>
-            <input v-model="form.source" class="form-input" placeholder="e.g. Chapter 3, Exercise 5…" autocomplete="off" />
+            <label class="form-label" htmlFor="problem-source">Source / Reference</label>
+            <input id="problem-source" v-model="form.source" class="form-input" placeholder="e.g. Chapter 3, Exercise 5…" autocomplete="off" />
           </div>
 
           <div class="form-actions">
@@ -259,6 +265,7 @@ const { hasPermission } = useAuth()
 const tagInput = ref('')
 const subjectInput = ref('')
 const submitted = ref(false)
+const submittedTimer = ref<ReturnType<typeof setTimeout> | null>(null)
 const submitError = ref('')
 const isSaving = ref(false)
 const uploadingImage = ref(false)
@@ -340,8 +347,9 @@ async function handleImageSelected (event: Event) {
   try {
     const url = await uploadImage(file)
     form.images.push({ url, caption: '' })
-  } catch {
-    submitError.value = 'Failed to upload image.'
+  } catch (error: any) {
+    const errorBody = error?.data?.error
+    submitError.value = (typeof errorBody === 'object' && errorBody?.message) || (error instanceof Error ? error.message : 'Failed to upload image.')
   } finally {
     uploadingImage.value = false
   }
@@ -388,10 +396,12 @@ async function submitProblem () {
     })
 
     submitted.value = true
-    setTimeout(() => { submitted.value = false }, 4000)
+    if (submittedTimer.value) clearTimeout(submittedTimer.value)
+    submittedTimer.value = setTimeout(() => { submitted.value = false }, 4000)
     resetForm(false)
-  } catch (error) {
-    submitError.value = error instanceof Error ? error.message : 'Failed to save problem.'
+  } catch (error: any) {
+    const errorBody = error?.data?.error
+    submitError.value = (typeof errorBody === 'object' && errorBody?.message) || (error instanceof Error ? error.message : 'Failed to save problem.')
   } finally {
     isSaving.value = false
   }
@@ -401,7 +411,7 @@ function resetForm (clearBanner = true) {
   Object.assign(form, {
     type: 'single_choice',
     subjects: [],
-    difficulty: '',
+    difficulty: 'medium',
     tags: [],
     text: '',
     options: ['', '', '', ''],
@@ -419,6 +429,10 @@ function resetForm (clearBanner = true) {
 function handleReset () {
   resetForm()
 }
+
+onUnmounted(() => {
+  if (submittedTimer.value) clearTimeout(submittedTimer.value)
+})
 
 // Module-level constant - never changes, no need for computed
 const cheatSheet = LATEX_QUICK_REFERENCE

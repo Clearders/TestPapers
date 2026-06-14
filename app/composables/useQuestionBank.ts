@@ -9,13 +9,13 @@ import {
 export type { CorrectionCategory, CorrectionStatus, EssayBlankSpace, Question, QuestionCorrection, QuestionEntity, QuestionFormInput, QuestionImage, QuestionQueryParams, QuestionRevision } from '~/types/question'
 
 function upsertQuestion (state: { value: Question[] }, question: Question) {
-  const existingIndex = state.value.findIndex(item => item.id === question.id)
+  const existingIndex = state.value.findIndex(item => item.publicId === question.publicId)
   if (existingIndex !== -1) state.value.splice(existingIndex, 1)
   state.value.unshift(question)
 }
 
 function replaceQuestion (state: { value: Question[] }, question: Question) {
-  const existingIndex = state.value.findIndex(item => item.id === question.id)
+  const existingIndex = state.value.findIndex(item => item.publicId === question.publicId)
   if (existingIndex !== -1) state.value.splice(existingIndex, 1, question)
 }
 
@@ -108,7 +108,9 @@ export function useQuestionBank () {
     return normalized
   }
 
-  const updateQuestion = async (publicId: string, patch: Partial<Omit<Question, 'id'>>) => {
+type QuestionUpdatePayload = Partial<Omit<Question, 'id' | 'publicId' | 'createdAt' | 'updatedAt' | 'ownerId'>>
+
+  const updateQuestion = async (publicId: string, patch: QuestionUpdatePayload) => {
     const response = await apiFetch<QuestionEntity>(`/questions/${publicId}`, {
       method: 'PATCH',
       body: patch
@@ -125,15 +127,9 @@ export function useQuestionBank () {
       method: 'DELETE'
     })
     const idx = questions.value.findIndex(q => q.publicId === publicId)
-    if (idx !== -1) {
-      const q = questions.value[idx]
-      if (q) removeQuestionById(questions, q.id)
-    }
+    if (idx !== -1) questions.value.splice(idx, 1)
     const myIdx = myQuestions.value.findIndex(q => q.publicId === publicId)
-    if (myIdx !== -1) {
-      const q = myQuestions.value[myIdx]
-      if (q) removeQuestionById(myQuestions, q.id)
-    }
+    if (myIdx !== -1) myQuestions.value.splice(myIdx, 1)
   }
 
   const uploadImage = async (file: File): Promise<string> => {
