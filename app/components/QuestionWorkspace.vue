@@ -427,7 +427,7 @@ function toggleQuestion (question: Question) {
     removeQuestion(question.id)
     return
   }
-  paper.questions.push(structuredClone(question))
+  paper.questions.push(JSON.parse(JSON.stringify(question)))
 }
 
 function onToggleAnswer (id: number) {
