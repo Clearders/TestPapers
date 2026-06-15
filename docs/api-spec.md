@@ -382,6 +382,7 @@ WS /api/v1/ws
 - 登录/注册成功后，服务端在响应中设置 `testpapers_csrf` Cookie（非 HttpOnly，可供 JS 读取）
 - 客户端需从 Cookie 中读取 CSRF Token，并在后续非安全方法的请求头中附带 `X-CSRF-Token`
 - `/auth/login` 和 `/auth/register` 免于 CSRF 检查
+- 使用显式 `Authorization: Bearer <token>` 认证的非浏览器请求免于 Cookie CSRF 检查
 - 登出时服务端清除 CSRF Cookie
 - GET/HEAD/OPTIONS 等安全方法不受 CSRF 保护
 
@@ -1552,6 +1553,7 @@ interface QuestionCorrectionEntity {
 - 登录/注册成功后服务端设置 `testpapers_csrf` Cookie。
 - 前端从 Cookie 读取 CSRF Token，在非安全方法请求头中附带 `X-CSRF-Token`。
 - `/auth/login` 和 `/auth/register` 免于 CSRF 检查。
+- 使用显式 `Authorization: Bearer <token>` 的请求免于 Cookie CSRF 检查。
 - 登出时服务端自动清除 CSRF Cookie。
 
 ### 14.8 数据库迁移
