@@ -149,7 +149,9 @@ export function useApi () {
     const mergedHeaders = { ...requestHeaders, ...csrfHeaders, ...headers }
 
     if (responseType === 'blob') {
-      const baseUrl = getApiBase()
+      const config = useRuntimeConfig()
+      const directApiBase = (import.meta.client && config.public.directApiBase) ? config.public.directApiBase : getApiBase()
+      const baseUrl = normalizeEndpoint(directApiBase, DEFAULT_API_BASE)
       const queryString = options.query
         ? '?' + new URLSearchParams(
             Object.entries(options.query).reduce((acc, [k, v]) => { acc[k] = String(v); return acc }, {} as Record<string, string>)

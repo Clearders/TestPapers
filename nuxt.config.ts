@@ -35,6 +35,7 @@ export default defineNuxtConfig({
     apiBase: serverApiBase,
     public: {
       apiBase: publicApiBase,
+      directApiBase: serverApiBase,
       wsBase: env.NUXT_PUBLIC_WS_BASE || ''
     }
   },
