@@ -575,6 +575,19 @@ async function downloadDocx () {
       throw new Error(await response.text() || 'Failed to download DOCX.')
     }
 
+    const contentType = response.headers.get('Content-Type')?.split(';', 1)[0]?.toLowerCase()
+    if (contentType !== 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+      const responseText = await response.text()
+      let message = 'The download endpoint did not return a DOCX file.'
+      try {
+        const payload = JSON.parse(responseText)
+        message = payload?.error?.message || payload?.detail?.message || message
+      } catch {
+        if (responseText.trim()) message = responseText
+      }
+      throw new Error(message)
+    }
+
     const blob = await response.blob()
     const objectUrl = URL.createObjectURL(blob)
     const link = document.createElement('a')
@@ -583,7 +596,7 @@ async function downloadDocx () {
     document.body.appendChild(link)
     link.click()
     link.remove()
-    URL.revokeObjectURL(objectUrl)
+    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1_000)
   } catch (error) {
     downloadError.value = error instanceof Error ? error.message : 'Failed to download DOCX.'
   } finally {

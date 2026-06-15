@@ -8,6 +8,7 @@ const env = (globalThis as typeof globalThis & {
 }).process?.env ?? {}
 const serverApiBase = (env.NUXT_API_BASE || env.NUXT_SERVER_API_BASE || DEFAULT_SERVER_API_BASE).replace(/\/+$/, '')
 const publicApiBase = (env.NUXT_PUBLIC_API_BASE || DEFAULT_API_BASE).replace(/\/+$/, '')
+const publicDirectApiBase = (env.NUXT_PUBLIC_DIRECT_API_BASE || publicApiBase).replace(/\/+$/, '')
 const apiRouteRules = publicApiBase.startsWith('/')
   ? {
       [`${publicApiBase}/**`]: {
@@ -16,7 +17,7 @@ const apiRouteRules = publicApiBase.startsWith('/')
     }
   : {}
 const connectSources = ["'self'", 'ws:', 'wss:']
-for (const endpoint of [publicApiBase, env.NUXT_PUBLIC_WS_BASE || '']) {
+for (const endpoint of [publicApiBase, publicDirectApiBase, env.NUXT_PUBLIC_WS_BASE || '']) {
   if (/^(https?|wss?):\/\//.test(endpoint)) connectSources.push(new URL(endpoint).origin)
 }
 const securityHeaders = {
@@ -35,7 +36,7 @@ export default defineNuxtConfig({
     apiBase: serverApiBase,
     public: {
       apiBase: publicApiBase,
-      directApiBase: serverApiBase,
+      directApiBase: publicDirectApiBase,
       wsBase: env.NUXT_PUBLIC_WS_BASE || ''
     }
   },

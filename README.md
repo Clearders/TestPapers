@@ -95,12 +95,15 @@ The project wraps Nuxt through `scripts/run-nuxi.mjs`, so the same scripts work 
 
 ```text
 NUXT_PUBLIC_API_BASE=/api/v1
+NUXT_PUBLIC_DIRECT_API_BASE=
 NUXT_API_BASE=http://127.0.0.1:8000/api/v1
 NUXT_SERVER_API_BASE=http://127.0.0.1:8000/api/v1
 NUXT_PUBLIC_WS_BASE=
 ```
 
 When `NUXT_PUBLIC_API_BASE` is a relative path (starting with `/`), Nuxt proxies matching API routes to the server API base. In production behind Nginx, leave `NUXT_PUBLIC_API_BASE=/api/v1` and configure Nginx to forward `/api/v1/*` to the backend.
+
+DOCX downloads use `NUXT_PUBLIC_API_BASE` by default. Set `NUXT_PUBLIC_DIRECT_API_BASE` only when browsers should call a public backend origin directly and CORS/cookies are configured for that origin.
 
 ## Feature Areas
 
