@@ -1,4 +1,5 @@
 import { buildRealtimeUrl } from '~/utils/apiEndpoint'
+import { createRealtimeReconnectBackoff } from '~/utils/realtimeBackoff'
 
 type RealtimeStatus = 'idle' | 'connecting' | 'connected' | 'disconnected'
 type RealtimeHandler = (payload: unknown) => void
@@ -6,8 +7,8 @@ type RealtimeHandler = (payload: unknown) => void
 let socket: WebSocket | null = null
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null
 let heartbeatTimer: ReturnType<typeof setInterval> | null = null
-let reconnectAttempts = 0
 const handlers = new Map<string, Set<RealtimeHandler>>()
+const reconnectBackoff = createRealtimeReconnectBackoff()
 
 function getRealtimeUrl () {
   const config = useRuntimeConfig()
@@ -25,6 +26,7 @@ function clearTimers () {
   if (heartbeatTimer) clearInterval(heartbeatTimer)
   reconnectTimer = null
   heartbeatTimer = null
+  reconnectBackoff.cancelStableReset()
 }
 
 export function useRealtime () {
@@ -32,7 +34,7 @@ export function useRealtime () {
 
   function disconnect () {
     clearTimers()
-    reconnectAttempts = 0
+    reconnectBackoff.reset()
     if (socket) {
       socket.onopen = null
       socket.onclose = null
@@ -49,8 +51,7 @@ export function useRealtime () {
     const refreshed = await refreshSession()
     if (!refreshed) return
 
-    const delay = Math.min(30_000, 1_000 * 2 ** reconnectAttempts)
-    reconnectAttempts += 1
+    const delay = reconnectBackoff.nextDelay()
     reconnectTimer = setTimeout(() => {
       reconnectTimer = null
       connect()
@@ -63,7 +64,7 @@ export function useRealtime () {
     socket = new WebSocket(getRealtimeUrl())
 
     socket.onopen = () => {
-      reconnectAttempts = 0
+      reconnectBackoff.markConnected()
       if (heartbeatTimer) clearInterval(heartbeatTimer)
       heartbeatTimer = setInterval(() => {
         if (socket?.readyState === WebSocket.OPEN) {
