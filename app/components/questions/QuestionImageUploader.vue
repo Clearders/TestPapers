@@ -1,6 +1,6 @@
 <template>
   <div class="form-group">
-    <label class="form-label" htmlFor="image-upload-input">Images</label>
+    <label class="form-label" for="image-upload-input"><AppIcon name="image" /> Images</label>
     <div class="image-upload-area">
       <input
         id="image-upload-input"
@@ -24,6 +24,7 @@
             @input="updateCaption(imgIdx, ($event.target as HTMLInputElement).value)"
           />
           <button type="button" class="btn btn-outline btn-sm" @click="$emit('remove', imgIdx)">
+            <AppIcon name="trash" />
             Remove
           </button>
         </div>
@@ -63,9 +64,19 @@ function updateCaption (index: number, caption: string) {
 <style scoped>
 .image-upload-area {
   margin-bottom: 8px;
+  padding: 12px;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius);
+  background: rgba(118, 87, 255, 0.06);
+}
+.form-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
 }
 .image-input {
-  padding: 4px;
+  padding: 8px;
+  background: var(--color-surface-raised);
 }
 .image-previews {
   display: flex;
@@ -77,7 +88,7 @@ function updateCaption (index: number, caption: string) {
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   padding: 8px;
-  background: var(--color-bg);
+  background: var(--color-surface-raised);
   flex: 1 1 180px;
   max-width: 220px;
   min-width: 0;
@@ -86,7 +97,8 @@ function updateCaption (index: number, caption: string) {
   width: 100%;
   max-height: 140px;
   object-fit: contain;
-  border-radius: 4px;
+  border-radius: var(--radius);
+  background: var(--color-surface-solid);
 }
 .img-info {
   display: flex;

@@ -1,6 +1,6 @@
 <template>
   <section>
-    <h1 class="page-title">Question Bank Workspace</h1>
+    <h1 class="page-title"><AppIcon name="book" /> Question Bank Workspace</h1>
     <p class="page-sub">Search the bank, inspect answers, and assemble a paper in one page. Questions now load from the backend API.</p>
 
     <div v-if="!canReadQuestions" class="card permission-card">
@@ -13,7 +13,7 @@
       <div class="bank-panel">
         <div class="panel-head">
           <div>
-            <h2>Question Bank</h2>
+            <h2><AppIcon name="search" /> Question Bank</h2>
             <p class="panel-sub">Loaded from the backend question service.</p>
           </div>
           <span class="tag count-tag">{{ currentQuestions.length }} / {{ activePagination.total }}</span>
@@ -53,7 +53,7 @@
       <div class="paper-panel">
         <div class="panel-head">
           <div>
-            <h2>Paper Builder</h2>
+            <h2><AppIcon name="paper" /> Paper Builder</h2>
             <p class="panel-sub">Build directly from the filtered bank.</p>
           </div>
           <span class="badge tag-count">
@@ -102,8 +102,8 @@
           <TransitionGroup name="list" tag="div" class="paper-question-list" v-if="paper.questions.length">
             <div v-for="(q, idx) in paper.questions" :key="q.id" class="paper-q-item card">
               <div class="paper-q-controls">
-                <button class="icon-btn" :disabled="idx === 0" @click="moveUp(idx)" aria-label="Move question up">Up</button>
-                <button class="icon-btn" :disabled="idx === paper.questions.length - 1" @click="moveDown(idx)" aria-label="Move question down">Down</button>
+                <button class="icon-btn" :disabled="idx === 0" @click="moveUp(idx)" aria-label="Move question up"><AppIcon name="arrow-up" /></button>
+                <button class="icon-btn" :disabled="idx === paper.questions.length - 1" @click="moveDown(idx)" aria-label="Move question down"><AppIcon name="arrow-down" /></button>
               </div>
               <div class="paper-q-body">
                 <div class="paper-q-num">Q{{ idx + 1 }}</div>
@@ -123,7 +123,10 @@
                   </div>
                 </div>
               </div>
-              <button class="btn btn-danger btn-sm remove-btn" @click="removeQuestion(q.id)">Remove</button>
+              <button class="btn btn-danger btn-sm remove-btn" @click="removeQuestion(q.id)">
+                <AppIcon name="trash" />
+                Remove
+              </button>
             </div>
           </TransitionGroup>
           <div v-else class="empty-paper card">
@@ -133,12 +136,15 @@
 
         <div class="paper-actions paper-actions--export">
           <button class="btn btn-success" :disabled="!paper.questions.length || !paper.title.trim()" @click="exportPaper">
+            <AppIcon name="paper" />
             Export Paper
           </button>
           <button class="btn btn-primary" :disabled="!canDownloadDocx" @click="downloadDocx">
+            <AppIcon name="download" />
             {{ isDownloadingDocx ? 'Preparing DOCX…' : 'Download DOCX' }}
           </button>
           <button class="btn btn-outline" :disabled="!paper.questions.length" @click="clearPaper">
+            <AppIcon name="x" />
             Clear All
           </button>
         </div>
@@ -749,6 +755,14 @@ function closeCorrectionModal () {
   gap: 24px;
   align-items: start;
 }
+.page-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.page-title svg {
+  color: var(--color-primary);
+}
 .bank-panel,
 .paper-panel {
   min-width: 0;
@@ -768,8 +782,11 @@ function closeCorrectionModal () {
   margin-bottom: 14px;
 }
 .panel-head h2 {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   font-size: 1.05rem;
-  font-weight: 700;
+  font-weight: 850;
 }
 .panel-sub {
   color: var(--color-muted);
@@ -795,6 +812,9 @@ function closeCorrectionModal () {
 }
 .paper-meta-card {
   margin-bottom: 16px;
+  background:
+    linear-gradient(135deg, rgba(118, 87, 255, 0.07), rgba(255, 138, 76, 0.04)),
+    var(--color-surface);
 }
 .paper-meta-field {
   flex: 1;
@@ -810,11 +830,20 @@ function closeCorrectionModal () {
   align-items: flex-start;
   gap: 12px;
   min-width: 0;
+  position: relative;
+  overflow: hidden;
   transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease, border-color 0.3s ease;
+}
+.paper-q-item::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: linear-gradient(180deg, var(--color-primary), var(--color-secondary));
 }
 .paper-q-item:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+  box-shadow: var(--shadow);
   border-color: var(--color-primary);
 }
 .q-meta {
@@ -859,11 +888,15 @@ function closeCorrectionModal () {
   padding-top: 4px;
 }
 .icon-btn {
-  background: none;
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  background: var(--color-surface-raised);
   border: 1px solid var(--color-border);
   border-radius: 4px;
-  padding: 4px 8px;
-  font-size: .75rem;
+  padding: 0;
+  font-size: .9rem;
   color: var(--color-muted);
 }
 .icon-btn:hover:not(:disabled) {

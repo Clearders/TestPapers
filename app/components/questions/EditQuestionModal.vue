@@ -12,7 +12,7 @@
             <form @submit.prevent="handleSubmit">
               <div class="form-row">
                 <div class="form-group" style="flex:1">
-                  <label class="form-label" htmlFor="edit-type">Type</label>
+                  <label class="form-label" for="edit-type">Type</label>
                   <select id="edit-type" v-model="form.type" class="form-input" required>
                     <option v-for="option in QUESTION_TYPE_OPTIONS" :key="option.value" :value="option.value">
                       {{ option.label }}
@@ -20,7 +20,7 @@
                   </select>
                 </div>
                 <div class="form-group" style="flex:1">
-                  <label class="form-label" htmlFor="edit-difficulty">Difficulty</label>
+                  <label class="form-label" for="edit-difficulty">Difficulty</label>
                   <select id="edit-difficulty" v-model="form.difficulty" class="form-input" required>
                     <option v-for="option in DIFFICULTY_OPTIONS" :key="option.value" :value="option.value">
                       {{ option.label }}
@@ -28,7 +28,7 @@
                   </select>
                 </div>
                 <div class="form-group" style="flex:1">
-                  <label class="form-label" htmlFor="edit-scoreweight">Score Weight</label>
+                  <label class="form-label" for="edit-scoreweight">Score Weight</label>
                   <input
                     id="edit-scoreweight"
                     v-model.number="form.scoreWeight"
@@ -42,7 +42,7 @@
               </div>
 
               <div class="form-group">
-                <label class="form-label" htmlFor="edit-text">Question Text</label>
+                <label class="form-label" for="edit-text">Question Text</label>
                 <textarea
                   id="edit-text"
                   v-model="form.text"
@@ -62,7 +62,7 @@
               </div>
 
               <div class="form-group">
-                <label class="form-label" htmlFor="edit-answer">Answer</label>
+                <label class="form-label" for="edit-answer">Answer</label>
                 <textarea
                   v-if="!isChoiceType"
                   id="edit-answer"
@@ -79,7 +79,7 @@
               </div>
 
               <div class="form-group">
-                <label class="form-label" htmlFor="edit-source">Source / Reference</label>
+                <label class="form-label" for="edit-source">Source / Reference</label>
                 <input id="edit-source" v-model="form.source" class="form-input" autocomplete="off" />
               </div>
 

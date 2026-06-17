@@ -4,6 +4,7 @@
   </div>
 
   <div v-if="loading" class="status-banner" aria-live="polite">
+    <AppIcon name="sparkles" />
     Loading questions…
   </div>
 
@@ -36,8 +37,12 @@
 
   <Transition name="fade">
     <div v-if="!loading && !questions.length" class="empty-state card">
+      <span class="empty-icon"><AppIcon name="search" /></span>
       <p>No questions match the current filters.</p>
-      <NuxtLink v-if="canCreateQuestions" to="/add-problem" class="btn btn-primary">Create a Problem</NuxtLink>
+      <NuxtLink v-if="canCreateQuestions" to="/add-problem" class="btn btn-primary">
+        <AppIcon name="add" />
+        Create a Problem
+      </NuxtLink>
     </div>
   </Transition>
 </template>
@@ -116,6 +121,9 @@ async function handleDeleteQuestion (question: Question) {
 }
 
 .status-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   background: #f8fafc;
@@ -133,6 +141,16 @@ async function handleDeleteQuestion (question: Question) {
 .empty-state {
   text-align: center;
   color: var(--color-muted);
+}
+.empty-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin: 0 auto 12px;
+  border-radius: var(--radius);
+  background: rgba(118, 87, 255, 0.1);
+  color: var(--color-primary);
 }
 
 [data-theme="dark"] .status-banner {

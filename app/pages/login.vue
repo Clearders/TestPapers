@@ -1,20 +1,23 @@
 <template>
-  <section class="login-page">
-    <div class="login-card card">
+  <section class="auth-page">
+    <div class="auth-card card">
+      <div class="auth-mark"><AppIcon name="login" /></div>
       <h1 class="page-title">Login</h1>
       <p class="page-sub">Sign in to access the question bank and protected authoring tools.</p>
 
-      <form @submit.prevent="submitLogin">
+      <form class="auth-form" @submit.prevent="submitLogin">
         <div class="form-group">
-          <label class="form-label" htmlFor="login-username">Username</label>
+          <label class="form-label" for="login-username">Username</label>
           <input id="login-username" v-model="username" class="form-input" autocomplete="username" name="username" required />
         </div>
         <div class="form-group">
-          <label class="form-label" htmlFor="login-password">Password</label>
+          <label class="form-label" for="login-password">Password</label>
           <input id="login-password" v-model="password" class="form-input" type="password" autocomplete="current-password" name="password" required />
         </div>
         <button class="btn btn-primary" type="submit" :disabled="isSubmitting">
-          {{ isSubmitting ? 'Signing in…' : 'Sign In' }}
+          <span v-if="isSubmitting" class="auth-spinner"></span>
+          <AppIcon v-else name="login" />
+          {{ isSubmitting ? 'Signing in...' : 'Sign In' }}
         </button>
         <p v-if="errorMessage" class="login-error" role="alert" aria-live="polite">{{ errorMessage }}</p>
       </form>
@@ -88,14 +91,44 @@ async function submitLogin () {
 </script>
 
 <style scoped>
-.login-page {
+.auth-page {
   display: grid;
   place-items: center;
   min-height: calc(100vh - 180px);
   min-height: calc(100dvh - 180px);
+  padding: 28px 0;
 }
-.login-card {
-  width: min(100%, 440px);
+.auth-card {
+  width: min(100%, 460px);
+  position: relative;
+  overflow: hidden;
+}
+.auth-card::after {
+  content: "";
+  position: absolute;
+  right: -24%;
+  bottom: -28%;
+  width: 70%;
+  height: 180px;
+  transform: rotate(-14deg);
+  background: linear-gradient(90deg, rgba(118, 87, 255, 0.12), rgba(14, 165, 233, 0.1));
+}
+.auth-mark {
+  display: inline-grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  margin-bottom: 18px;
+  border-radius: 8px;
+  color: #fff;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  box-shadow: 0 12px 26px rgba(118, 87, 255, 0.24);
+}
+.auth-form,
+.register-prompt,
+.login-error {
+  position: relative;
+  z-index: 1;
 }
 .login-error {
   color: var(--color-danger);
@@ -109,10 +142,21 @@ async function submitLogin () {
 }
 .register-prompt a {
   color: var(--color-primary);
-  font-weight: 600;
+  font-weight: 800;
+}
+.auth-spinner {
+  width: 15px;
+  height: 15px;
+  border: 2px solid rgba(255,255,255,.35);
+  border-top-color: #fff;
+  border-radius: 999px;
+  animation: spin .7s linear infinite;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 @media (max-width: 480px) {
-  .login-card .btn-primary {
+  .auth-card .btn-primary {
     width: 100%;
   }
 }

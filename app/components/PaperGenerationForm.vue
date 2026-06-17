@@ -2,7 +2,7 @@
   <form v-if="canWritePapers" class="card generation-card" @submit.prevent="$emit('generate')">
     <div class="gen-header">
       <div class="gen-header__text">
-        <h2>Auto Generate</h2>
+        <h2><AppIcon name="sparkles" /> Auto Generate</h2>
         <p>Use a genetic algorithm to compose a balanced paper from the question bank.</p>
       </div>
       <Transition name="gen-stat-pop">
@@ -92,7 +92,7 @@
 
       <div class="gen-field">
         <div class="gen-field__label-row">
-          <label class="form-label" htmlFor="gen-difficulty">Difficulty</label>
+          <label class="form-label" for="gen-difficulty">Difficulty</label>
           <span class="gen-diff-badge" :class="difficultyBadgeClass">{{ difficultyLabel }}</span>
         </div>
         <div class="gen-range-wrap">
@@ -140,7 +140,7 @@
             <button type="button" class="gen-pill-remove" @click="removeTag(tag.value)" aria-label="Remove">×</button>
           </span>
         </div>
-        <label class="form-label" htmlFor="gen-custom-tag">Custom Tag</label>
+        <label class="form-label" for="gen-custom-tag">Custom Tag</label>
         <input
           id="gen-custom-tag"
           v-model="customTagInputModel"
@@ -201,7 +201,7 @@
   <div v-else class="card generation-card">
     <div class="gen-header">
       <div class="gen-header__text">
-        <h2>Auto Generate</h2>
+        <h2><AppIcon name="sparkles" /> Auto Generate</h2>
         <p>Paper generation requires <strong>papers:write</strong> permission.</p>
       </div>
     </div>
@@ -364,8 +364,15 @@ function formatDistribution (distribution: Record<string, number>) {
   overflow: hidden;
   margin-bottom: 16px;
   background:
-    linear-gradient(135deg, rgba(79, 110, 247, 0.06), rgba(34, 197, 94, 0.03)),
+    linear-gradient(135deg, rgba(118, 87, 255, 0.1), rgba(14, 165, 233, 0.05)),
     var(--color-surface);
+}
+.generation-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 4px;
+  background: linear-gradient(90deg, var(--color-primary), var(--color-secondary), var(--color-warm));
 }
 
 .gen-header {
@@ -378,8 +385,11 @@ function formatDistribution (distribution: Record<string, number>) {
   border-bottom: 1px solid var(--color-border);
 }
 .gen-header__text h2 {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   font-size: 1.05rem;
-  font-weight: 700;
+  font-weight: 850;
 }
 .gen-header__text p {
   color: var(--color-muted);
@@ -394,9 +404,9 @@ function formatDistribution (distribution: Record<string, number>) {
   justify-content: center;
   min-width: 58px;
   padding: 6px 14px;
-  border-radius: 10px;
-  background: rgba(34, 197, 94, 0.08);
-  border: 1px solid rgba(34, 197, 94, 0.2);
+  border-radius: var(--radius);
+  background: rgba(0, 184, 148, 0.1);
+  border: 1px solid rgba(0, 184, 148, 0.22);
   flex-shrink: 0;
 }
 .gen-fitness--high {
@@ -513,7 +523,7 @@ function formatDistribution (distribution: Record<string, number>) {
   max-height: 160px;
   overflow-y: auto;
   border: 1px solid var(--color-border);
-  border-radius: 12px;
+  border-radius: var(--radius);
   background: var(--color-surface);
   display: flex;
   flex-direction: column;
@@ -552,9 +562,9 @@ function formatDistribution (distribution: Record<string, number>) {
   border-radius: 0;
 }
 .gen-type-option--active {
-  background: rgba(79, 110, 247, 0.08);
+  background: rgba(118, 87, 255, 0.1);
   color: var(--color-primary);
-  font-weight: 600;
+  font-weight: 800;
   border-left: 3px solid var(--color-primary);
 }
 .gen-type-option--active:hover {
@@ -821,8 +831,10 @@ function formatDistribution (distribution: Record<string, number>) {
 
 .gen-result {
   margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid var(--color-border);
+  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: rgba(118, 87, 255, 0.07);
 }
 .gen-result-header {
   display: flex;
@@ -853,8 +865,8 @@ function formatDistribution (distribution: Record<string, number>) {
   gap: 4px;
   padding: 10px 8px;
   border-radius: var(--radius);
-  background: rgba(79, 110, 247, 0.04);
-  border: 1px solid rgba(79, 110, 247, 0.08);
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
 }
 .gen-stat-label {
   font-size: .68rem;

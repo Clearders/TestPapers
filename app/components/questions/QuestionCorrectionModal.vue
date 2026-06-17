@@ -11,7 +11,7 @@
           <div class="modal-body">
             <form @submit.prevent="handleSubmit">
               <div class="form-group">
-                <label class="form-label" htmlFor="corr-category">Issue Type</label>
+                <label class="form-label" for="corr-category">Issue Type</label>
                 <select id="corr-category" v-model="category" class="form-input" required>
                   <option value="">Select a category…</option>
                   <option value="wrong_answer">Wrong Answer</option>
@@ -22,7 +22,7 @@
               </div>
 
               <div class="form-group">
-                <label class="form-label" htmlFor="corr-message">Description</label>
+                <label class="form-label" for="corr-message">Description</label>
                 <textarea
                   id="corr-message"
                   v-model="message"

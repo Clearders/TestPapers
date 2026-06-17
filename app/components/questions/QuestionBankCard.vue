@@ -48,6 +48,7 @@
 
     <div class="q-footer">
       <button v-if="canReadAnswers" class="btn btn-outline btn-sm" @click="$emit('toggle-answer', question.id)">
+        <AppIcon name="eye" />
         {{ isShown ? 'Hide Answer' : 'Show Answer' }}
       </button>
       <button
@@ -55,6 +56,7 @@
         :class="isAdded ? 'btn-danger' : 'btn-primary'"
         @click="$emit('toggle-question', question)"
       >
+        <AppIcon :name="isAdded ? 'x' : 'add'" />
         {{ isAdded ? 'Remove from Paper' : 'Add to Paper' }}
       </button>
       <button
@@ -62,12 +64,14 @@
         class="btn btn-outline btn-sm"
         @click="$emit('edit', question)"
       >
+        <AppIcon name="edit" />
         Edit
       </button>
       <button
         class="btn btn-outline btn-sm correction-report-btn"
         @click="$emit('report', question)"
       >
+        <AppIcon name="sparkles" />
         Report Issue
         <span v-if="openCorrectionCount" class="correction-badge">{{ openCorrectionCount }}</span>
       </button>
@@ -76,6 +80,7 @@
         class="btn btn-danger btn-sm"
         @click="$emit('delete', question)"
       >
+        <AppIcon name="trash" />
         Delete
       </button>
     </div>
@@ -234,11 +239,21 @@ function formatStatus (status: string) {
 <style scoped>
 .q-card {
   min-width: 0;
+  position: relative;
+  overflow: hidden;
   transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease, border-color 0.3s ease;
+}
+.q-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: linear-gradient(180deg, var(--color-primary), var(--color-secondary));
+  opacity: .82;
 }
 .q-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+  box-shadow: var(--shadow);
   border-color: var(--color-primary);
 }
 .q-card-header,
@@ -266,6 +281,7 @@ function formatStatus (status: string) {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  padding-top: 14px;
 }
 .q-text {
   font-size: .95rem;
@@ -300,6 +316,7 @@ function formatStatus (status: string) {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+  margin-top: 2px;
 }
 .q-answer-wrapper {
   display: grid;
@@ -315,8 +332,8 @@ function formatStatus (status: string) {
   overflow: hidden;
 }
 .q-answer {
-  background: #f0fdf4;
-  border: 1px solid #bbf7d0;
+  background: rgba(0, 184, 148, 0.1);
+  border: 1px solid rgba(0, 184, 148, 0.22);
   border-radius: var(--radius);
   padding: 12px 16px;
   font-size: .9rem;
@@ -335,7 +352,7 @@ function formatStatus (status: string) {
   color: var(--color-primary);
   background: #eff3fe;
   padding: 1px 6px;
-  border-radius: 4px;
+  border-radius: 999px;
   margin-right: 4px;
   vertical-align: middle;
 }
@@ -350,7 +367,8 @@ function formatStatus (status: string) {
   max-height: 120px;
   object-fit: contain;
   border: 1px solid var(--color-border);
-  border-radius: 6px;
+  border-radius: var(--radius);
+  background: var(--color-surface-solid);
 }
 :deep(.katex-display),
 :deep(.latex-block) {

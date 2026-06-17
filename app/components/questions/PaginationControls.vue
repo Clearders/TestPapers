@@ -7,6 +7,7 @@
       aria-label="Go to previous page"
       @click="emit('change', pagination.page - 1)"
     >
+      <AppIcon name="arrow-left" />
       Previous
     </button>
     <span class="pagination-status" aria-live="polite" role="status">
@@ -21,6 +22,7 @@
       @click="emit('change', pagination.page + 1)"
     >
       Next
+      <AppIcon name="arrow-right" />
     </button>
   </div>
 </template>
@@ -57,6 +59,7 @@ const lastItem = computed(() =>
   justify-content: center;
   gap: 12px;
   margin-top: 16px;
+  flex-wrap: wrap;
 }
 .pagination-status {
   color: var(--color-muted, #6b7280);
@@ -68,5 +71,10 @@ const lastItem = computed(() =>
   display: block;
   font-size: .78rem;
   color: var(--color-muted, #9ca3af);
+}
+@media (max-width: 520px) {
+  .pagination-controls .btn {
+    flex: 1 1 120px;
+  }
 }
 </style>

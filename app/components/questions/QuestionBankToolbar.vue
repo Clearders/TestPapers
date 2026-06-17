@@ -6,6 +6,7 @@
         :class="bankMode === 'all' ? 'btn-primary' : 'btn-outline'"
         @click="$emit('switch-bank-mode', 'all')"
       >
+        <AppIcon name="book" />
         All Questions
       </button>
       <button
@@ -13,6 +14,7 @@
         :class="bankMode === 'mine' ? 'btn-primary' : 'btn-outline'"
         @click="$emit('switch-bank-mode', 'mine')"
       >
+        <AppIcon name="account" />
         My Questions
       </button>
     </div>
@@ -35,28 +37,37 @@
     </div>
 
     <div class="toolbar card">
-      <input
-        :value="search"
-        class="form-input search-input"
-        name="search"
-        autocomplete="off"
-        placeholder="Search questions…"
-        aria-label="Search questions"
-        @input="$emit('update:search', ($event.target as HTMLInputElement).value)"
-      />
-      <select
-        :value="filterDifficulty"
-        class="form-input"
-        name="difficulty"
-        aria-label="Filter by difficulty"
-        @change="onDifficultyChange"
-      >
-        <option value="">All difficulties</option>
-        <option v-for="option in DIFFICULTY_OPTIONS" :key="option.value" :value="option.value">
-          {{ option.label }}
-        </option>
-      </select>
-      <NuxtLink v-if="canCreateQuestions" to="/add-problem" class="btn btn-primary">+ Add Problem</NuxtLink>
+      <label class="search-wrap">
+        <AppIcon name="search" />
+        <input
+          :value="search"
+          class="form-input search-input"
+          name="search"
+          autocomplete="off"
+          placeholder="Search questions..."
+          aria-label="Search questions"
+          @input="$emit('update:search', ($event.target as HTMLInputElement).value)"
+        />
+      </label>
+      <label class="filter-wrap">
+        <AppIcon name="filter" />
+        <select
+          :value="filterDifficulty"
+          class="form-input"
+          name="difficulty"
+          aria-label="Filter by difficulty"
+          @change="onDifficultyChange"
+        >
+          <option value="">All difficulties</option>
+          <option v-for="option in DIFFICULTY_OPTIONS" :key="option.value" :value="option.value">
+            {{ option.label }}
+          </option>
+        </select>
+      </label>
+      <NuxtLink v-if="canCreateQuestions" to="/add-problem" class="btn btn-primary">
+        <AppIcon name="add" />
+        Add Problem
+      </NuxtLink>
     </div>
   </div>
 </template>
@@ -103,27 +114,50 @@ function onDifficultyChange(event: Event) {
   gap: 6px;
   margin-bottom: 12px;
 }
+.bank-mode-tabs .btn,
+.subject-tabs .btn {
+  border-radius: 999px;
+}
 .toolbar {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 12px;
   margin-bottom: 20px;
+  background:
+    linear-gradient(135deg, rgba(118, 87, 255, 0.08), rgba(14, 165, 233, 0.04)),
+    var(--color-surface);
 }
-.search-input {
-  flex: 1;
-  min-width: 180px;
+.search-wrap,
+.filter-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1 1 210px;
+  min-width: 0;
 }
-.toolbar > .form-input,
+.search-wrap > svg,
+.filter-wrap > svg {
+  position: absolute;
+  left: 12px;
+  z-index: 1;
+  color: var(--color-muted);
+}
+.search-input,
+.filter-wrap .form-input {
+  padding-left: 38px;
+}
 .toolbar > .btn {
-  flex: 1 1 180px;
+  flex: 0 0 auto;
 }
 @media (max-width: 560px) {
   .bank-mode-tabs .btn,
   .subject-tabs .btn,
-  .toolbar > .form-input,
-  .toolbar > .btn {
+  .toolbar > .btn,
+  .search-wrap,
+  .filter-wrap {
     width: 100%;
+    flex: 1 1 100%;
   }
 }
 </style>

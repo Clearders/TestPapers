@@ -15,7 +15,7 @@
         {{ initial }}
       </span>
       <span class="user-name">{{ user?.displayName || user?.username }}</span>
-      <span class="dropdown-arrow" :class="{ 'is-open': isOpen }">▾</span>
+      <AppIcon name="chevron-down" class="dropdown-arrow" :class="{ 'is-open': isOpen }" />
     </button>
 
     <Transition name="dropdown">
@@ -34,12 +34,12 @@
         </div>
         <div class="dropdown-divider"></div>
         <NuxtLink to="/account" class="dropdown-item" @click="close">
-          <span class="dropdown-item-icon" aria-hidden="true">⚙</span>
+          <AppIcon name="settings" class="dropdown-item-icon" />
           Account Settings
         </NuxtLink>
         <div class="dropdown-divider"></div>
         <button class="dropdown-item dropdown-item--danger" type="button" @click="handleLogout">
-          <span class="dropdown-item-icon" aria-hidden="true">↩</span>
+          <AppIcon name="logout" class="dropdown-item-icon" />
           Logout
         </button>
       </div>
@@ -94,25 +94,28 @@ onUnmounted(() => {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 4px 12px 4px 4px;
+  padding: 4px 11px 4px 4px;
   border: 1px solid var(--color-border);
   border-radius: 999px;
-  background: var(--color-surface);
+  background: var(--color-surface-raised);
   color: var(--color-text);
   font-size: .9rem;
-  font-weight: 500;
+  font-weight: 750;
   cursor: pointer;
-  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+  box-shadow: 0 8px 18px rgba(62, 40, 126, 0.08);
+  transition: border-color 0.22s ease, box-shadow 0.22s ease, transform 0.22s ease;
 }
 
 .user-dropdown-trigger:hover {
   border-color: var(--color-primary);
-  box-shadow: 0 2px 8px rgba(79, 110, 247, 0.15);
+  box-shadow: 0 12px 24px rgba(118, 87, 255, 0.16);
+  transform: translateY(-1px);
 }
 
 .user-dropdown-trigger:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: var(--ring);
 }
 
 .user-avatar {
@@ -133,9 +136,9 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-primary);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
   color: #fff;
-  font-weight: 700;
+  font-weight: 850;
   font-size: .9rem;
 }
 
@@ -153,7 +156,8 @@ onUnmounted(() => {
 }
 
 .dropdown-arrow {
-  font-size: .7rem;
+  width: 16px;
+  height: 16px;
   transition: transform 0.2s ease;
   color: var(--color-muted);
 }
@@ -164,23 +168,25 @@ onUnmounted(() => {
 
 .user-dropdown-panel {
   position: absolute;
-  top: calc(100% + 8px);
+  top: calc(100% + 10px);
   right: 0;
-  min-width: 240px;
-  background: var(--color-surface);
+  min-width: 250px;
+  background: var(--color-surface-raised);
   border: 1px solid var(--color-border);
-  border-radius: 12px;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
   padding: 8px;
   z-index: 150;
   overscroll-behavior: contain;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
 }
 
 .dropdown-header {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 8px;
+  padding: 10px;
 }
 
 .dropdown-user-info {
@@ -190,7 +196,7 @@ onUnmounted(() => {
 }
 
 .dropdown-display-name {
-  font-weight: 600;
+  font-weight: 850;
   font-size: .95rem;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -215,23 +221,24 @@ onUnmounted(() => {
   width: 100%;
   padding: 10px 12px;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius);
   background: transparent;
   color: var(--color-text);
   font-size: .9rem;
-  font-weight: 500;
+  font-weight: 750;
   cursor: pointer;
-  transition: background 0.2s ease;
+  transition: background 0.2s ease, transform 0.2s ease;
   text-decoration: none;
 }
 
 .dropdown-item:hover {
-  background: var(--color-bg);
+  background: rgba(118, 87, 255, 0.1);
+  transform: translateX(2px);
 }
 
 .dropdown-item:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: -2px;
+  outline: none;
+  box-shadow: var(--ring);
 }
 
 .dropdown-item--danger {
@@ -239,13 +246,12 @@ onUnmounted(() => {
 }
 
 .dropdown-item--danger:hover {
-  background: rgba(239, 68, 68, 0.08);
+  background: rgba(239, 68, 68, 0.1);
 }
 
 .dropdown-item-icon {
-  font-size: 1rem;
-  width: 20px;
-  text-align: center;
+  width: 18px;
+  height: 18px;
 }
 
 .dropdown-enter-active,
@@ -257,9 +263,5 @@ onUnmounted(() => {
 .dropdown-leave-to {
   opacity: 0;
   transform: translateY(-8px);
-}
-
-[data-theme="dark"] .user-dropdown-panel {
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
 }
 </style>

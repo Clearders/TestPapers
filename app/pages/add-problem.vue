@@ -1,6 +1,6 @@
 <template>
   <section>
-    <h1 class="page-title">Add Problem</h1>
+    <h1 class="page-title"><AppIcon name="edit" /> Add Problem</h1>
     <p class="page-sub">Compose a new problem with real-time LaTeX preview.</p>
 
     <div v-if="!canCreateQuestions" class="card permission-card">
@@ -14,7 +14,7 @@
         <form class="card" @submit.prevent="submitProblem">
           <div class="form-row">
             <div class="form-group" style="flex:1">
-              <label class="form-label" htmlFor="problem-type">Type <span class="required">*</span></label>
+              <label class="form-label" for="problem-type">Type <span class="required">*</span></label>
               <select id="problem-type" v-model="form.type" class="form-input" required>
                 <option v-for="option in QUESTION_TYPE_OPTIONS" :key="option.value" :value="option.value">
                   {{ option.label }}
@@ -25,7 +25,7 @@
 
           <div class="form-row">
             <div class="form-group" style="flex:1">
-              <label class="form-label" htmlFor="problem-subject">Subjects <span class="required">*</span></label>
+              <label class="form-label" for="problem-subject">Subjects <span class="required">*</span></label>
               <div class="tag-input-row">
                 <input
                   id="problem-subject"
@@ -49,7 +49,7 @@
               <span class="form-hint">Press Enter or click Add after each subject.</span>
             </div>
             <div class="form-group" style="flex:1">
-              <label class="form-label" htmlFor="problem-difficulty">Difficulty <span class="required">*</span></label>
+              <label class="form-label" for="problem-difficulty">Difficulty <span class="required">*</span></label>
               <select id="problem-difficulty" v-model="form.difficulty" class="form-input" required>
                 <option value="">Select</option>
                 <option v-for="option in DIFFICULTY_OPTIONS" :key="option.value" :value="option.value">
@@ -58,7 +58,7 @@
               </select>
             </div>
             <div class="form-group" style="flex:1">
-              <label class="form-label" htmlFor="problem-scoreweight">Score Weight <span class="required">*</span></label>
+              <label class="form-label" for="problem-scoreweight">Score Weight <span class="required">*</span></label>
               <input
                 id="problem-scoreweight"
                 v-model.number="form.scoreWeight"
@@ -74,7 +74,7 @@
           </div>
 
           <div class="form-group">
-            <label class="form-label" htmlFor="problem-tags">Tags</label>
+            <label class="form-label" for="problem-tags">Tags</label>
             <div class="tag-input-row">
               <input
                 id="problem-tags"
@@ -96,7 +96,7 @@
           </div>
 
           <div class="form-group">
-            <label class="form-label" htmlFor="problem-text">
+            <label class="form-label" for="problem-text">
               Question Text <span class="required">*</span>
               <span class="form-hint" style="margin-left:8px">Use `$...$` for inline LaTeX and `$$...$$` for block LaTeX.</span>
             </label>
@@ -145,7 +145,7 @@
             <label class="form-label" id="essay-blank-label">Essay Blank Space</label>
             <div class="form-row" aria-labelledby="essay-blank-label" role="group">
               <div class="form-group compact-field">
-                <label class="form-label form-label--sub" htmlFor="essay-lines">Lines</label>
+                <label class="form-label form-label--sub" for="essay-lines">Lines</label>
                 <input
                   id="essay-lines"
                   v-model.number="form.essayBlankSpace.lines"
@@ -157,7 +157,7 @@
                 />
               </div>
               <div class="form-group compact-field">
-                <label class="form-label form-label--sub" htmlFor="essay-lineheight">Line Height (px)</label>
+                <label class="form-label form-label--sub" for="essay-lineheight">Line Height (px)</label>
                 <input
                   id="essay-lineheight"
                   v-model.number="form.essayBlankSpace.lineHeight"
@@ -173,7 +173,7 @@
           </div>
 
           <div class="form-group">
-            <label class="form-label" htmlFor="problem-answer">Answer <span class="required">*</span></label>
+            <label class="form-label" for="problem-answer">Answer <span class="required">*</span></label>
             <textarea
               v-if="!usesOptionAnswers"
               id="problem-answer"
@@ -204,15 +204,19 @@
           </div>
 
           <div class="form-group">
-            <label class="form-label" htmlFor="problem-source">Source / Reference</label>
+            <label class="form-label" for="problem-source">Source / Reference</label>
             <input id="problem-source" v-model="form.source" class="form-input" placeholder="e.g. Chapter 3, Exercise 5…" autocomplete="off" />
           </div>
 
           <div class="form-actions">
             <button type="submit" class="btn btn-primary" :disabled="submitted || isSaving">
+              <AppIcon v-if="!isSaving && !submitted" name="upload" />
               {{ isSaving ? 'Saving…' : submitted ? 'Saved' : 'Save Problem' }}
             </button>
-            <button type="button" class="btn btn-outline" @click="handleReset">Reset</button>
+            <button type="button" class="btn btn-outline" @click="handleReset">
+              <AppIcon name="x" />
+              Reset
+            </button>
           </div>
 
           <div v-if="submitError" class="success-banner success-banner--error" role="alert" aria-live="polite">
@@ -445,6 +449,14 @@ const cheatSheet = LATEX_QUICK_REFERENCE
   gap: 24px;
   align-items: start;
 }
+.page-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.page-title svg {
+  color: var(--color-primary);
+}
 @media (max-width: 820px) {
   .add-layout {
     grid-template-columns: 1fr;
@@ -455,6 +467,9 @@ const cheatSheet = LATEX_QUICK_REFERENCE
   display: flex;
   flex-direction: column;
   min-width: 0;
+  background:
+    linear-gradient(135deg, rgba(118, 87, 255, 0.07), rgba(14, 165, 233, 0.03)),
+    var(--color-surface);
 }
 .form-row {
   display: flex;
@@ -540,8 +555,8 @@ const cheatSheet = LATEX_QUICK_REFERENCE
   font-weight: 700;
 }
 .success-banner {
-  background: #f0fdf4;
-  border: 1px solid #bbf7d0;
+  background: rgba(0, 184, 148, 0.1);
+  border: 1px solid rgba(0, 184, 148, 0.22);
   border-radius: var(--radius);
   padding: 12px 16px;
   font-size: .9rem;

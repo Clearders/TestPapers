@@ -1,7 +1,7 @@
 <template>
   <div class="preview-panel">
     <div class="panel-head">
-      <h2>Live Preview</h2>
+      <h2><AppIcon name="eye" /> Live Preview</h2>
     </div>
 
     <div class="preview-card card">
@@ -104,14 +104,29 @@ defineProps<{
   margin-bottom: 14px;
 }
 .panel-head h2 {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   font-size: 1.05rem;
-  font-weight: 700;
+  font-weight: 850;
 }
 .preview-card {
   display: flex;
   flex-direction: column;
   gap: 16px;
   min-width: 0;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.48), transparent 36%),
+    var(--color-surface);
+  position: relative;
+  overflow: hidden;
+}
+.preview-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: linear-gradient(180deg, var(--color-primary), var(--color-warm));
 }
 .preview-header {
   display: flex;

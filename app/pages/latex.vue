@@ -1,6 +1,6 @@
 <template>
   <section class="latex-page">
-    <h1 class="page-title">LaTeX Preview</h1>
+    <h1 class="page-title"><AppIcon name="latex" /> LaTeX Preview</h1>
     <p class="page-sub">Type a single LaTeX expression and see it rendered in real time.</p>
 
     <div class="latex-layout">
@@ -28,8 +28,14 @@
         />
 
         <div class="input-row">
-          <button type="button" class="btn btn-outline btn-sm" @click="copyPreview">Copy</button>
-          <button type="button" class="btn btn-outline btn-sm" @click="clearInput">Clear</button>
+          <button type="button" class="btn btn-outline btn-sm" @click="copyPreview">
+            <AppIcon name="paper" />
+            Copy
+          </button>
+          <button type="button" class="btn btn-outline btn-sm" @click="clearInput">
+            <AppIcon name="x" />
+            Clear
+          </button>
           <span class="template-divider"></span>
           <button
             v-for="tmpl in templates"
@@ -169,6 +175,14 @@ onUnmounted(() => {
 .latex-page {
   --preview-bg: #fafbfc;
 }
+.page-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.page-title svg {
+  color: var(--color-primary);
+}
 
 [data-theme="dark"] .latex-page {
   --preview-bg: #162032;
@@ -225,7 +239,7 @@ onUnmounted(() => {
   min-height: 220px;
   padding: 14px 16px;
   border: 1px solid var(--color-border);
-  border-radius: 10px;
+  border-radius: var(--radius);
   background: var(--color-surface);
   color: var(--color-text);
   font-family: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', monospace;
@@ -283,8 +297,10 @@ onUnmounted(() => {
   justify-content: center;
   min-height: 320px;
   padding: 40px 32px;
-  border-radius: 12px;
-  background: var(--preview-bg);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(135deg, rgba(118, 87, 255, 0.08), rgba(14, 165, 233, 0.04)),
+    var(--preview-bg);
   border: 1px solid var(--color-border);
   overflow-x: auto;
   transition: opacity 0.2s ease;
@@ -312,6 +328,10 @@ onUnmounted(() => {
   margin-top: 48px;
   padding-top: 32px;
   border-top: 1px solid var(--color-border);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 24px;
 }
 
 .reference-title {

@@ -13,19 +13,19 @@
       <form class="card user-form" @submit.prevent="createUser">
         <h2>Create User</h2>
         <div class="form-group">
-          <label class="form-label" htmlFor="users-username">Username</label>
+          <label class="form-label" for="users-username">Username</label>
           <input id="users-username" v-model="form.username" class="form-input" autocomplete="off" required />
         </div>
         <div class="form-group">
-          <label class="form-label" htmlFor="users-displayname">Display Name</label>
+          <label class="form-label" for="users-displayname">Display Name</label>
           <input id="users-displayname" v-model="form.displayName" class="form-input" required />
         </div>
         <div class="form-group">
-          <label class="form-label" htmlFor="users-password">Password</label>
+          <label class="form-label" for="users-password">Password</label>
           <input id="users-password" v-model="form.password" class="form-input" type="password" autocomplete="new-password" minlength="8" required />
         </div>
         <div class="form-group">
-          <label class="form-label" htmlFor="users-role">Role</label>
+          <label class="form-label" for="users-role">Role</label>
           <select id="users-role" v-model="form.role" class="form-input">
             <option value="admin">Admin</option>
             <option value="teacher">Teacher</option>

@@ -1,11 +1,11 @@
 <template>
   <div class="account-page">
-    <h1 class="page-title">Account Settings</h1>
+    <h1 class="page-title"><AppIcon name="settings" /> Account Settings</h1>
     <p class="page-sub">Manage your profile, password, avatar, and account.</p>
 
     <div class="account-grid">
       <section class="card account-section">
-        <h2 class="section-title">Profile</h2>
+        <h2 class="section-title"><AppIcon name="account" /> Profile</h2>
         <p class="section-desc">Update your username or display name.</p>
 
         <div class="form-group">
@@ -46,7 +46,8 @@
             :disabled="profileSaving || !profileForm.username && !profileForm.displayName"
             @click="saveProfile"
           >
-            {{ profileSaving ? 'Saving…' : 'Save Changes' }}
+            <AppIcon name="upload" />
+            {{ profileSaving ? 'Saving...' : 'Save Changes' }}
           </button>
           <span class="action-feedback" v-if="profileMessage" :class="{ 'is-error': profileError }" aria-live="polite">
             {{ profileMessage }}
@@ -55,7 +56,7 @@
       </section>
 
       <section class="card account-section">
-        <h2 class="section-title">Password</h2>
+        <h2 class="section-title"><AppIcon name="settings" /> Password</h2>
         <p class="section-desc">Change your account password.</p>
 
         <div class="form-group">
@@ -106,7 +107,8 @@
             :disabled="passwordSaving || !canChangePassword"
             @click="savePassword"
           >
-            {{ passwordSaving ? 'Changing…' : 'Change Password' }}
+            <AppIcon name="settings" />
+            {{ passwordSaving ? 'Changing...' : 'Change Password' }}
           </button>
           <span class="action-feedback" v-if="passwordMessage" :class="{ 'is-error': passwordError }" aria-live="polite">
             {{ passwordMessage }}
@@ -115,7 +117,7 @@
       </section>
 
       <section class="card account-section">
-        <h2 class="section-title">Avatar</h2>
+        <h2 class="section-title"><AppIcon name="image" /> Avatar</h2>
         <p class="section-desc">Upload or update your profile picture (PNG only, max 500KB).</p>
 
         <div class="avatar-section">
@@ -141,6 +143,7 @@
               type="button"
               @click="openCropper"
             >
+              <AppIcon name="edit" />
               Edit
             </button>
             <button
@@ -148,7 +151,8 @@
               :disabled="avatarUploading || !avatarFile"
               @click="uploadAvatarFile"
             >
-              {{ avatarUploading ? 'Uploading…' : 'Upload Avatar' }}
+              <AppIcon name="upload" />
+              {{ avatarUploading ? 'Uploading...' : 'Upload Avatar' }}
             </button>
           </div>
         </div>
@@ -156,16 +160,18 @@
           {{ avatarMessage }}
         </span>
 
-        <AvatarCropper
-          :file="avatarFile"
-          :visible="showCropper"
-          @close="showCropper = false"
-          @cropped="onCropped"
-        />
+        <ClientOnly>
+          <AvatarCropper
+            :file="avatarFile"
+            :visible="showCropper"
+            @close="showCropper = false"
+            @cropped="onCropped"
+          />
+        </ClientOnly>
       </section>
 
       <section class="card account-section account-section--danger">
-        <h2 class="section-title section-title--danger">Danger Zone</h2>
+        <h2 class="section-title section-title--danger"><AppIcon name="trash" /> Danger Zone</h2>
         <p class="section-desc">
           Once you delete your account, it will be deactivated. You will no longer be able to log in
           until an administrator reactivates your account. Your data will be preserved.
@@ -188,17 +194,22 @@
             />
           </div>
           <div class="section-actions">
-            <button class="btn btn-outline" @click="showDeleteConfirm = false">Cancel</button>
+            <button class="btn btn-outline" @click="showDeleteConfirm = false">
+              <AppIcon name="x" />
+              Cancel
+            </button>
             <button
               class="btn btn-danger"
               :disabled="deleteConfirmText.trim() !== 'DELETE' || deleteSaving"
               @click="handleDeleteAccount"
             >
-              {{ deleteSaving ? 'Deleting…' : 'Delete Account' }}
+              <AppIcon name="trash" />
+              {{ deleteSaving ? 'Deleting...' : 'Delete Account' }}
             </button>
           </div>
         </div>
         <button v-else class="btn btn-danger" @click="showDeleteConfirm = true">
+          <AppIcon name="trash" />
           Delete Account
         </button>
         <span class="action-feedback" v-if="deleteMessage" :class="{ 'is-error': deleteError }" aria-live="polite">
@@ -210,7 +221,7 @@
 </template>
 
 <script setup lang="ts">
-import AvatarCropper from '~/components/AvatarCropper.vue'
+const AvatarCropper = defineAsyncComponent(() => import('~/components/AvatarCropper.vue'))
 
 definePageMeta({ requiresAuth: true })
 
@@ -367,6 +378,14 @@ async function handleDeleteAccount () {
   max-width: 720px;
   margin: 0 auto;
 }
+.page-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.page-title svg {
+  color: var(--color-primary);
+}
 
 .account-grid {
   display: flex;
@@ -376,11 +395,24 @@ async function handleDeleteAccount () {
 
 .account-section {
   padding: 24px;
+  position: relative;
+  overflow: hidden;
+}
+.account-section::after {
+  content: "";
+  position: absolute;
+  inset: auto -28% -52px 24%;
+  height: 120px;
+  transform: rotate(-8deg);
+  background: linear-gradient(90deg, rgba(118, 87, 255, 0.08), rgba(14, 165, 233, 0.08));
 }
 
 .section-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   font-size: 1.15rem;
-  font-weight: 700;
+  font-weight: 850;
   margin-bottom: 4px;
 }
 
@@ -422,6 +454,7 @@ async function handleDeleteAccount () {
   border-radius: 50%;
   overflow: hidden;
   border: 2px solid var(--color-border);
+  box-shadow: var(--shadow-soft);
 }
 
 .avatar-preview img {
@@ -436,7 +469,7 @@ async function handleDeleteAccount () {
   justify-content: center;
   width: 100%;
   height: 100%;
-  background: var(--color-primary);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
   color: #fff;
   font-size: 2rem;
   font-weight: 700;
