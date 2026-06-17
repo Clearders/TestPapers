@@ -243,6 +243,7 @@ useHead({
   flex-direction: column;
   align-items: flex-start;
   gap: 22px;
+  animation: revealLeft 0.72s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .badge-pill {
@@ -256,6 +257,17 @@ useHead({
   border-radius: 999px;
   font-size: .84rem;
   font-weight: 800;
+  position: relative;
+  overflow: hidden;
+  animation: revealUp 0.48s var(--ease-out) 0.08s both;
+}
+.badge-pill::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent, rgba(255,255,255,.38), transparent);
+  transform: translateX(-140%);
+  animation: badgeSweep 4.8s ease-in-out infinite;
 }
 
 .hero-title {
@@ -267,10 +279,12 @@ useHead({
 }
 
 .text-gradient {
-  background: linear-gradient(135deg, var(--color-primary), #bb86fc);
+  background: linear-gradient(115deg, var(--color-primary), #8b5cf6, var(--color-secondary), #bb86fc, var(--color-primary));
+  background-size: 240% 100%;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  animation: gradientText 7s ease-in-out infinite;
 }
 
 .hero-sub {
@@ -285,6 +299,13 @@ useHead({
   gap: 12px;
   flex-wrap: wrap;
 }
+.hero-actions .btn {
+  animation: revealUp 0.48s var(--ease-out) both;
+}
+.hero-actions .btn:nth-child(1) { animation-delay: 0.18s; }
+.hero-actions .btn:nth-child(2) { animation-delay: 0.24s; }
+.hero-actions .btn:nth-child(3) { animation-delay: 0.3s; }
+.hero-actions .btn:nth-child(4) { animation-delay: 0.36s; }
 
 .btn-lg {
   min-height: 48px;
@@ -303,6 +324,8 @@ useHead({
   border: 1px solid rgba(118, 87, 255, 0.22);
   box-shadow: var(--shadow);
   overflow: hidden;
+  transform-style: preserve-3d;
+  animation: boardEnter 0.78s var(--ease-out) 0.08s both, boardDrift 8.4s ease-in-out 1.1s infinite;
 }
 
 .hero-board::before {
@@ -311,6 +334,16 @@ useHead({
   inset: 22px;
   border: 1px solid rgba(118, 87, 255, 0.18);
   transform: rotate(-4deg);
+  animation: heroFrame 9s ease-in-out infinite;
+}
+.hero-board::after {
+  content: "";
+  position: absolute;
+  inset: -35% -60%;
+  background: linear-gradient(110deg, transparent 40%, rgba(255,255,255,.24) 50%, transparent 60%);
+  transform: translateX(-42%) rotate(8deg);
+  animation: boardGlint 7.2s ease-in-out infinite;
+  pointer-events: none;
 }
 
 .board-topline,
@@ -330,6 +363,7 @@ useHead({
   padding: 12px 14px;
   border-radius: 8px;
   font-weight: 800;
+  animation: revealUp 0.46s var(--ease-out) 0.22s both;
 }
 
 .board-topline strong {
@@ -343,6 +377,7 @@ useHead({
   border-radius: 999px;
   background: var(--color-warm);
   box-shadow: 0 0 0 6px rgba(255, 138, 76, 0.12);
+  animation: dotPulse 1.9s ease-in-out infinite;
 }
 
 .formula-card {
@@ -351,6 +386,13 @@ useHead({
   padding: 24px;
   border-radius: 8px;
   transform: rotate(-2deg);
+  transition: transform .38s var(--ease-out), box-shadow .38s var(--ease-out), border-color .38s ease;
+  animation: formulaFloat 6.2s ease-in-out infinite, revealUp 0.54s var(--ease-out) 0.32s both;
+}
+.formula-card:hover {
+  transform: translateY(-8px) rotate(-1deg) scale(1.015);
+  box-shadow: 0 18px 42px rgba(62, 40, 126, .16);
+  border-color: rgba(118, 87, 255, .28);
 }
 
 .formula-card strong {
@@ -396,6 +438,7 @@ useHead({
   transform-origin: center;
   filter: blur(.2px);
   opacity: .86;
+  animation: connectorPulse 2.8s ease-in-out infinite;
 }
 
 .mini-panel {
@@ -414,7 +457,7 @@ useHead({
   isolation: isolate;
   text-align: center;
   transform: translateY(8px);
-  transition: border-radius .24s ease, transform .24s ease, box-shadow .24s ease;
+  transition: border-radius .32s var(--ease-out), transform .32s var(--ease-spring), box-shadow .32s var(--ease-out), border-color .32s ease;
 }
 
 .mini-panel::before,
@@ -447,10 +490,16 @@ useHead({
 
 .mini-panel:nth-child(1) {
   transform: translateY(-4px);
+  animation: miniFloatOne 6.4s ease-in-out infinite, revealUp 0.48s var(--ease-out) 0.42s both;
 }
 
 .mini-panel:nth-child(2) {
   transform: translateY(18px);
+  animation: miniFloatTwo 6.8s ease-in-out infinite, revealUp 0.48s var(--ease-out) 0.5s both;
+}
+.mini-panel:hover {
+  border-radius: 38%;
+  box-shadow: 0 18px 38px rgba(62, 40, 126, .16);
 }
 
 .mini-panel svg {
@@ -505,16 +554,20 @@ useHead({
   height: 11px;
   border-radius: 999px;
   background: rgba(118, 87, 255, 0.2);
+  transform-origin: left center;
+  animation: stackLine 2.4s ease-in-out infinite;
 }
 
 .paper-stack span:nth-child(2) {
   width: 82%;
   background: rgba(14, 165, 233, 0.2);
+  animation-delay: 0.18s;
 }
 
 .paper-stack span:nth-child(3) {
   width: 62%;
   background: rgba(255, 138, 76, 0.24);
+  animation-delay: 0.36s;
 }
 
 .workflow-section {
@@ -537,8 +590,13 @@ useHead({
   box-shadow: var(--shadow-soft);
   overflow: hidden;
   position: relative;
-  transition: transform .24s ease, box-shadow .24s ease, border-color .24s ease;
+  isolation: isolate;
+  transition: transform .34s var(--ease-out), box-shadow .34s var(--ease-out), border-color .34s ease, background .34s ease;
+  animation: revealUp 0.55s var(--ease-out) both;
 }
+.workflow-card:nth-child(1) { animation-delay: 0.08s; }
+.workflow-card:nth-child(2) { animation-delay: 0.16s; }
+.workflow-card:nth-child(3) { animation-delay: 0.24s; }
 
 .workflow-card::after {
   content: "";
@@ -547,12 +605,33 @@ useHead({
   height: 150px;
   transform: rotate(-8deg);
   background: linear-gradient(90deg, rgba(118, 87, 255, 0.1), rgba(14, 165, 233, 0.1));
+  transition: transform .36s ease, opacity .36s ease;
+  z-index: 0;
+}
+.workflow-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  opacity: 0;
+  background: radial-gradient(circle at 22% 16%, rgba(118, 87, 255, .13), transparent 36%);
+  transition: opacity .34s ease;
 }
 
 .workflow-card:hover {
-  transform: translateY(-6px);
+  transform: translateY(-8px) scale(1.01);
   border-color: rgba(118, 87, 255, 0.34);
   box-shadow: var(--shadow);
+}
+.workflow-card:hover::before {
+  opacity: 1;
+}
+.workflow-card:hover::after {
+  transform: translateX(10%) rotate(-5deg);
+  opacity: .9;
+}
+.workflow-card:hover .btn-text svg {
+  transform: translateX(4px);
 }
 
 .workflow-card--accent {
@@ -568,6 +647,11 @@ useHead({
   color: #fff;
   background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
   box-shadow: 0 12px 26px rgba(118, 87, 255, 0.22);
+  transition: transform .34s var(--ease-spring), box-shadow .34s var(--ease-out);
+}
+.workflow-card:hover .workflow-icon {
+  transform: translateY(-4px) rotate(-5deg) scale(1.08);
+  box-shadow: 0 18px 34px rgba(118, 87, 255, 0.28);
 }
 
 .workflow-card h2 {
@@ -594,6 +678,60 @@ useHead({
   font-size: .9rem;
   font-weight: 850;
   color: var(--color-primary);
+}
+.btn-text svg {
+  transition: transform .2s ease;
+}
+
+@keyframes heroFrame {
+  0%, 100% { transform: rotate(-4deg) scale(1); }
+  50% { transform: rotate(-2.4deg) scale(1.015); }
+}
+@keyframes boardEnter {
+  from { opacity: 0; transform: translateX(24px) rotateX(3deg) scale(.985); }
+  to { opacity: 1; transform: translateX(0) rotateX(0) scale(1); }
+}
+@keyframes boardDrift {
+  0%, 100% { transform: translateY(0) rotate(.001deg); }
+  50% { transform: translateY(-6px) rotate(.35deg); }
+}
+@keyframes boardGlint {
+  0%, 42%, 100% { transform: translateX(-48%) rotate(8deg); opacity: 0; }
+  52% { opacity: .9; }
+  62% { transform: translateX(34%) rotate(8deg); opacity: 0; }
+}
+@keyframes badgeSweep {
+  0%, 52%, 100% { transform: translateX(-140%); opacity: 0; }
+  62% { opacity: .75; }
+  78% { transform: translateX(140%); opacity: 0; }
+}
+@keyframes gradientText {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+@keyframes dotPulse {
+  0%, 100% { box-shadow: 0 0 0 6px rgba(255, 138, 76, 0.12); }
+  50% { box-shadow: 0 0 0 11px rgba(255, 138, 76, 0); }
+}
+@keyframes formulaFloat {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  50% { transform: translateY(-8px) rotate(-.9deg); }
+}
+@keyframes connectorPulse {
+  0%, 100% { opacity: .52; transform: translateY(-50%) scaleX(.88); }
+  50% { opacity: .9; transform: translateY(-50%) scaleX(1); }
+}
+@keyframes miniFloatOne {
+  0%, 100% { transform: translateY(-4px); }
+  50% { transform: translateY(-14px); }
+}
+@keyframes miniFloatTwo {
+  0%, 100% { transform: translateY(18px); }
+  50% { transform: translateY(8px); }
+}
+@keyframes stackLine {
+  0%, 100% { transform: scaleX(.72); opacity: .62; }
+  50% { transform: scaleX(1); opacity: 1; }
 }
 
 [data-theme="dark"] .hero-board {

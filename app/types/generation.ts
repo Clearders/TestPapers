@@ -30,3 +30,4 @@ export interface GenerationFormState {
 }
 
 export type ExportMode = 'paper' | 'categorized'
+export type LayoutDensity = 'auto' | 'normal' | 'compact' | 'dense'

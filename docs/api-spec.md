@@ -1020,6 +1020,7 @@ POST /api/v1/papers/{paper_public_id}/export-preview
 | ---------------- | ------- | --------- | ----------------------------------------------------------------- |
 | `includeAnswer`  | boolean | `true`    | 是否包含答案（需 `answers:read` 权限）                               |
 | `questionOrder`  | string  | `"paper"` | 试题排序方式：`paper`（按编排顺序）/ `categorized`（按题型分组） |
+| `layoutDensity`  | string  | `"auto"`  | DOCX layout density: `auto`, `normal`, `compact`, or `dense`. |
 
 **成功响应** (200)：
 
@@ -1052,7 +1053,8 @@ POST /api/v1/papers/{paper_public_id}/export-preview
     ],
     "renderHint": {
       "questionOrder": "paper",
-      "includeAnswer": false
+      "includeAnswer": false,
+      "layoutDensity": "auto"
     }
   },
   "meta": { "requestId": "..." }
@@ -1074,6 +1076,7 @@ GET /api/v1/papers/{paper_public_id}/download
 | `format`         | string  | `"docx"`  | 导出格式（当前仅支持 `docx`）                             |
 | `includeAnswer`  | boolean | `true`     | 是否包含答案（需 `answers:read` 权限，否则强制为 `false`） |
 | `questionOrder`  | string  | `"paper"`  | 排序方式：`paper`（编排顺序）/ `categorized`（题型分组）   |
+| `layoutDensity`  | string  | `"auto"`   | DOCX layout density: `auto`, `normal`, `compact`, or `dense`. |
 
 **成功响应** (200)：返回 `.docx` 文件的二进制内容，`Content-Type` 为 `application/vnd.openxmlformats-officedocument.wordprocessingml.document`，响应头包含 `Content-Disposition: attachment`。
 

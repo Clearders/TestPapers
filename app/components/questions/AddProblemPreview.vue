@@ -127,6 +127,8 @@ defineProps<{
   inset: 0 auto 0 0;
   width: 4px;
   background: linear-gradient(180deg, var(--color-primary), var(--color-warm));
+  transform-origin: top;
+  animation: previewBar 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 .preview-header {
   display: flex;
@@ -145,7 +147,10 @@ defineProps<{
   display: flex;
   flex-direction: column;
   gap: 6px;
+  animation: revealUp 0.36s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
+.preview-section:nth-of-type(2) { animation-delay: .06s; }
+.preview-section:nth-of-type(3) { animation-delay: .12s; }
 .preview-label {
   font-size: .75rem;
   font-weight: 700;
@@ -173,6 +178,7 @@ defineProps<{
   gap: 8px;
   min-width: 0;
   overflow-wrap: anywhere;
+  animation: revealUp 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 .preview-images {
   display: flex;
@@ -190,6 +196,12 @@ defineProps<{
   object-fit: contain;
   border: 1px solid var(--color-border);
   border-radius: 6px;
+  transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease;
+}
+.preview-image img:hover {
+  transform: translateY(-2px) scale(1.015);
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-soft);
 }
 .preview-image figcaption {
   margin-top: 4px;
@@ -198,6 +210,8 @@ defineProps<{
 }
 .essay-preview-space {
   margin-top: 14px;
+  background-image: repeating-linear-gradient(to bottom, transparent 0 30px, rgba(118, 87, 255, 0.2) 31px 32px);
+  animation: lineReveal .7s ease both;
 }
 .cheatsheet {
   margin-top: 20px;
@@ -228,6 +242,14 @@ code {
   padding: 1px 5px;
   border-radius: 4px;
   font-size: .82rem;
+}
+@keyframes previewBar {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+@keyframes lineReveal {
+  from { opacity: 0; background-position-y: -12px; }
+  to { opacity: 1; background-position-y: 0; }
 }
 :deep(.katex-display),
 :deep(.latex-block) {

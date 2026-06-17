@@ -107,17 +107,24 @@ function onDifficultyChange(event: Event) {
   flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 12px;
+  animation: revealUp .38s var(--ease-out) both;
 }
 .subject-tabs {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
   margin-bottom: 12px;
+  animation: revealUp .38s var(--ease-out) .06s both;
 }
 .bank-mode-tabs .btn,
 .subject-tabs .btn {
   border-radius: 999px;
 }
+.subject-tabs .btn {
+  animation: chipIn .24s var(--ease-out) both;
+}
+.subject-tabs .btn:nth-child(2n) { animation-delay: .03s; }
+.subject-tabs .btn:nth-child(3n) { animation-delay: .06s; }
 .toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -127,6 +134,23 @@ function onDifficultyChange(event: Event) {
   background:
     linear-gradient(135deg, rgba(118, 87, 255, 0.08), rgba(14, 165, 233, 0.04)),
     var(--color-surface);
+  position: relative;
+  overflow: hidden;
+  animation: revealUp .42s var(--ease-out) .1s both;
+}
+.toolbar::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 42%, rgba(255,255,255,.2), transparent 58%);
+  opacity: 0;
+  transform: translateX(-18%);
+  transition: opacity .34s ease, transform .5s var(--ease-out);
+  pointer-events: none;
+}
+.toolbar:hover::after {
+  opacity: 1;
+  transform: translateX(12%);
 }
 .search-wrap,
 .filter-wrap {
@@ -142,6 +166,12 @@ function onDifficultyChange(event: Event) {
   left: 12px;
   z-index: 1;
   color: var(--color-muted);
+  transition: color .18s ease, transform .18s ease;
+}
+.search-wrap:focus-within > svg,
+.filter-wrap:focus-within > svg {
+  color: var(--color-primary);
+  transform: scale(1.08);
 }
 .search-input,
 .filter-wrap .form-input {
@@ -159,5 +189,9 @@ function onDifficultyChange(event: Event) {
     width: 100%;
     flex: 1 1 100%;
   }
+}
+@keyframes chipIn {
+  from { opacity: 0; transform: translateY(6px) scale(.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 </style>

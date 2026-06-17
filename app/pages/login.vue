@@ -102,6 +102,7 @@ async function submitLogin () {
   width: min(100%, 460px);
   position: relative;
   overflow: hidden;
+  animation: authEnter 0.58s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 .auth-card::after {
   content: "";
@@ -112,6 +113,7 @@ async function submitLogin () {
   height: 180px;
   transform: rotate(-14deg);
   background: linear-gradient(90deg, rgba(118, 87, 255, 0.12), rgba(14, 165, 233, 0.1));
+  animation: authRibbon 7s ease-in-out infinite;
 }
 .auth-mark {
   display: inline-grid;
@@ -123,6 +125,7 @@ async function submitLogin () {
   color: #fff;
   background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
   box-shadow: 0 12px 26px rgba(118, 87, 255, 0.24);
+  animation: markFloat 3.8s ease-in-out infinite;
 }
 .auth-form,
 .register-prompt,
@@ -143,6 +146,11 @@ async function submitLogin () {
 .register-prompt a {
   color: var(--color-primary);
   font-weight: 800;
+  transition: color .18s ease, text-shadow .18s ease;
+}
+.register-prompt a:hover {
+  color: var(--color-primary-d);
+  text-shadow: 0 8px 18px rgba(118, 87, 255, .18);
 }
 .auth-spinner {
   width: 15px;
@@ -154,6 +162,18 @@ async function submitLogin () {
 }
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+@keyframes authEnter {
+  from { opacity: 0; transform: translateY(24px) scale(.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes authRibbon {
+  0%, 100% { transform: translateX(0) rotate(-14deg); }
+  50% { transform: translateX(-18px) rotate(-10deg); }
+}
+@keyframes markFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
 }
 @media (max-width: 480px) {
   .auth-card .btn-primary {

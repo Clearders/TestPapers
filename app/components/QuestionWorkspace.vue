@@ -161,6 +161,7 @@
           :paper-total-marks="paper.totalMarks"
           :paper-questions="paper.questions"
           v-model:export-mode="exportMode"
+          v-model:layout-density="layoutDensity"
           v-model:include-answers-in-export="includeAnswersInExport"
           :can-read-answers="canReadAnswers"
         />
@@ -193,7 +194,7 @@ import PaperGenerationForm from '~/components/PaperGenerationForm.vue'
 import PaperExportPanel from '~/components/PaperExportPanel.vue'
 import QuestionCardList from '~/components/QuestionCardList.vue'
 import type { Question, QuestionDifficulty, QuestionEntity, QuestionType } from '~/types/question'
-import type { GenerationDiagnostics, GenerationFormState, ExportMode } from '~/types/generation'
+import type { GenerationDiagnostics, GenerationFormState, ExportMode, LayoutDensity } from '~/types/generation'
 import { normalizeQuestion, boundedNumber, optionalPositiveInteger } from '~/domain/questions'
 import { formatScoreWeight } from '~/utils/format'
 
@@ -295,6 +296,7 @@ const filterSubject = ref(parseQuerySubject())
 const filterDifficulty = ref<QuestionDifficulty | ''>((route.query.difficulty as QuestionDifficulty) || '')
 const shownIds = reactive(new Set<number>())
 const exportMode = ref<ExportMode>('paper')
+const layoutDensity = ref<LayoutDensity>('auto')
 const includeAnswersInExport = ref(false)
 const bankMode = ref<BankMode>(parseQueryBank())
 const pageSize = ref(20)
@@ -482,6 +484,7 @@ function clearPaper () {
   paper.questions.length = 0
   exported.value = false
   exportMode.value = 'paper'
+  layoutDensity.value = 'auto'
   forgetSavedPaper()
   downloadError.value = ''
 }
@@ -542,7 +545,8 @@ async function requestDocxDownload (paperPublicId: string) {
   const params = new URLSearchParams({
     format: 'docx',
     questionOrder: exportMode.value,
-    includeAnswer: String(includeAnswersInExport.value && canReadAnswers.value)
+    includeAnswer: String(includeAnswersInExport.value && canReadAnswers.value),
+    layoutDensity: layoutDensity.value
   })
   const response = await apiFetch<Response>(`/papers/${paperPublicId}/download`, {
     method: 'GET',
@@ -766,7 +770,10 @@ function closeCorrectionModal () {
 .bank-panel,
 .paper-panel {
   min-width: 0;
+  animation: revealUp 0.56s var(--ease-out) both;
 }
+.bank-panel { animation-delay: 0.08s; }
+.paper-panel { animation-delay: 0.16s; }
 @media (max-width: 900px) {
   .workspace-layout {
     grid-template-columns: 1fr;
@@ -780,6 +787,7 @@ function closeCorrectionModal () {
   flex-wrap: wrap;
   gap: 10px;
   margin-bottom: 14px;
+  animation: revealUp 0.42s var(--ease-out) both;
 }
 .panel-head h2 {
   display: inline-flex;
@@ -816,6 +824,20 @@ function closeCorrectionModal () {
     linear-gradient(135deg, rgba(118, 87, 255, 0.07), rgba(255, 138, 76, 0.04)),
     var(--color-surface);
 }
+.paper-meta-card::after {
+  content: "";
+  position: absolute;
+  inset: auto -20% -54px 18%;
+  height: 118px;
+  background: linear-gradient(90deg, rgba(118, 87, 255, .08), rgba(14, 165, 233, .08), transparent);
+  transform: rotate(-7deg);
+  transition: transform .42s var(--ease-out), opacity .42s ease;
+  pointer-events: none;
+}
+.paper-meta-card:hover::after {
+  opacity: .95;
+  transform: translateX(8%) rotate(-4deg);
+}
 .paper-meta-field {
   flex: 1;
 }
@@ -832,7 +854,8 @@ function closeCorrectionModal () {
   min-width: 0;
   position: relative;
   overflow: hidden;
-  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease, border-color 0.3s ease;
+  isolation: isolate;
+  transition: transform .34s var(--ease-out), box-shadow .34s var(--ease-out), border-color .34s ease;
 }
 .paper-q-item::before {
   content: "";
@@ -840,11 +863,32 @@ function closeCorrectionModal () {
   inset: 0 auto 0 0;
   width: 4px;
   background: linear-gradient(180deg, var(--color-primary), var(--color-secondary));
+  transform-origin: top;
+  animation: sideBarGrow 0.42s var(--ease-out) both;
+}
+.paper-q-item::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: linear-gradient(115deg, transparent 42%, rgba(255,255,255,.18), transparent 58%);
+  opacity: 0;
+  transform: translateX(-16%);
+  transition: opacity .3s ease, transform .48s var(--ease-out);
 }
 .paper-q-item:hover {
-  transform: translateY(-2px);
+  transform: translateY(-5px);
   box-shadow: var(--shadow);
   border-color: var(--color-primary);
+}
+.paper-q-item:hover::after {
+  opacity: 1;
+  transform: translateX(0);
+}
+.paper-q-item > * {
+  position: relative;
+  z-index: 1;
 }
 .q-meta {
   display: flex;
@@ -898,10 +942,17 @@ function closeCorrectionModal () {
   padding: 0;
   font-size: .9rem;
   color: var(--color-muted);
+  transition: background .22s ease, color .22s ease, transform .22s var(--ease-spring), border-color .22s ease, box-shadow .22s ease;
 }
 .icon-btn:hover:not(:disabled) {
   background: var(--color-bg);
   color: var(--color-text);
+  border-color: var(--color-primary);
+  transform: translateY(-2px) scale(1.04);
+  box-shadow: var(--shadow-soft);
+}
+.icon-btn:active:not(:disabled) {
+  transform: scale(.94);
 }
 .icon-btn:disabled {
   opacity: .3;
@@ -984,5 +1035,15 @@ function closeCorrectionModal () {
   font-weight: 500;
   background: rgba(79, 110, 247, 0.1);
   color: var(--color-primary);
+  transition: transform .18s ease, background .18s ease;
+}
+.subject-pill:hover {
+  transform: translateY(-1px);
+  background: rgba(79, 110, 247, 0.16);
+}
+
+@keyframes sideBarGrow {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
 }
 </style>

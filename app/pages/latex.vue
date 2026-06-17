@@ -200,6 +200,7 @@ onUnmounted(() => {
   flex-direction: column;
   gap: 14px;
   min-width: 0;
+  animation: revealLeft 0.54s cubic-bezier(0.16, 1, 0.3, 1) 0.08s both;
 }
 
 .symbol-strip {
@@ -208,6 +209,12 @@ onUnmounted(() => {
   gap: 4px;
   padding: 4px 0;
 }
+.symbol-strip .symbol-chip {
+  animation: symbolIn .28s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.symbol-strip .symbol-chip:nth-child(2n) { animation-delay: .03s; }
+.symbol-strip .symbol-chip:nth-child(3n) { animation-delay: .06s; }
+.symbol-strip .symbol-chip:nth-child(4n) { animation-delay: .09s; }
 
 .symbol-chip {
   display: inline-flex;
@@ -283,12 +290,14 @@ onUnmounted(() => {
 
 .template-link:hover {
   color: var(--color-primary);
+  animation: templateNudge .24s ease;
 }
 
 .preview-side {
   position: sticky;
   top: calc(var(--header-h, 60px) + 20px);
   min-width: 0;
+  animation: revealRight 0.54s cubic-bezier(0.16, 1, 0.3, 1) 0.14s both;
 }
 
 .preview-stage {
@@ -303,7 +312,13 @@ onUnmounted(() => {
     var(--preview-bg);
   border: 1px solid var(--color-border);
   overflow-x: auto;
-  transition: opacity 0.2s ease;
+  transition: opacity 0.2s ease, transform .22s ease, box-shadow .22s ease, border-color .22s ease;
+  animation: previewGlow 4.8s ease-in-out infinite;
+}
+.preview-stage:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-soft);
+  border-color: rgba(118, 87, 255, 0.32);
 }
 
 .preview-stage.is-stale {
@@ -332,6 +347,7 @@ onUnmounted(() => {
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   padding: 24px;
+  animation: revealUp 0.54s cubic-bezier(0.16, 1, 0.3, 1) 0.22s both;
 }
 
 .reference-title {
@@ -357,6 +373,10 @@ onUnmounted(() => {
   border-bottom: 1px solid var(--color-border);
   text-align: left;
   vertical-align: middle;
+  transition: background .18s ease, transform .18s ease;
+}
+.reference-table tbody tr:hover td {
+  background: rgba(118, 87, 255, 0.06);
 }
 
 .reference-table th {
@@ -373,6 +393,19 @@ code {
   border-radius: 4px;
   font-size: .82rem;
   white-space: nowrap;
+  transition: background .18s ease, color .18s ease;
+}
+
+@keyframes symbolIn {
+  from { opacity: 0; transform: translateY(8px) scale(.92); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes templateNudge {
+  50% { transform: translateY(-1px); }
+}
+@keyframes previewGlow {
+  0%, 100% { box-shadow: 0 0 0 rgba(118, 87, 255, 0); }
+  50% { box-shadow: 0 14px 34px rgba(118, 87, 255, 0.12); }
 }
 
 .status-banner--error {

@@ -241,7 +241,8 @@ function formatStatus (status: string) {
   min-width: 0;
   position: relative;
   overflow: hidden;
-  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease, border-color 0.3s ease;
+  isolation: isolate;
+  transition: transform .34s var(--ease-out), box-shadow .34s var(--ease-out), border-color .34s ease;
 }
 .q-card::before {
   content: "";
@@ -250,11 +251,34 @@ function formatStatus (status: string) {
   width: 4px;
   background: linear-gradient(180deg, var(--color-primary), var(--color-secondary));
   opacity: .82;
+  transform-origin: top;
+  animation: qCardRail .42s var(--ease-out) both;
+}
+.q-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 8% 0%, rgba(118, 87, 255, .12), transparent 30%),
+    linear-gradient(115deg, transparent 45%, rgba(255,255,255,.18), transparent 58%);
+  opacity: 0;
+  transform: translateX(-12%);
+  transition: opacity .34s ease, transform .5s var(--ease-out);
 }
 .q-card:hover {
-  transform: translateY(-2px);
+  transform: translateY(-5px);
   box-shadow: var(--shadow);
   border-color: var(--color-primary);
+}
+.q-card:hover::after {
+  opacity: 1;
+  transform: translateX(0);
+}
+.q-card > * {
+  position: relative;
+  z-index: 1;
 }
 .q-card-header,
 .q-meta {
@@ -276,6 +300,11 @@ function formatStatus (status: string) {
   font-weight: 500;
   background: rgba(79, 110, 247, 0.1);
   color: var(--color-primary);
+  transition: transform .18s ease, background .18s ease;
+}
+.subject-pill:hover {
+  transform: translateY(-1px);
+  background: rgba(79, 110, 247, 0.16);
 }
 .q-body {
   display: flex;
@@ -300,7 +329,15 @@ function formatStatus (status: string) {
   align-items: flex-start;
   min-width: 0;
   overflow-wrap: anywhere;
+  animation: revealUp .3s var(--ease-out) both;
+  transition: transform .22s var(--ease-out), color .22s ease;
 }
+.q-option:hover {
+  transform: translateX(3px);
+}
+.q-option:nth-child(2) { animation-delay: .03s; }
+.q-option:nth-child(3) { animation-delay: .06s; }
+.q-option:nth-child(4) { animation-delay: .09s; }
 .q-option-label {
   font-weight: 700;
   color: var(--color-primary);
@@ -322,7 +359,7 @@ function formatStatus (status: string) {
   display: grid;
   grid-template-rows: 0fr;
   opacity: 0;
-  transition: grid-template-rows 0.3s ease, opacity 0.3s ease;
+  transition: grid-template-rows .34s var(--ease-out), opacity .28s ease;
 }
 .q-answer-wrapper.is-open {
   grid-template-rows: 1fr;
@@ -355,6 +392,11 @@ function formatStatus (status: string) {
   border-radius: 999px;
   margin-right: 4px;
   vertical-align: middle;
+  transition: transform .24s var(--ease-spring), background .24s ease;
+}
+.q-card:hover .q-type-tag {
+  transform: translateY(-1px);
+  background: rgba(118, 87, 255, .14);
 }
 .q-images {
   display: flex;
@@ -369,6 +411,12 @@ function formatStatus (status: string) {
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   background: var(--color-surface-solid);
+  transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease;
+}
+.q-image-thumb:hover {
+  transform: translateY(-2px) scale(1.02);
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-soft);
 }
 :deep(.katex-display),
 :deep(.latex-block) {
@@ -433,6 +481,7 @@ function formatStatus (status: string) {
   border: 1px solid var(--color-border);
   border-radius: 8px;
   overflow: hidden;
+  animation: revealUp .28s var(--ease-out) both;
 }
 .correction-status-text {
   padding: 10px 12px;
@@ -442,6 +491,7 @@ function formatStatus (status: string) {
 .correction-item {
   padding: 10px 12px;
   border-bottom: 1px solid var(--color-border);
+  animation: revealUp .24s var(--ease-out) both;
 }
 .correction-item:last-child {
   border-bottom: none;
@@ -534,5 +584,9 @@ function formatStatus (status: string) {
   display: flex;
   gap: 6px;
   margin-top: 8px;
+}
+@keyframes qCardRail {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
 }
 </style>

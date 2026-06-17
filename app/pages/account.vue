@@ -392,6 +392,10 @@ async function handleDeleteAccount () {
   flex-direction: column;
   gap: 24px;
 }
+.account-grid .account-section:nth-child(1) { animation-delay: .08s; }
+.account-grid .account-section:nth-child(2) { animation-delay: .16s; }
+.account-grid .account-section:nth-child(3) { animation-delay: .24s; }
+.account-grid .account-section:nth-child(4) { animation-delay: .32s; }
 
 .account-section {
   padding: 24px;
@@ -405,6 +409,11 @@ async function handleDeleteAccount () {
   height: 120px;
   transform: rotate(-8deg);
   background: linear-gradient(90deg, rgba(118, 87, 255, 0.08), rgba(14, 165, 233, 0.08));
+  transition: transform .34s ease, opacity .34s ease;
+}
+.account-section:hover::after {
+  transform: translateX(8%) rotate(-5deg);
+  opacity: .9;
 }
 
 .section-title {
@@ -455,6 +464,12 @@ async function handleDeleteAccount () {
   overflow: hidden;
   border: 2px solid var(--color-border);
   box-shadow: var(--shadow-soft);
+  transition: transform .24s ease, border-color .24s ease, box-shadow .24s ease;
+}
+.avatar-preview:hover {
+  transform: translateY(-2px) scale(1.03);
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow);
 }
 
 .avatar-preview img {
@@ -492,6 +507,7 @@ async function handleDeleteAccount () {
 
 .delete-confirm {
   margin-top: 8px;
+  animation: revealUp .32s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .account-section--danger {

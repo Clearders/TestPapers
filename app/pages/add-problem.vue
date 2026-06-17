@@ -470,6 +470,10 @@ const cheatSheet = LATEX_QUICK_REFERENCE
   background:
     linear-gradient(135deg, rgba(118, 87, 255, 0.07), rgba(14, 165, 233, 0.03)),
     var(--color-surface);
+  animation: revealLeft 0.58s cubic-bezier(0.16, 1, 0.3, 1) 0.08s both;
+}
+.add-layout > :deep(.preview-panel) {
+  animation: revealRight 0.58s cubic-bezier(0.16, 1, 0.3, 1) 0.16s both;
 }
 .form-row {
   display: flex;
@@ -508,6 +512,9 @@ const cheatSheet = LATEX_QUICK_REFERENCE
   gap: 6px;
   margin-top: 6px;
 }
+.tag-list > * {
+  animation: tagPop .24s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
 .tag-removable {
   display: inline-flex;
   align-items: center;
@@ -518,6 +525,12 @@ const cheatSheet = LATEX_QUICK_REFERENCE
   border: none;
   color: var(--color-primary);
   line-height: 1;
+  transition: transform .18s ease, color .18s ease;
+}
+.tag-removable button:hover,
+.subject-pill-form-removable button:hover {
+  color: var(--color-danger);
+  transform: scale(1.18);
 }
 .subject-pill-form {
   display: inline-flex;
@@ -529,6 +542,12 @@ const cheatSheet = LATEX_QUICK_REFERENCE
   font-weight: 500;
   background: rgba(79, 110, 247, 0.12);
   color: var(--color-primary);
+  animation: tagPop .24s cubic-bezier(0.16, 1, 0.3, 1) both;
+  transition: transform .18s ease, background .18s ease;
+}
+.subject-pill-form:hover {
+  transform: translateY(-1px);
+  background: rgba(79, 110, 247, 0.18);
 }
 .subject-pill-form-removable {
   display: inline-flex;
@@ -549,6 +568,7 @@ const cheatSheet = LATEX_QUICK_REFERENCE
   align-items: center;
   gap: 8px;
   margin-bottom: 8px;
+  animation: revealUp 0.36s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 .option-label {
   width: 24px;
@@ -664,6 +684,11 @@ code {
   padding: 1px 5px;
   border-radius: 4px;
   font-size: .82rem;
+}
+
+@keyframes tagPop {
+  from { opacity: 0; transform: scale(.86) translateY(4px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
 }
 .permission-card {
   max-width: 520px;

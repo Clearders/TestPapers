@@ -187,16 +187,35 @@ async function deleteUser (publicId: string) {
   gap: 24px;
   align-items: start;
 }
+.user-form {
+  animation: revealLeft 0.52s cubic-bezier(0.16, 1, 0.3, 1) .08s both;
+}
 .user-list {
   display: flex;
   flex-direction: column;
   gap: 14px;
+  animation: revealRight 0.52s cubic-bezier(0.16, 1, 0.3, 1) .14s both;
 }
 .user-card {
   display: flex;
   flex-direction: column;
   gap: 14px;
   min-width: 0;
+  position: relative;
+  overflow: hidden;
+}
+.user-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: linear-gradient(180deg, var(--color-primary), var(--color-secondary));
+  transform: scaleY(0);
+  transform-origin: top;
+  transition: transform .24s ease;
+}
+.user-card:hover::before {
+  transform: scaleY(1);
 }
 .user-meta,
 .form-message {
@@ -216,6 +235,18 @@ async function deleteUser (publicId: string) {
 }
 .active-toggle {
   font-size: .875rem;
+  transition: color .18s ease, transform .18s ease;
+}
+.active-toggle:hover {
+  color: var(--color-primary);
+  transform: translateY(-1px);
+}
+.permission-list .tag {
+  animation: permissionPop .28s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes permissionPop {
+  from { opacity: 0; transform: translateY(5px) scale(.94); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 @media (max-width: 820px) {
   .users-layout {

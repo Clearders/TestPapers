@@ -367,15 +367,30 @@ function formatDistribution (distribution: Record<string, number>) {
     linear-gradient(135deg, rgba(118, 87, 255, 0.1), rgba(14, 165, 233, 0.05)),
     var(--color-surface);
 }
+.generation-card::after {
+  content: "";
+  position: absolute;
+  inset: -60% -20% auto 35%;
+  height: 180px;
+  background: radial-gradient(circle, rgba(14, 165, 233, .16), transparent 68%);
+  opacity: .55;
+  transform: rotate(-10deg);
+  animation: genGlowFloat 8s ease-in-out infinite;
+  pointer-events: none;
+}
 .generation-card::before {
   content: "";
   position: absolute;
   inset: 0 0 auto;
   height: 4px;
   background: linear-gradient(90deg, var(--color-primary), var(--color-secondary), var(--color-warm));
+  background-size: 200% 100%;
+  animation: genBar 2.8s ease-in-out infinite;
 }
 
 .gen-header {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -449,7 +464,14 @@ function formatDistribution (distribution: Record<string, number>) {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  position: relative;
+  z-index: 1;
+  animation: revealUp .34s var(--ease-out) both;
 }
+.gen-field:nth-child(2) { animation-delay: .04s; }
+.gen-field:nth-child(3) { animation-delay: .08s; }
+.gen-field:nth-child(4) { animation-delay: .12s; }
+.gen-field:nth-child(5) { animation-delay: .16s; }
 .gen-field__label-row {
   display: flex;
   align-items: center;
@@ -485,12 +507,13 @@ function formatDistribution (distribution: Record<string, number>) {
   color: var(--color-muted);
   text-align: center;
   white-space: nowrap;
-  transition: background 0.2s ease, color 0.2s ease;
+  transition: background .22s ease, color .22s ease, transform .22s var(--ease-spring), box-shadow .22s ease;
   cursor: pointer;
 }
 .gen-pill:hover {
   color: var(--color-text);
   background: rgba(255, 255, 255, 0.45);
+  transform: translateY(-2px);
 }
 
 [data-theme="dark"] .gen-pill:hover {
@@ -500,6 +523,7 @@ function formatDistribution (distribution: Record<string, number>) {
   background: var(--color-surface);
   color: var(--color-primary);
   box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  animation: selectedPulse .32s var(--ease-out) both;
 }
 .gen-pill-input {
   width: 64px;
@@ -545,7 +569,7 @@ function formatDistribution (distribution: Record<string, number>) {
   font-size: .85rem;
   font-weight: 500;
   color: var(--color-muted);
-  transition: background 0.2s ease, color 0.2s ease;
+  transition: background .22s ease, color .22s ease, transform .22s var(--ease-out), border-color .22s ease, box-shadow .22s ease;
   text-align: left;
   width: 100%;
 }
@@ -555,6 +579,7 @@ function formatDistribution (distribution: Record<string, number>) {
 .gen-type-option:hover {
   background: rgba(79, 110, 247, 0.04);
   color: var(--color-text);
+  transform: translateX(2px);
 }
 .gen-type-option:focus-visible {
   outline: 2px solid var(--color-primary);
@@ -566,6 +591,7 @@ function formatDistribution (distribution: Record<string, number>) {
   color: var(--color-primary);
   font-weight: 800;
   border-left: 3px solid var(--color-primary);
+  box-shadow: inset 12px 0 22px rgba(118, 87, 255, .08);
 }
 .gen-type-option--active:hover {
   background: rgba(79, 110, 247, 0.1);
@@ -594,6 +620,7 @@ function formatDistribution (distribution: Record<string, number>) {
   background: var(--color-border);
   border-radius: 999px;
   padding: 2px 2px 2px 12px;
+  animation: genChipIn .24s var(--ease-out) both;
 }
 
 .gen-type-count-label {
@@ -644,10 +671,11 @@ function formatDistribution (distribution: Record<string, number>) {
   border-radius: 50%;
   cursor: pointer;
   box-shadow: 0 1px 4px rgba(0,0,0,0.12);
-  transition: transform 0.15s ease;
+  transition: transform .18s var(--ease-spring), box-shadow .18s ease;
 }
 .gen-range::-webkit-slider-thumb:hover {
   transform: scale(1.15);
+  box-shadow: 0 0 0 7px rgba(118, 87, 255, .12);
 }
 .gen-range-ticks {
   display: flex;
@@ -676,12 +704,15 @@ function formatDistribution (distribution: Record<string, number>) {
   font-weight: 500;
   color: var(--color-muted);
   cursor: pointer;
-  transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
+  transition: border-color .22s ease, color .22s ease, background .22s ease, transform .22s var(--ease-spring), box-shadow .22s ease;
+  animation: genChipIn .24s var(--ease-out) both;
 }
 .gen-tag-chip:hover {
   color: var(--color-text);
   border-color: var(--color-primary);
   background: rgba(79, 110, 247, 0.04);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-soft);
 }
 .gen-chip--required {
   border-color: var(--color-primary);
@@ -721,12 +752,15 @@ function formatDistribution (distribution: Record<string, number>) {
   font-weight: 500;
   color: var(--color-muted);
   cursor: pointer;
-  transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
+  transition: border-color .22s ease, color .22s ease, background .22s ease, transform .22s var(--ease-spring), box-shadow .22s ease;
+  animation: genChipIn .24s var(--ease-out) both;
 }
 .gen-subject-chip:hover {
   color: var(--color-text);
   border-color: var(--color-primary);
   background: rgba(79, 110, 247, 0.04);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-soft);
 }
 .gen-subject-chip--active {
   border-color: var(--color-primary);
@@ -754,6 +788,7 @@ function formatDistribution (distribution: Record<string, number>) {
   border-radius: 999px;
   font-size: .78rem;
   font-weight: 500;
+  animation: genChipIn .24s var(--ease-out) both;
 }
 .gen-spill--required {
   background: rgba(79, 110, 247, 0.12);
@@ -796,6 +831,8 @@ function formatDistribution (distribution: Record<string, number>) {
 }
 
 .gen-action {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   flex-wrap: wrap;
@@ -828,8 +865,26 @@ function formatDistribution (distribution: Record<string, number>) {
 @keyframes genSpin {
   to { transform: rotate(360deg); }
 }
+@keyframes genBar {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+@keyframes genChipIn {
+  from { opacity: 0; transform: translateY(6px) scale(.94); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes genGlowFloat {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(-10deg); opacity: .42; }
+  50% { transform: translate3d(-18px, 14px, 0) rotate(-6deg); opacity: .72; }
+}
+@keyframes selectedPulse {
+  from { transform: scale(.96); }
+  to { transform: scale(1); }
+}
 
 .gen-result {
+  position: relative;
+  z-index: 1;
   margin-top: 16px;
   padding: 16px;
   border: 1px solid var(--color-border);
@@ -867,6 +922,13 @@ function formatDistribution (distribution: Record<string, number>) {
   border-radius: var(--radius);
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border);
+  animation: revealUp .32s var(--ease-out) both;
+  transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+}
+.gen-stat:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-soft);
+  border-color: rgba(118, 87, 255, .3);
 }
 .gen-stat-label {
   font-size: .68rem;

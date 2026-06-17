@@ -26,9 +26,20 @@
             By Type
           </button>
         </div>
+        <div class="export-density-actions" aria-label="DOCX layout density">
+          <button
+            v-for="density in layoutDensityOptions"
+            :key="density.value"
+            class="btn btn-sm"
+            :class="layoutDensity === density.value ? 'btn-primary' : 'btn-outline'"
+            @click="$emit('update:layoutDensity', density.value)"
+          >
+            {{ density.label }}
+          </button>
+        </div>
       </div>
       <p class="export-preview-note">
-        {{ exportMode === 'categorized' ? 'Questions are grouped as multiple-choice, fill-in-the-blank, and essay, with forward numbering across sections.' : 'Questions follow the order from the paper builder.' }}
+        {{ exportSummary }}
       </p>
       <section v-for="section in exportSections" :key="section.key" class="export-section">
         <h4 v-if="section.title" class="export-section-title">{{ section.title }}</h4>
@@ -94,7 +105,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { Question, QuestionType } from '~/types/question'
-import type { ExportMode } from '~/types/generation'
+import type { ExportMode, LayoutDensity } from '~/types/generation'
 import {
   QUESTION_TYPE_LABELS,
   QUESTION_TYPE_ORDER,
@@ -112,14 +123,31 @@ const props = defineProps<{
   paperTotalMarks: number
   paperQuestions: PaperQuestion[]
   exportMode: ExportMode
+  layoutDensity: LayoutDensity
   includeAnswersInExport: boolean
   canReadAnswers: boolean
 }>()
 
-const emit = defineEmits<{
+defineEmits<{
   'update:exportMode': [value: ExportMode]
+  'update:layoutDensity': [value: LayoutDensity]
   'update:includeAnswersInExport': [value: boolean]
 }>()
+
+const layoutDensityOptions: { value: LayoutDensity; label: string }[] = [
+  { value: 'auto', label: 'Auto' },
+  { value: 'normal', label: 'Normal' },
+  { value: 'compact', label: 'Compact' },
+  { value: 'dense', label: 'Dense' }
+]
+
+const exportSummary = computed(() => {
+  const orderText = props.exportMode === 'categorized'
+    ? 'Questions are grouped as multiple-choice, fill-in-the-blank, and essay, with forward numbering across sections.'
+    : 'Questions follow the order from the paper builder.'
+  const densityLabel = layoutDensityOptions.find(option => option.value === props.layoutDensity)?.label || 'Auto'
+  return `${orderText} DOCX layout: ${densityLabel}.`
+})
 
 function getEssayBlankStyle (question: Question) {
   return {
@@ -156,6 +184,7 @@ const exportSections = computed(() => {
   background: var(--color-surface);
   margin-top: 24px;
   overflow: hidden;
+  animation: exportIn .46s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 .export-preview-head {
   display: flex;
@@ -176,7 +205,8 @@ const exportSections = computed(() => {
   font-size: .875rem;
   margin-bottom: 16px;
 }
-.export-mode-actions {
+.export-mode-actions,
+.export-density-actions {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
@@ -184,6 +214,7 @@ const exportSections = computed(() => {
 }
 .export-section {
   margin-top: 18px;
+  animation: revealUp .36s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 .export-section-title {
   padding-bottom: 8px;
@@ -202,7 +233,10 @@ const exportSections = computed(() => {
   font-size: .95rem;
   line-height: 1.7;
   overflow-wrap: anywhere;
+  animation: revealUp .28s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
+.export-q-list li:nth-child(2n) { animation-delay: .04s; }
+.export-q-list li:nth-child(3n) { animation-delay: .08s; }
 .export-q-text {
   display: inline;
 }
@@ -233,6 +267,7 @@ const exportSections = computed(() => {
   background: #f8fafc;
   border: 1px solid var(--color-border);
   border-radius: 8px;
+  animation: revealUp .24s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 .export-image-thumb {
   max-width: 160px;
@@ -240,6 +275,12 @@ const exportSections = computed(() => {
   object-fit: contain;
   border: 1px solid var(--color-border);
   border-radius: 6px;
+  transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease;
+}
+.export-image-thumb:hover {
+  transform: translateY(-2px) scale(1.02);
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-soft);
 }
 .export-images {
   display: flex;
@@ -255,13 +296,15 @@ const exportSections = computed(() => {
 }
 @media (max-width: 700px) {
   .export-preview-head,
-  .export-mode-actions {
+  .export-mode-actions,
+  .export-density-actions {
     align-items: stretch;
     flex-direction: column;
   }
 }
 @media (max-width: 560px) {
-  .export-mode-actions .btn {
+  .export-mode-actions .btn,
+  .export-density-actions .btn {
     width: 100%;
   }
 
@@ -278,5 +321,9 @@ const exportSections = computed(() => {
 
 [data-theme="dark"] .export-answer {
   background: rgba(30, 41, 59, 0.5);
+}
+@keyframes exportIn {
+  from { opacity: 0; transform: translateY(18px) scale(.99); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 </style>
