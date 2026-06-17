@@ -254,27 +254,10 @@ function formatStatus (status: string) {
   transform-origin: top;
   animation: qCardRail .42s var(--ease-out) both;
 }
-.q-card::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(circle at 8% 0%, rgba(118, 87, 255, .12), transparent 30%),
-    linear-gradient(115deg, transparent 45%, rgba(255,255,255,.18), transparent 58%);
-  opacity: 0;
-  transform: translateX(-12%);
-  transition: opacity .34s ease, transform .5s var(--ease-out);
-}
 .q-card:hover {
   transform: translateY(-5px);
   box-shadow: var(--shadow);
   border-color: var(--color-primary);
-}
-.q-card:hover::after {
-  opacity: 1;
-  transform: translateX(0);
 }
 .q-card > * {
   position: relative;

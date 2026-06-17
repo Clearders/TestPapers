@@ -47,7 +47,7 @@
             @click="saveProfile"
           >
             <AppIcon name="upload" />
-            {{ profileSaving ? 'Saving...' : 'Save Changes' }}
+            {{ profileSaving ? 'Saving…' : 'Save Changes' }}
           </button>
           <span class="action-feedback" v-if="profileMessage" :class="{ 'is-error': profileError }" aria-live="polite">
             {{ profileMessage }}
@@ -108,7 +108,7 @@
             @click="savePassword"
           >
             <AppIcon name="settings" />
-            {{ passwordSaving ? 'Changing...' : 'Change Password' }}
+            {{ passwordSaving ? 'Changing…' : 'Change Password' }}
           </button>
           <span class="action-feedback" v-if="passwordMessage" :class="{ 'is-error': passwordError }" aria-live="polite">
             {{ passwordMessage }}
@@ -152,7 +152,7 @@
               @click="uploadAvatarFile"
             >
               <AppIcon name="upload" />
-              {{ avatarUploading ? 'Uploading...' : 'Upload Avatar' }}
+              {{ avatarUploading ? 'Uploading…' : 'Upload Avatar' }}
             </button>
           </div>
         </div>
@@ -204,7 +204,7 @@
               @click="handleDeleteAccount"
             >
               <AppIcon name="trash" />
-              {{ deleteSaving ? 'Deleting...' : 'Delete Account' }}
+              {{ deleteSaving ? 'Deleting…' : 'Delete Account' }}
             </button>
           </div>
         </div>

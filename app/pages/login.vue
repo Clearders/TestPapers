@@ -17,7 +17,7 @@
         <button class="btn btn-primary" type="submit" :disabled="isSubmitting">
           <span v-if="isSubmitting" class="auth-spinner"></span>
           <AppIcon v-else name="login" />
-          {{ isSubmitting ? 'Signing in...' : 'Sign In' }}
+          {{ isSubmitting ? 'Signing in…' : 'Sign In' }}
         </button>
         <p v-if="errorMessage" class="login-error" role="alert" aria-live="polite">{{ errorMessage }}</p>
       </form>

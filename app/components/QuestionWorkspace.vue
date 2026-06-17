@@ -307,6 +307,7 @@ const savedPaperId = ref<string | null>(null)
 const savedPaperSignature = ref('')
 const isDownloadingDocx = ref(false)
 const downloadError = ref('')
+const isActive = ref(true)
 let searchLoadTimer: ReturnType<typeof setTimeout> | null = null
 
 const paper = reactive({
@@ -376,12 +377,13 @@ watch([search, filterSubject, filterDifficulty], () => {
     if (searchLoadTimer) clearTimeout(searchLoadTimer)
     searchLoadTimer = setTimeout(() => {
       searchLoadTimer = null
-      if (canReadQuestions.value) void loadCurrentPage(1)
+      if (isActive.value && canReadQuestions.value) void loadCurrentPage(1)
     }, 250)
   }
 })
 
 onBeforeUnmount(() => {
+  isActive.value = false
   if (searchLoadTimer) clearTimeout(searchLoadTimer)
 })
 
@@ -390,6 +392,7 @@ watch([bankMode], () => {
 })
 
 function syncQuery() {
+  if (!isActive.value) return
   const query: Record<string, string> = {}
   const q = search.value.trim()
   if (q) query.q = q
@@ -866,25 +869,10 @@ function closeCorrectionModal () {
   transform-origin: top;
   animation: sideBarGrow 0.42s var(--ease-out) both;
 }
-.paper-q-item::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background: linear-gradient(115deg, transparent 42%, rgba(255,255,255,.18), transparent 58%);
-  opacity: 0;
-  transform: translateX(-16%);
-  transition: opacity .3s ease, transform .48s var(--ease-out);
-}
 .paper-q-item:hover {
   transform: translateY(-5px);
   box-shadow: var(--shadow);
   border-color: var(--color-primary);
-}
-.paper-q-item:hover::after {
-  opacity: 1;
-  transform: translateX(0);
 }
 .paper-q-item > * {
   position: relative;

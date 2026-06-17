@@ -44,7 +44,7 @@
           class="form-input search-input"
           name="search"
           autocomplete="off"
-          placeholder="Search questions..."
+          placeholder="Search questions…"
           aria-label="Search questions"
           @input="$emit('update:search', ($event.target as HTMLInputElement).value)"
         />
@@ -138,19 +138,6 @@ function onDifficultyChange(event: Event) {
   overflow: hidden;
   animation: revealUp .42s var(--ease-out) .1s both;
 }
-.toolbar::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(110deg, transparent 42%, rgba(255,255,255,.2), transparent 58%);
-  opacity: 0;
-  transform: translateX(-18%);
-  transition: opacity .34s ease, transform .5s var(--ease-out);
-  pointer-events: none;
-}
-.toolbar:hover::after {
-  opacity: 1;
-  transform: translateX(12%);
 }
 .search-wrap,
 .filter-wrap {

@@ -2,18 +2,15 @@ type Theme = 'light' | 'dark'
 
 export function useTheme() {
   const theme = useCookie<Theme>('theme', {
-    default: () => resolveInitialTheme(),
     maxAge: 365 * 24 * 60 * 60,
     sameSite: 'lax'
   })
 
-  const isDark = computed(() => theme.value === 'dark')
-
-  function resolveInitialTheme(): Theme {
-    if (import.meta.server) return 'light'
-    if (window.matchMedia('(prefers-color-scheme: dark)').matches) return 'dark'
-    return 'light'
+  if (import.meta.client && !theme.value) {
+    theme.value = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light'
   }
+
+  const isDark = computed(() => theme.value === 'dark')
 
   function applyTheme(value: Theme) {
     if (import.meta.server) return
@@ -37,7 +34,9 @@ export function useTheme() {
     theme.value = theme.value === 'dark' ? 'light' : 'dark'
   }
 
-  watchEffect(() => applyTheme(theme.value))
+  watchEffect(() => {
+    if (theme.value) applyTheme(theme.value)
+  })
 
   return { theme, isDark, toggleTheme }
 }

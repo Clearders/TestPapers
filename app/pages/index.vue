@@ -102,7 +102,7 @@ const canReadQuestionStats = computed(() => hasPermission('questions:read'))
 let heroStatsRequest = 0
 
 const questionTotalDisplay = computed(() => {
-  if (heroStatsLoading.value) return '...'
+  if (heroStatsLoading.value) return '…'
   return questionTotal.value === null ? '-' : numberFormatter.format(questionTotal.value)
 })
 
@@ -261,14 +261,6 @@ useHead({
   overflow: hidden;
   animation: revealUp 0.48s var(--ease-out) 0.08s both;
 }
-.badge-pill::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(100deg, transparent, rgba(255,255,255,.38), transparent);
-  transform: translateX(-140%);
-  animation: badgeSweep 4.8s ease-in-out infinite;
-}
 
 .hero-title {
   max-width: 760px;
@@ -336,16 +328,6 @@ useHead({
   transform: rotate(-4deg);
   animation: heroFrame 9s ease-in-out infinite;
 }
-.hero-board::after {
-  content: "";
-  position: absolute;
-  inset: -35% -60%;
-  background: linear-gradient(110deg, transparent 40%, rgba(255,255,255,.24) 50%, transparent 60%);
-  transform: translateX(-42%) rotate(8deg);
-  animation: boardGlint 7.2s ease-in-out infinite;
-  pointer-events: none;
-}
-
 .board-topline,
 .formula-card,
 .mini-panel {
@@ -694,16 +676,6 @@ useHead({
 @keyframes boardDrift {
   0%, 100% { transform: translateY(0) rotate(.001deg); }
   50% { transform: translateY(-6px) rotate(.35deg); }
-}
-@keyframes boardGlint {
-  0%, 42%, 100% { transform: translateX(-48%) rotate(8deg); opacity: 0; }
-  52% { opacity: .9; }
-  62% { transform: translateX(34%) rotate(8deg); opacity: 0; }
-}
-@keyframes badgeSweep {
-  0%, 52%, 100% { transform: translateX(-140%); opacity: 0; }
-  62% { opacity: .75; }
-  78% { transform: translateX(140%); opacity: 0; }
 }
 @keyframes gradientText {
   0%, 100% { background-position: 0% 50%; }

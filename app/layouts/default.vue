@@ -271,18 +271,6 @@ a, button, [role="button"] { -webkit-tap-highlight-color: transparent; }
   opacity: .78;
   animation: ambientBloom 22s var(--ease-standard) infinite alternate;
 }
-.dynamic-bg::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 5;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.14), transparent 26%, rgba(118, 87, 255, 0.05) 72%, transparent),
-    repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.08) 0 1px, transparent 1px 26px);
-  mix-blend-mode: soft-light;
-  opacity: .42;
-  animation: bgSheen 12s ease-in-out infinite;
-}
 .bg-chroma {
   position: absolute;
   inset: -18% -12%;
@@ -419,10 +407,6 @@ a, button, [role="button"] { -webkit-tap-highlight-color: transparent; }
   0%, 100% { transform: translate3d(var(--bg-pan-x), var(--bg-pan-y), 0) rotate(var(--depth-rotate, 0deg)); }
   50% { transform: translate3d(calc(var(--bg-pan-x) + 24px), calc(var(--bg-pan-y) - 18px), 0) rotate(calc(var(--depth-rotate, 0deg) + 2deg)); }
 }
-@keyframes bgSheen {
-  0%, 100% { opacity: .34; transform: translateX(-2%); }
-  50% { opacity: .52; transform: translateX(2%); }
-}
 @keyframes headerLine {
   0%, 100% { opacity: .28; transform: scaleX(.72); }
   50% { opacity: .78; transform: scaleX(1); }
@@ -430,10 +414,6 @@ a, button, [role="button"] { -webkit-tap-highlight-color: transparent; }
 @keyframes logoBreath {
   0%, 100% { box-shadow: 0 10px 24px rgba(118, 87, 255, 0.3); }
   50% { box-shadow: 0 14px 30px rgba(14, 165, 233, 0.28); }
-}
-@keyframes shimmerSweep {
-  from { transform: translateX(-120%) skewX(-18deg); }
-  to { transform: translateX(220%) skewX(-18deg); }
 }
 
 .site-header {
@@ -646,17 +626,6 @@ a, button, [role="button"] { -webkit-tap-highlight-color: transparent; }
   -webkit-backdrop-filter: blur(18px);
   transition: transform var(--motion-med) var(--ease-out), box-shadow var(--motion-med) var(--ease-out), border-color var(--motion-med) ease, background var(--motion-med) ease;
 }
-.card::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    linear-gradient(120deg, rgba(255, 255, 255, 0.22), transparent 34%),
-    radial-gradient(circle at 20% 0%, rgba(118, 87, 255, 0.08), transparent 34%);
-  opacity: 0;
-  transition: opacity var(--motion-med) var(--ease-out);
-}
 .card,
 .page-title,
 .page-sub,
@@ -675,9 +644,6 @@ a, button, [role="button"] { -webkit-tap-highlight-color: transparent; }
   box-shadow: var(--shadow);
   border-color: rgba(118, 87, 255, 0.28);
 }
-.card:hover::before {
-  opacity: 1;
-}
 
 .btn {
   display: inline-flex;
@@ -693,19 +659,6 @@ a, button, [role="button"] { -webkit-tap-highlight-color: transparent; }
   position: relative;
   overflow: hidden;
   transition: background var(--motion-med) var(--ease-out), color var(--motion-fast) ease, box-shadow var(--motion-med) var(--ease-out), transform var(--motion-med) var(--ease-spring), border-color var(--motion-med) ease;
-}
-.btn::after {
-  content: "";
-  position: absolute;
-  inset: -30% auto -30% -45%;
-  width: 32%;
-  background: rgba(255, 255, 255, 0.34);
-  opacity: 0;
-  transform: translateX(-120%) skewX(-18deg);
-}
-.btn:hover:not(:disabled)::after {
-  opacity: 1;
-  animation: shimmerSweep 0.72s ease;
 }
 .btn:active:not(:disabled) { transform: translateY(1px) scale(0.98); }
 .btn:disabled { opacity: .5; cursor: not-allowed; }
@@ -914,9 +867,6 @@ a, button, [role="button"] { -webkit-tap-highlight-color: transparent; }
   background:
     conic-gradient(from 160deg at 22% 22%, rgba(167, 139, 250, 0.22), rgba(56, 189, 248, 0.18), rgba(94, 234, 212, 0.1), rgba(251, 146, 60, 0.1), rgba(167, 139, 250, 0.22)),
     linear-gradient(130deg, rgba(17, 16, 26, 0.18), transparent 54%);
-}
-[data-theme="dark"] .dynamic-bg::after {
-  opacity: .24;
 }
 [data-theme="dark"] .bg-depth {
   border-color: rgba(196, 181, 253, 0.11);

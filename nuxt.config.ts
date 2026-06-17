@@ -73,6 +73,12 @@ export default defineNuxtConfig({
       },
       title: 'TestPapers',
       titleTemplate: '%s | TestPapers',
+      script: [
+        {
+          innerHTML: `(function(){try{var c=document.cookie.match(/(^|; )theme=([^;]*)/);var v=c?c[2]:'';if(!v&&window.matchMedia('(prefers-color-scheme:dark)').matches){v='dark';document.cookie='theme=dark;max-age=31536000;path=/;SameSite=Lax'}if(v==='dark'){document.documentElement.setAttribute('data-theme','dark');var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content','#0f172a')}}catch(e){}})()`,
+          type: 'text/javascript'
+        }
+      ],
       meta: [
         { name: 'description', content: 'Create professional test papers and exams with live LaTeX rendering. Question bank manager, PDF/DOCX exports, and real-time collaboration.' },
         { name: 'keywords', content: 'test paper, exam generator, LaTeX editor, question bank, quiz maker, assessment tool' },

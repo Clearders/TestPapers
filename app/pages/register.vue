@@ -28,7 +28,7 @@
       <button class="btn btn-primary" type="submit" :disabled="isSubmitting">
         <span v-if="isSubmitting" class="auth-spinner"></span>
         <AppIcon v-else name="sparkles" />
-        {{ isSubmitting ? 'Creating...' : 'Create Account' }}
+        {{ isSubmitting ? 'Creating…' : 'Create Account' }}
       </button>
 
       <p v-if="message" class="register-message" :class="{ 'register-message--error': hasError }" role="alert" aria-live="polite">
