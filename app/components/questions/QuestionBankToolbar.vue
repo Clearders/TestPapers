@@ -138,7 +138,6 @@ function onDifficultyChange(event: Event) {
   overflow: hidden;
   animation: revealUp .42s var(--ease-out) .1s both;
 }
-}
 .search-wrap,
 .filter-wrap {
   position: relative;
