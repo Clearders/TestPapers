@@ -41,6 +41,9 @@
       <p class="export-preview-note">
         {{ exportSummary }}
       </p>
+      <p v-if="downloadedLayoutDensitySummary" class="export-preview-note export-preview-note--success" aria-live="polite">
+        {{ downloadedLayoutDensitySummary }}
+      </p>
       <section v-for="section in exportSections" :key="section.key" class="export-section">
         <h4 v-if="section.title" class="export-section-title">{{ section.title }}</h4>
         <ol class="export-q-list" :start="section.start">
@@ -126,6 +129,7 @@ const props = defineProps<{
   layoutDensity: LayoutDensity
   includeAnswersInExport: boolean
   canReadAnswers: boolean
+  downloadedLayoutDensity: LayoutDensity | null
 }>()
 
 defineEmits<{
@@ -141,12 +145,26 @@ const layoutDensityOptions: { value: LayoutDensity; label: string }[] = [
   { value: 'dense', label: 'Dense' }
 ]
 
+function layoutDensityLabel (value: LayoutDensity) {
+  return layoutDensityOptions.find(option => option.value === value)?.label || 'Auto'
+}
+
 const exportSummary = computed(() => {
   const orderText = props.exportMode === 'categorized'
     ? 'Questions are grouped as multiple-choice, fill-in-the-blank, and essay, with forward numbering across sections.'
     : 'Questions follow the order from the paper builder.'
-  const densityLabel = layoutDensityOptions.find(option => option.value === props.layoutDensity)?.label || 'Auto'
+  const densityLabel = layoutDensityLabel(props.layoutDensity)
   return `${orderText} DOCX layout: ${densityLabel}.`
+})
+
+const downloadedLayoutDensitySummary = computed(() => {
+  if (!props.downloadedLayoutDensity) return ''
+
+  const effectiveLabel = layoutDensityLabel(props.downloadedLayoutDensity)
+  if (props.layoutDensity === 'auto') {
+    return `Downloaded DOCX used ${effectiveLabel} layout from Auto.`
+  }
+  return `Downloaded DOCX used ${effectiveLabel} layout.`
 })
 
 function getEssayBlankStyle (question: Question) {
@@ -204,6 +222,13 @@ const exportSections = computed(() => {
   color: var(--color-muted);
   font-size: .875rem;
   margin-bottom: 16px;
+}
+.export-preview-note--success {
+  color: #166534;
+  background: #dcfce7;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  padding: 10px 12px;
 }
 .export-mode-actions,
 .export-density-actions {
@@ -321,6 +346,11 @@ const exportSections = computed(() => {
 
 [data-theme="dark"] .export-answer {
   background: rgba(30, 41, 59, 0.5);
+}
+[data-theme="dark"] .export-preview-note--success {
+  color: #bbf7d0;
+  background: rgba(22, 101, 52, 0.26);
+  border-color: rgba(134, 239, 172, 0.28);
 }
 @keyframes exportIn {
   from { opacity: 0; transform: translateY(18px) scale(.99); }

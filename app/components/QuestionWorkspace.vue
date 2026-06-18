@@ -164,26 +164,26 @@
           v-model:layout-density="layoutDensity"
           v-model:include-answers-in-export="includeAnswersInExport"
           :can-read-answers="canReadAnswers"
+          :downloaded-layout-density="downloadedLayoutDensity"
         />
       </div>
     </div>
+    <EditQuestionModal
+      v-if="editingQuestion"
+      :key="editingQuestion.id"
+      :question="editingQuestion"
+      :visible="!!editingQuestion"
+      @close="closeEditModal"
+      @saved="onQuestionEdited"
+    />
+
+    <QuestionCorrectionModal
+      v-if="reportingQuestion"
+      :key="reportingQuestion.id"
+      :question="reportingQuestion"
+      :visible="!!reportingQuestion"
+      @close="closeCorrectionModal" />
   </section>
-
-  <EditQuestionModal
-    v-if="editingQuestion"
-    :key="editingQuestion.id"
-    :question="editingQuestion"
-    :visible="!!editingQuestion"
-    @close="closeEditModal"
-    @saved="onQuestionEdited"
-  />
-
-  <QuestionCorrectionModal
-    v-if="reportingQuestion"
-    :key="reportingQuestion.id"
-    :question="reportingQuestion"
-    :visible="!!reportingQuestion"
-    @close="closeCorrectionModal" />
 </template>
 
 <script setup lang="ts">
@@ -307,6 +307,7 @@ const savedPaperId = ref<string | null>(null)
 const savedPaperSignature = ref('')
 const isDownloadingDocx = ref(false)
 const downloadError = ref('')
+const downloadedLayoutDensity = ref<LayoutDensity | null>(null)
 const isActive = ref(true)
 let searchLoadTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -488,6 +489,7 @@ function clearPaper () {
   exported.value = false
   exportMode.value = 'paper'
   layoutDensity.value = 'auto'
+  downloadedLayoutDensity.value = null
   forgetSavedPaper()
   downloadError.value = ''
 }
@@ -528,6 +530,14 @@ function getPaperPayload (): PaperCreatePayload {
 function getPaperSignature () {
   return JSON.stringify(getPaperPayload())
 }
+
+watch([exportMode, layoutDensity, includeAnswersInExport], () => {
+  downloadedLayoutDensity.value = null
+})
+
+watch(() => getPaperSignature(), () => {
+  downloadedLayoutDensity.value = null
+})
 
 async function ensureDownloadablePaper () {
   const signature = getPaperSignature()
@@ -576,6 +586,11 @@ function filenameFromDisposition (disposition: string | null) {
   return quotedMatch?.[1] || `${paper.title.trim() || 'examination-paper'}.docx`
 }
 
+function layoutDensityFromHeader (value: string | null): LayoutDensity | null {
+  if (value === 'normal' || value === 'compact' || value === 'dense' || value === 'auto') return value
+  return null
+}
+
 async function downloadDocx () {
   if (isDownloadingDocx.value) return
 
@@ -602,6 +617,7 @@ async function downloadDocx () {
     }
 
     const blob = await response.blob()
+    downloadedLayoutDensity.value = layoutDensityFromHeader(response.headers.get('X-Layout-Density'))
     const objectUrl = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = objectUrl
