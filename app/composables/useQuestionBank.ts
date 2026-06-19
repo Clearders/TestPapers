@@ -5,24 +5,37 @@ import {
   normalizeQuestion,
   toQuestionPayload
 } from '~/domain/questions'
+import { readFileAsBase64Payload } from '~/utils/fileData'
 
 export type { CorrectionCategory, CorrectionStatus, EssayBlankSpace, Question, QuestionCorrection, QuestionEntity, QuestionFormInput, QuestionImage, QuestionQueryParams, QuestionRevision } from '~/types/question'
 
-function upsertQuestion (state: { value: Question[] }, question: Question) {
+type RefState<T> = { value: T }
+type QuestionUpdatePayload = Partial<Omit<Question, 'id' | 'publicId' | 'createdAt' | 'updatedAt' | 'ownerId'>>
+
+const DEFAULT_QUESTION_QUERY = {
+  includeAnswer: true,
+  page: 1,
+  pageSize: 20,
+  sortBy: 'createdAt',
+  sortOrder: 'desc'
+}
+
+function upsertQuestion (state: RefState<Question[]>, question: Question) {
   const existingIndex = state.value.findIndex(item => item.publicId === question.publicId)
   if (existingIndex !== -1) state.value.splice(existingIndex, 1)
   state.value.unshift(question)
 }
 
-function replaceQuestion (state: { value: Question[] }, question: Question) {
+function replaceQuestion (state: RefState<Question[]>, question: Question) {
   const existingIndex = state.value.findIndex(item => item.publicId === question.publicId)
   if (existingIndex !== -1) state.value.splice(existingIndex, 1, question)
 }
 
-function removeQuestionById (state: { value: Question[] }, id: number) {
-  const existingIndex = state.value.findIndex(question => question.id === id)
+function removeQuestionByPublicId (state: RefState<Question[]>, publicId: string) {
+  const existingIndex = state.value.findIndex(question => question.publicId === publicId)
   if (existingIndex !== -1) state.value.splice(existingIndex, 1)
 }
+
 
 export function useQuestionBank () {
   const questionRequestSequence = useState<number>('question-request-sequence', () => 0)
@@ -46,65 +59,59 @@ export function useQuestionBank () {
     isLoadingMeta.value = false
   }
 
-  const loadQuestions = async (params: QuestionQueryParams = {}) => {
-    const requestSequence = ++questionRequestSequence.value
-    isLoading.value = true
+  async function loadQuestionPage (
+    endpoint: string,
+    target: RefState<Question[]>,
+    pagination: RefState<ApiPagination>,
+    loading: RefState<boolean>,
+    sequence: RefState<number>,
+    params: QuestionQueryParams,
+    errorMessage: string
+  ) {
+    const requestSequence = ++sequence.value
+    loading.value = true
     error.value = ''
     try {
-      const response = await apiFetch<PaginatedData<QuestionEntity>>('/questions', {
+      const response = await apiFetch<PaginatedData<QuestionEntity>>(endpoint, {
         method: 'GET',
         query: {
-          includeAnswer: true,
-          page: 1,
-          pageSize: 20,
-          sortBy: 'createdAt',
-          sortOrder: 'desc',
+          ...DEFAULT_QUESTION_QUERY,
           ...params
         }
       })
-      const loadedQuestions = (response.data.items || []).map((item) => normalizeQuestion(item))
-      if (requestSequence !== questionRequestSequence.value) return questions.value
-      questions.value = loadedQuestions
-      questionPagination.value = response.data.pagination
-      return questions.value
+      const loadedQuestions = (response.data.items || []).map(item => normalizeQuestion(item))
+      if (requestSequence !== sequence.value) return target.value
+      target.value = loadedQuestions
+      pagination.value = response.data.pagination
+      return target.value
     } catch (err) {
-      if (requestSequence !== questionRequestSequence.value) return questions.value
-      error.value = err instanceof Error ? err.message : 'Failed to load questions.'
+      if (requestSequence !== sequence.value) return target.value
+      error.value = err instanceof Error ? err.message : errorMessage
       throw err
     } finally {
-      if (requestSequence === questionRequestSequence.value) isLoading.value = false
+      if (requestSequence === sequence.value) loading.value = false
     }
   }
 
-  const loadMyQuestions = async (params: QuestionQueryParams = {}) => {
-    const requestSequence = ++myQuestionRequestSequence.value
-    isLoadingMine.value = true
-    error.value = ''
-    try {
-      const response = await apiFetch<PaginatedData<QuestionEntity>>('/questions/mine', {
-        method: 'GET',
-        query: {
-          includeAnswer: true,
-          page: 1,
-          pageSize: 20,
-          sortBy: 'createdAt',
-          sortOrder: 'desc',
-          ...params
-        }
-      })
-      const loadedQuestions = (response.data.items || []).map((item) => normalizeQuestion(item))
-      if (requestSequence !== myQuestionRequestSequence.value) return myQuestions.value
-      myQuestions.value = loadedQuestions
-      myQuestionPagination.value = response.data.pagination
-      return myQuestions.value
-    } catch (err) {
-      if (requestSequence !== myQuestionRequestSequence.value) return myQuestions.value
-      error.value = err instanceof Error ? err.message : 'Failed to load your questions.'
-      throw err
-    } finally {
-      if (requestSequence === myQuestionRequestSequence.value) isLoadingMine.value = false
-    }
-  }
+  const loadQuestions = (params: QuestionQueryParams = {}) => loadQuestionPage(
+    '/questions',
+    questions,
+    questionPagination,
+    isLoading,
+    questionRequestSequence,
+    params,
+    'Failed to load questions.'
+  )
+
+  const loadMyQuestions = (params: QuestionQueryParams = {}) => loadQuestionPage(
+    '/questions/mine',
+    myQuestions,
+    myQuestionPagination,
+    isLoadingMine,
+    myQuestionRequestSequence,
+    params,
+    'Failed to load your questions.'
+  )
 
   const addQuestion = async (input: QuestionFormInput) => {
     const response = await apiFetch<QuestionEntity>('/questions', {
@@ -117,8 +124,6 @@ export function useQuestionBank () {
     upsertQuestion(myQuestions, normalized)
     return normalized
   }
-
-type QuestionUpdatePayload = Partial<Omit<Question, 'id' | 'publicId' | 'createdAt' | 'updatedAt' | 'ownerId'>>
 
   const updateQuestion = async (publicId: string, patch: QuestionUpdatePayload) => {
     const response = await apiFetch<QuestionEntity>(`/questions/${publicId}`, {
@@ -136,10 +141,8 @@ type QuestionUpdatePayload = Partial<Omit<Question, 'id' | 'publicId' | 'created
     await apiFetch(`/questions/${publicId}`, {
       method: 'DELETE'
     })
-    const idx = questions.value.findIndex(q => q.publicId === publicId)
-    if (idx !== -1) questions.value.splice(idx, 1)
-    const myIdx = myQuestions.value.findIndex(q => q.publicId === publicId)
-    if (myIdx !== -1) myQuestions.value.splice(myIdx, 1)
+    removeQuestionByPublicId(questions, publicId)
+    removeQuestionByPublicId(myQuestions, publicId)
   }
 
   const uploadImage = async (file: File): Promise<string> => {
@@ -151,21 +154,11 @@ type QuestionUpdatePayload = Partial<Omit<Question, 'id' | 'publicId' | 'created
       throw new Error('PNG image must be 30MB or smaller.')
     }
 
-    const base64 = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader()
-      reader.onload = () => {
-        const result = reader.result as string
-        resolve(result.slice(result.indexOf(',') + 1))
-      }
-      reader.onerror = () => reject(new Error('Failed to read file'))
-      reader.readAsDataURL(file)
-    })
-
     const response = await apiFetch<{ url: string; filename: string; mimeType: string }>('/images/upload', {
       method: 'POST',
       body: {
         filename: file.name,
-        data: base64,
+        data: await readFileAsBase64Payload(file),
         mimeType: file.type || 'image/png'
       }
     })
@@ -245,18 +238,13 @@ type QuestionUpdatePayload = Partial<Omit<Question, 'id' | 'publicId' | 'created
     if (normalized.ownerId === currentUserId) {
       upsertQuestion(myQuestions, normalized)
     } else {
-      const index = myQuestions.value.findIndex(item => item.publicId === normalized.publicId)
-      if (index !== -1) myQuestions.value.splice(index, 1)
+      removeQuestionByPublicId(myQuestions, normalized.publicId)
     }
   }
 
   const removeQuestionLocally = (publicId: string) => {
-    const removeByPublicId = (state: { value: Question[] }, pid: string) => {
-      const idx = state.value.findIndex(q => q.publicId === pid)
-      if (idx !== -1) state.value.splice(idx, 1)
-    }
-    removeByPublicId(questions, publicId)
-    removeByPublicId(myQuestions, publicId)
+    removeQuestionByPublicId(questions, publicId)
+    removeQuestionByPublicId(myQuestions, publicId)
   }
 
   return {

@@ -1,4 +1,5 @@
 import type { AuthSession, AuthUser, PasswordChangePayload, Permission, ProfileUpdatePayload, RegisterPayload } from '~/types/auth'
+import { readFileAsBase64Payload } from '~/utils/fileData'
 
 export type { AuthSession, AuthUser, Permission, RegisterPayload, UserRole } from '~/types/auth'
 export type { PasswordChangePayload, ProfileUpdatePayload }
@@ -138,21 +139,11 @@ export function useAuth () {
   }
 
   async function uploadAvatar (file: File): Promise<string> {
-    const base64 = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader()
-      reader.onload = () => {
-        const result = reader.result as string
-        const parts = result.split(',')
-        resolve(parts[1] || '')
-      }
-      reader.onerror = () => reject(new Error('Failed to read file'))
-      reader.readAsDataURL(file)
-    })
     const response = await apiFetch<{ url: string }>('/auth/avatar', {
       method: 'POST',
       body: {
         filename: file.name,
-        data: base64,
+        data: await readFileAsBase64Payload(file),
         mimeType: file.type || 'image/png'
       }
     })
