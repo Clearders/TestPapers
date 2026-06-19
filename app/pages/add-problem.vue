@@ -191,7 +191,12 @@
             <div v-else-if="form.type === 'multiple_choice'" class="form-group">
               <div v-for="(opt, index) in form.options" :key="index" class="option-row">
                 <label class="checkbox-option">
-                  <input type="checkbox" :value="opt.trim()" v-model="form.answerMultiple" />
+                  <input
+                    type="checkbox"
+                    :value="index"
+                    v-model="form.answerMultiple"
+                    :disabled="!opt.trim()"
+                  />
                   <span>{{ String.fromCharCode(65 + index) }}. {{ opt.trim() }}</span>
                 </label>
               </div>
@@ -287,7 +292,7 @@ const form = reactive({
   text: '',
   options: ['', '', '', ''] as string[],
   answer: '',
-  answerMultiple: [] as string[],
+  answerMultiple: [] as number[],
   source: '',
   essayBlankSpace: { ...DEFAULT_ESSAY_BLANK_SPACE },
   scoreWeight: 1,
@@ -313,6 +318,9 @@ watch(
     if (typeof form.answer === 'string' && form.answer && !form.options.includes(form.answer)) {
       form.answer = ''
     }
+    form.answerMultiple = form.answerMultiple.filter(index => {
+      return Boolean(form.options[index]?.trim())
+    })
   }
 )
 
@@ -386,7 +394,9 @@ async function submitProblem () {
         ? form.options.map(option => option.trim()).filter(Boolean)
         : undefined,
       answer: form.type === 'multiple_choice'
-        ? form.answerMultiple.filter(Boolean)
+        ? form.answerMultiple
+            .map(index => form.options[index]?.trim())
+            .filter((option): option is string => Boolean(option))
         : form.answer.trim(),
       source: form.source.trim() || undefined,
       scoreWeight: clampScoreWeight(form.scoreWeight),
