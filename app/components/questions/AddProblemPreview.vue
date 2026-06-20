@@ -121,6 +121,9 @@ defineProps<{
   position: relative;
   overflow: hidden;
 }
+[data-theme="dark"] .preview-card {
+  background: var(--color-surface);
+}
 .preview-card::before {
   content: "";
   position: absolute;
