@@ -252,6 +252,24 @@ interface PaperEntityResponse {
   totalMarks: number
 }
 
+interface WorkspaceDraft {
+  version: 1
+  paper: {
+    title: string
+    subject: string
+    duration: number
+    totalMarks: number
+    questions: PaperQuestion[]
+  }
+  generationForm: GenerationFormState
+  exportMode: ExportMode
+  layoutDensity: LayoutDensity
+  includeAnswersInExport: boolean
+  savedPaperId: string | null
+  savedPaperSignature: string
+  generationDiagnostics: GenerationDiagnostics | null
+}
+
 const {
   canCreateQuestions,
   canReadAnswers,
@@ -280,6 +298,9 @@ const DEFAULT_PAPER = {
   duration: 60,
   totalMarks: 100
 }
+const WORKSPACE_DRAFT_PREFIX = 'testpapers.workspaceDraft.v1'
+const QUESTION_TYPES: QuestionType[] = ['single_choice', 'multiple_choice', 'true_false', 'blank', 'short_answer', 'essay']
+const QUESTION_DIFFICULTIES: QuestionDifficulty[] = ['easy', 'medium', 'hard']
 
 function parseQuerySubject(): string {
   const raw = route.query.subjects
@@ -310,6 +331,9 @@ const downloadError = ref('')
 const downloadedLayoutDensity = ref<LayoutDensity | null>(null)
 const isActive = ref(true)
 let searchLoadTimer: ReturnType<typeof setTimeout> | null = null
+let draftHydrated = false
+let suppressDraftSave = false
+let activeDraftKey = ''
 
 const paper = reactive({
   title: '',
@@ -365,6 +389,7 @@ watch(
   [isAuthReady, canReadQuestions],
   ([ready, allowed]) => {
     if (import.meta.client && ready && allowed) {
+      restoreWorkspaceDraft()
       void loadCurrentPage(1)
       void loadMeta()
     }
@@ -485,6 +510,7 @@ function moveDown (idx: number) {
 
 function clearPaper () {
   if (!window.confirm('Clear all questions from the paper? This cannot be undone.')) return
+  suppressDraftSave = true
   paper.questions.length = 0
   exported.value = false
   exportMode.value = 'paper'
@@ -492,6 +518,10 @@ function clearPaper () {
   downloadedLayoutDensity.value = null
   forgetSavedPaper()
   downloadError.value = ''
+  clearWorkspaceDraft()
+  void nextTick(() => {
+    suppressDraftSave = false
+  })
 }
 
 function exportPaper () {
@@ -531,6 +561,203 @@ function getPaperSignature () {
   return JSON.stringify(getPaperPayload())
 }
 
+function isRecord (value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function isQuestionType (value: unknown): value is QuestionType {
+  return typeof value === 'string' && QUESTION_TYPES.includes(value as QuestionType)
+}
+
+function isQuestionDifficulty (value: unknown): value is QuestionDifficulty {
+  return typeof value === 'string' && QUESTION_DIFFICULTIES.includes(value as QuestionDifficulty)
+}
+
+function stringArrayFromDraft (value: unknown) {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : []
+}
+
+function optionalStringArrayFromDraft (value: unknown) {
+  const items = stringArrayFromDraft(value)
+  return Array.isArray(value) ? items : undefined
+}
+
+function numberFromDraft (value: unknown, fallback: number) {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : fallback
+}
+
+function validateDraftQuestion (value: unknown): PaperQuestion | null {
+  if (!isRecord(value)) return null
+  if (!Number.isFinite(value.id) || typeof value.publicId !== 'string' || !value.publicId.trim()) return null
+  if (!isQuestionType(value.type) || !isQuestionDifficulty(value.difficulty)) return null
+  if (typeof value.text !== 'string') return null
+
+  return {
+    id: Number(value.id),
+    publicId: value.publicId,
+    type: value.type,
+    subjects: stringArrayFromDraft(value.subjects),
+    difficulty: value.difficulty,
+    tags: stringArrayFromDraft(value.tags),
+    text: value.text,
+    ...(optionalStringArrayFromDraft(value.options) ? { options: optionalStringArrayFromDraft(value.options) } : {}),
+    answer: Array.isArray(value.answer) ? stringArrayFromDraft(value.answer) : String(value.answer ?? ''),
+    hasLatex: Boolean(value.hasLatex),
+    ...(typeof value.source === 'string' ? { source: value.source } : {}),
+    ...(isRecord(value.essayBlankSpace) ? {
+      essayBlankSpace: {
+        lines: toPositiveInteger(value.essayBlankSpace.lines, 6),
+        lineHeight: toPositiveInteger(value.essayBlankSpace.lineHeight, 28)
+      }
+    } : {}),
+    ...(Array.isArray(value.images) ? { images: value.images.filter(isRecord).map(image => ({
+      url: typeof image.url === 'string' ? image.url : '',
+      ...(typeof image.caption === 'string' ? { caption: image.caption } : {})
+    })).filter(image => image.url) } : {}),
+    scoreWeight: numberFromDraft(value.scoreWeight, 1),
+    ...(optionalPositiveInteger(value.marks) ? { marks: optionalPositiveInteger(value.marks) } : {}),
+    ...(optionalPositiveInteger(value.orderNo) ? { orderNo: optionalPositiveInteger(value.orderNo) } : {}),
+    ...(typeof value.ownerId === 'number' || value.ownerId === null ? { ownerId: value.ownerId } : {})
+  }
+}
+
+function validateGenerationFormDraft (value: unknown): GenerationFormState {
+  if (!isRecord(value)) return { ...generationForm, questionTypes: [...generationForm.questionTypes], typeCounts: { ...generationForm.typeCounts } }
+
+  const questionTypes = stringArrayFromDraft(value.questionTypes).filter(isQuestionType)
+  const typeCounts: Record<string, number> = {}
+  if (isRecord(value.typeCounts)) {
+    for (const type of QUESTION_TYPES) {
+      const count = optionalPositiveInteger(value.typeCounts[type])
+      if (count) typeCounts[type] = count
+    }
+  }
+
+  return {
+    difficultyCoefficient: boundedNumber(value.difficultyCoefficient, 0.5, 0, 1),
+    questionTypes: questionTypes.length ? questionTypes : ['single_choice'],
+    typeCounts: Object.keys(typeCounts).length ? typeCounts : { single_choice: 5 },
+    subjects: stringArrayFromDraft(value.subjects),
+    requiredTagsStr: typeof value.requiredTagsStr === 'string' ? value.requiredTagsStr : '',
+    requiredTags: stringArrayFromDraft(value.requiredTags),
+    preferredTagsStr: typeof value.preferredTagsStr === 'string' ? value.preferredTagsStr : '',
+    preferredTags: stringArrayFromDraft(value.preferredTags),
+    customTagInput: typeof value.customTagInput === 'string' ? value.customTagInput : ''
+  }
+}
+
+function validateWorkspaceDraft (value: unknown): WorkspaceDraft | null {
+  if (!isRecord(value) || value.version !== 1 || !isRecord(value.paper)) return null
+  const questions = Array.isArray(value.paper.questions)
+    ? value.paper.questions.map(validateDraftQuestion).filter((question): question is PaperQuestion => question !== null)
+    : []
+  const draftExportMode = value.exportMode === 'categorized' ? 'categorized' : 'paper'
+  const draftLayoutDensity = layoutDensityFromHeader(typeof value.layoutDensity === 'string' ? value.layoutDensity : null) || 'auto'
+
+  return {
+    version: 1,
+    paper: {
+      title: typeof value.paper.title === 'string' ? value.paper.title : '',
+      subject: typeof value.paper.subject === 'string' ? value.paper.subject : '',
+      duration: toPositiveInteger(value.paper.duration, DEFAULT_PAPER.duration),
+      totalMarks: toPositiveInteger(value.paper.totalMarks, DEFAULT_PAPER.totalMarks),
+      questions
+    },
+    generationForm: validateGenerationFormDraft(value.generationForm),
+    exportMode: draftExportMode,
+    layoutDensity: draftLayoutDensity,
+    includeAnswersInExport: Boolean(value.includeAnswersInExport),
+    savedPaperId: typeof value.savedPaperId === 'string' && value.savedPaperId.trim() ? value.savedPaperId : null,
+    savedPaperSignature: typeof value.savedPaperSignature === 'string' ? value.savedPaperSignature : '',
+    generationDiagnostics: isRecord(value.generationDiagnostics) ? value.generationDiagnostics as unknown as GenerationDiagnostics : null
+  }
+}
+
+function getWorkspaceDraftKey () {
+  return user.value ? `${WORKSPACE_DRAFT_PREFIX}.${user.value.id}` : ''
+}
+
+function buildWorkspaceDraft (): WorkspaceDraft {
+  return {
+    version: 1,
+    paper: {
+      title: paper.title,
+      subject: paper.subject,
+      duration: toPositiveInteger(paper.duration, DEFAULT_PAPER.duration),
+      totalMarks: toPositiveInteger(paper.totalMarks, DEFAULT_PAPER.totalMarks),
+      questions: JSON.parse(JSON.stringify(paper.questions)) as PaperQuestion[]
+    },
+    generationForm: JSON.parse(JSON.stringify(generationForm)) as GenerationFormState,
+    exportMode: exportMode.value,
+    layoutDensity: layoutDensity.value,
+    includeAnswersInExport: includeAnswersInExport.value && canReadAnswers.value,
+    savedPaperId: savedPaperId.value,
+    savedPaperSignature: savedPaperSignature.value,
+    generationDiagnostics: generationDiagnostics.value ? JSON.parse(JSON.stringify(generationDiagnostics.value)) as GenerationDiagnostics : null
+  }
+}
+
+function applyWorkspaceDraft (draft: WorkspaceDraft) {
+  paper.title = draft.paper.title
+  paper.subject = draft.paper.subject
+  paper.duration = draft.paper.duration
+  paper.totalMarks = draft.paper.totalMarks
+  paper.questions.splice(0, paper.questions.length, ...draft.paper.questions)
+  Object.assign(generationForm, draft.generationForm)
+  exportMode.value = draft.exportMode
+  layoutDensity.value = draft.layoutDensity
+  includeAnswersInExport.value = draft.includeAnswersInExport && canReadAnswers.value
+  generationDiagnostics.value = draft.generationDiagnostics
+  downloadedLayoutDensity.value = null
+  downloadError.value = ''
+
+  const signatureMatches = Boolean(draft.savedPaperId && draft.savedPaperSignature && draft.savedPaperSignature === getPaperSignature())
+  savedPaperId.value = signatureMatches ? draft.savedPaperId : null
+  savedPaperSignature.value = signatureMatches ? draft.savedPaperSignature : ''
+}
+
+function restoreWorkspaceDraft () {
+  const key = getWorkspaceDraftKey()
+  if (!key) return
+  if (draftHydrated && activeDraftKey === key) return
+
+  activeDraftKey = key
+  draftHydrated = false
+  try {
+    const raw = localStorage.getItem(key)
+    if (raw) {
+      const draft = validateWorkspaceDraft(JSON.parse(raw))
+      if (draft) applyWorkspaceDraft(draft)
+      else localStorage.removeItem(key)
+    }
+  } catch {
+    localStorage.removeItem(key)
+  } finally {
+    draftHydrated = true
+  }
+}
+
+function saveWorkspaceDraft (serializedDraft: string) {
+  const key = getWorkspaceDraftKey()
+  if (!key) return
+  activeDraftKey = key
+  try {
+    localStorage.setItem(key, serializedDraft)
+  } catch {
+    // Storage can be unavailable or full; the Workspace should remain usable.
+  }
+}
+
+function clearWorkspaceDraft () {
+  const key = activeDraftKey || getWorkspaceDraftKey()
+  if (!key) return
+  try {
+    localStorage.removeItem(key)
+  } catch {
+    // Ignore storage failures during local draft cleanup.
+  }
+}
 watch([exportMode, layoutDensity, includeAnswersInExport], () => {
   downloadedLayoutDensity.value = null
 })
@@ -538,6 +765,14 @@ watch([exportMode, layoutDensity, includeAnswersInExport], () => {
 watch(() => getPaperSignature(), () => {
   downloadedLayoutDensity.value = null
 })
+
+watch(
+  () => JSON.stringify(buildWorkspaceDraft()),
+  (serializedDraft) => {
+    if (!import.meta.client || !draftHydrated || suppressDraftSave) return
+    saveWorkspaceDraft(serializedDraft)
+  }
+)
 
 async function ensureDownloadablePaper () {
   const signature = getPaperSignature()
