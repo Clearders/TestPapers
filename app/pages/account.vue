@@ -47,7 +47,7 @@
             @click="saveProfile"
           >
             <AppIcon name="upload" />
-            {{ profileSaving ? 'Saving…' : 'Save Changes' }}
+            {{ profileSaving ? 'Saving...' : 'Save Changes' }}
           </button>
           <span class="action-feedback" v-if="profileMessage" :class="{ 'is-error': profileError }" aria-live="polite">
             {{ profileMessage }}
@@ -68,7 +68,7 @@
             name="current-password"
             autocomplete="current-password"
             class="form-input"
-            placeholder="Enter current password\u2026"
+            placeholder="Enter current password..."
           />
         </div>
 
@@ -81,7 +81,7 @@
             name="new-password"
             autocomplete="new-password"
             class="form-input"
-             placeholder="Enter new password (min 8 characters)…"
+            placeholder="Enter new password (min 8 characters)..."
             minlength="8"
             maxlength="128"
           />
@@ -96,7 +96,7 @@
             name="confirm-new-password"
             autocomplete="new-password"
             class="form-input"
-            placeholder="Confirm new password…"
+            placeholder="Confirm new password..."
           />
           <span class="form-hint" v-if="passwordMismatch">Passwords do not match</span>
         </div>
@@ -108,7 +108,7 @@
             @click="savePassword"
           >
             <AppIcon name="settings" />
-            {{ passwordSaving ? 'Changing…' : 'Change Password' }}
+            {{ passwordSaving ? 'Changing...' : 'Change Password' }}
           </button>
           <span class="action-feedback" v-if="passwordMessage" :class="{ 'is-error': passwordError }" aria-live="polite">
             {{ passwordMessage }}
@@ -122,7 +122,7 @@
 
         <div class="avatar-section">
           <div class="avatar-preview">
-            <img v-if="currentAvatarUrl" :src="currentAvatarUrl" alt="Current avatar" width="96" height="96" loading="lazy" />
+            <img v-if="currentAvatarUrl" :src="currentAvatarUrl" alt="Current avatar" width="96" height="96" loading="lazy" decoding="async" />
             <span class="avatar-preview--placeholder" v-else>{{ initial }}</span>
           </div>
 
@@ -152,7 +152,7 @@
               @click="uploadAvatarFile"
             >
               <AppIcon name="upload" />
-              {{ avatarUploading ? 'Uploading…' : 'Upload Avatar' }}
+              {{ avatarUploading ? 'Uploading...' : 'Upload Avatar' }}
             </button>
           </div>
         </div>
@@ -190,7 +190,7 @@
               autocomplete="off"
               spellcheck="false"
               class="form-input"
-              placeholder="DELETE…"
+              placeholder="DELETE..."
             />
           </div>
           <div class="section-actions">
@@ -204,7 +204,7 @@
               @click="handleDeleteAccount"
             >
               <AppIcon name="trash" />
-              {{ deleteSaving ? 'Deleting…' : 'Delete Account' }}
+              {{ deleteSaving ? 'Deleting...' : 'Delete Account' }}
             </button>
           </div>
         </div>

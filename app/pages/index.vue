@@ -38,7 +38,7 @@
         </div>
         <div class="formula-card">
           <span class="formula-kicker">Live LaTeX</span>
-          <strong>∫ e<sup>-x²</sup> dx</strong>
+          <strong>&int; e<sup>-x&sup2;</sup> dx</strong>
           <span>renders while you compose</span>
         </div>
         <div class="mini-grid">
@@ -90,19 +90,28 @@
 import type { PaginatedData } from '~/types/api'
 import type { QuestionEntity } from '~/types/question'
 
+type HeroStats = {
+  questionTotal: number
+  scoreWeightTotal: number
+}
+
 const { hasPermission, isAuthenticated, isAuthReady } = useAuth()
 const { apiFetch } = useApi()
+const requestURL = useRequestURL()
+const baseUrl = requestURL.origin
 
 const numberFormatter = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 })
-const heroStatsLoading = ref(false)
-const heroStatsError = ref('')
-const questionTotal = ref<number | null>(null)
-const scoreWeightTotal = ref<number | null>(null)
+const heroStatsLoading = useState<boolean>('home-hero-stats-loading', () => false)
+const heroStatsLoaded = useState<boolean>('home-hero-stats-loaded', () => false)
+const heroStatsError = useState<string>('home-hero-stats-error', () => '')
+const questionTotal = useState<number | null>('home-question-total', () => null)
+const scoreWeightTotal = useState<number | null>('home-score-weight-total', () => null)
 const canReadQuestionStats = computed(() => hasPermission('questions:read'))
 let heroStatsRequest = 0
+let heroStatsIdleQueued = false
 
 const questionTotalDisplay = computed(() => {
-  if (heroStatsLoading.value) return '…'
+  if (heroStatsLoading.value) return '...'
   return questionTotal.value === null ? '-' : numberFormatter.format(questionTotal.value)
 })
 
@@ -113,11 +122,31 @@ const scoreWeightTotalDisplay = computed(() => {
 
 const scoreWeightLabel = computed(() => canReadQuestionStats.value ? 'score weight indexed' : 'sign in for bank stats')
 
+function runWhenIdle (callback: () => void) {
+  const idleWindow = window as Window & {
+    requestIdleCallback?: (callback: IdleRequestCallback, options?: IdleRequestOptions) => number
+  }
+
+  if (typeof idleWindow.requestIdleCallback === 'function') {
+    idleWindow.requestIdleCallback(() => callback(), { timeout: 2_000 })
+    return
+  }
+
+  window.setTimeout(callback, 0)
+}
+
 function resetHeroStats () {
   questionTotal.value = null
   scoreWeightTotal.value = null
   heroStatsError.value = ''
   heroStatsLoading.value = false
+  heroStatsLoaded.value = false
+}
+
+function applyHeroStats (stats: HeroStats) {
+  questionTotal.value = stats.questionTotal
+  scoreWeightTotal.value = stats.scoreWeightTotal
+  heroStatsLoaded.value = true
 }
 
 function sumQuestionScoreWeight (items: QuestionEntity[]) {
@@ -129,10 +158,14 @@ function sumQuestionScoreWeight (items: QuestionEntity[]) {
 
 async function loadHeroStats () {
   const requestId = ++heroStatsRequest
+  heroStatsIdleQueued = false
+
   if (!canReadQuestionStats.value) {
     resetHeroStats()
     return
   }
+
+  if (heroStatsLoaded.value) return
 
   heroStatsLoading.value = true
   heroStatsError.value = ''
@@ -168,8 +201,10 @@ async function loadHeroStats () {
       scoreWeight += sumQuestionScoreWeight(pageResult.data.items || [])
     }
 
-    questionTotal.value = pagination.total
-    scoreWeightTotal.value = scoreWeight
+    applyHeroStats({
+      questionTotal: pagination.total,
+      scoreWeightTotal: scoreWeight
+    })
   } catch (error) {
     if (requestId !== heroStatsRequest) return
     resetHeroStats()
@@ -179,9 +214,22 @@ async function loadHeroStats () {
   }
 }
 
-if (import.meta.client) {
-  watch([isAuthReady, canReadQuestionStats], () => {
+function queueHeroStatsLoad () {
+  if (heroStatsLoaded.value || heroStatsLoading.value || heroStatsIdleQueued) return
+  heroStatsIdleQueued = true
+  runWhenIdle(() => {
     void loadHeroStats()
+  })
+}
+
+if (import.meta.client) {
+  watch([isAuthReady, canReadQuestionStats], ([ready, allowed]) => {
+    if (!ready) return
+    if (!allowed) {
+      resetHeroStats()
+      return
+    }
+    queueHeroStatsLoad()
   }, { immediate: true })
 }
 
@@ -191,10 +239,10 @@ useSeoMeta({
   description: 'Create professional test papers and exams with live LaTeX rendering. Question bank manager, PDF/DOCX exports, and real-time collaboration.',
   ogTitle: 'TestPapers - Professional Test Paper Creator',
   ogDescription: 'Create, manage, and export professional exams and assignments seamlessly with live LaTeX rendering.',
-  ogImage: `${useRequestURL().origin}/og-image.png`,
+  ogImage: `${baseUrl}/og-image.png`,
   twitterTitle: 'TestPapers - Professional Test Paper Creator',
   twitterDescription: 'Create, manage, and export professional exams with live LaTeX rendering.',
-  twitterImage: `${useRequestURL().origin}/og-image.png`
+  twitterImage: `${baseUrl}/og-image.png`
 })
 
 useHead({
@@ -205,7 +253,7 @@ useHead({
         '@context': 'https://schema.org',
         '@type': 'WebApplication',
         name: 'TestPapers',
-        url: useRequestURL().origin,
+        url: baseUrl,
         description: 'Create professional test papers and exams with live LaTeX rendering. Question bank manager, PDF/DOCX exports, and real-time collaboration.',
         applicationCategory: 'EducationalApplication',
         operatingSystem: 'All',

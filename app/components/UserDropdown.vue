@@ -9,7 +9,7 @@
       @click.stop="toggle"
     >
       <span class="user-avatar" v-if="user?.avatarUrl">
-        <img :src="user.avatarUrl" alt="" width="32" height="32" />
+        <img :src="user.avatarUrl" alt="" width="32" height="32" decoding="async" />
       </span>
       <span class="user-avatar user-avatar--placeholder" v-else>
         {{ initial }}
@@ -22,7 +22,7 @@
       <div class="user-dropdown-panel" v-if="isOpen" @click.stop>
         <div class="dropdown-header">
           <span class="user-avatar user-avatar--lg" v-if="user?.avatarUrl">
-            <img :src="user.avatarUrl" alt="" width="48" height="48" />
+            <img :src="user.avatarUrl" alt="" width="48" height="48" loading="lazy" decoding="async" />
           </span>
           <span class="user-avatar user-avatar--lg user-avatar--placeholder" v-else>
             {{ initial }}

@@ -27,7 +27,7 @@
 
         <div v-if="form.images?.length" class="preview-images">
           <figure v-for="(img, imgIdx) in form.images" :key="imgIdx" class="preview-image">
-            <img :src="img.url" :alt="img.caption || 'Question image'" width="220" height="150" loading="lazy" />
+            <img :src="img.url" :alt="img.caption || 'Question image'" width="220" height="150" loading="lazy" decoding="async" />
             <figcaption v-if="img.caption">{{ img.caption }}</figcaption>
           </figure>
         </div>

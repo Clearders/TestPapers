@@ -40,6 +40,7 @@
           height="120"
           class="q-image-thumb"
           loading="lazy"
+          decoding="async"
         />
       </div>
 
@@ -93,7 +94,7 @@
         <span v-if="!correctionsOpen && corrections.length" class="revision-count">{{ corrections.length }}</span>
       </button>
       <div v-if="correctionsOpen" class="correction-list">
-        <div v-if="correctionsLoading" class="correction-status-text">Loading…</div>
+        <div v-if="correctionsLoading" class="correction-status-text">Loading...</div>
         <div v-else-if="!corrections.length" class="correction-status-text">No corrections yet.</div>
         <div
           v-for="corr in corrections"
@@ -173,9 +174,6 @@ const correctionsLoading = ref(false)
 
 const openCorrectionCount = computed(() => corrections.value.filter(c => c.status === 'open').length)
 
-onMounted(() => {
-  void loadCorrections()
-})
 
 async function toggleCorrections () {
   correctionsOpen.value = !correctionsOpen.value

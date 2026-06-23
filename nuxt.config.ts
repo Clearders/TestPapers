@@ -30,7 +30,11 @@ const securityHeaders = {
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   buildDir: env.NUXT_BUILD_DIR || undefined,
-  devtools: { enabled: true },
+  devtools: { enabled: env.NODE_ENV !== 'production' },
+
+  nitro: {
+    compressPublicAssets: true
+  },
 
   runtimeConfig: {
     apiBase: serverApiBase,
@@ -43,10 +47,32 @@ export default defineNuxtConfig({
 
   routeRules: {
     '/**': { headers: securityHeaders },
+    '/_nuxt/**': {
+      headers: {
+        ...securityHeaders,
+        'cache-control': 'public, max-age=31536000, immutable'
+      }
+    },
+    '/favicon.ico': {
+      headers: {
+        ...securityHeaders,
+        'cache-control': 'public, max-age=604800'
+      }
+    },
+    '/robots.txt': {
+      headers: {
+        ...securityHeaders,
+        'cache-control': 'public, max-age=3600'
+      }
+    },
+    '/sitemap.xml': {
+      headers: {
+        ...securityHeaders,
+        'cache-control': 'public, max-age=3600'
+      }
+    },
     ...apiRouteRules
   },
-
-  css: ['katex/dist/katex.min.css'],
 
   vite: {
     server: {

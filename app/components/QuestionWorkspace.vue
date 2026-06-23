@@ -64,16 +64,16 @@
         <div class="card paper-meta-card">
           <div class="form-group">
             <label class="form-label" for="paper-title">Paper Title</label>
-            <input id="paper-title" v-model="paper.title" class="form-input" name="paperTitle" placeholder="e.g. Mid-term Examination 2026…" />
+            <input id="paper-title" v-model="paper.title" class="form-input" name="paperTitle" placeholder="e.g. Mid-term Examination 2026..." />
           </div>
           <div class="paper-meta-row">
             <div class="form-group paper-meta-field">
               <label class="form-label" for="paper-subject">Subject</label>
-              <input id="paper-subject" v-model="paper.subject" class="form-input" name="paperSubject" placeholder="e.g. Mathematics…" />
+              <input id="paper-subject" v-model="paper.subject" class="form-input" name="paperSubject" placeholder="e.g. Mathematics..." />
             </div>
             <div class="form-group paper-meta-field">
               <label class="form-label" for="paper-duration">Duration (min)</label>
-              <input id="paper-duration" v-model.number="paper.duration" type="number" min="1" class="form-input" name="paperDuration" placeholder="60…" />
+              <input id="paper-duration" v-model.number="paper.duration" type="number" min="1" class="form-input" name="paperDuration" placeholder="60..." />
             </div>
           </div>
           <label v-if="canReadAnswers" class="export-toggle">
@@ -141,7 +141,7 @@
           </button>
           <button class="btn btn-primary" :disabled="!canDownloadDocx" @click="downloadDocx">
             <AppIcon name="download" />
-            {{ isDownloadingDocx ? 'Preparing DOCX…' : 'Download DOCX' }}
+            {{ isDownloadingDocx ? 'Preparing DOCX...' : 'Download DOCX' }}
           </button>
           <button class="btn btn-outline" :disabled="!paper.questions.length" @click="clearPaper">
             <AppIcon name="x" />
@@ -188,15 +188,16 @@
 
 <script setup lang="ts">
 import QuestionBankToolbar from '~/components/questions/QuestionBankToolbar.vue'
-import EditQuestionModal from '~/components/questions/EditQuestionModal.vue'
-import QuestionCorrectionModal from '~/components/questions/QuestionCorrectionModal.vue'
 import PaperGenerationForm from '~/components/PaperGenerationForm.vue'
-import PaperExportPanel from '~/components/PaperExportPanel.vue'
 import QuestionCardList from '~/components/QuestionCardList.vue'
 import type { Question, QuestionDifficulty, QuestionEntity, QuestionType } from '~/types/question'
 import type { GenerationDiagnostics, GenerationFormState, ExportMode, LayoutDensity } from '~/types/generation'
 import { normalizeQuestion, boundedNumber, optionalPositiveInteger } from '~/domain/questions'
 import { formatScoreWeight } from '~/utils/format'
+
+const EditQuestionModal = defineAsyncComponent(() => import('~/components/questions/EditQuestionModal.vue'))
+const QuestionCorrectionModal = defineAsyncComponent(() => import('~/components/questions/QuestionCorrectionModal.vue'))
+const PaperExportPanel = defineAsyncComponent(() => import('~/components/PaperExportPanel.vue'))
 
 type PaperQuestion = Question & { marks?: number; orderNo?: number }
 type ApiPaperQuestion = Partial<QuestionEntity> & { id: number; marks?: number | null; orderNo?: number | null }
@@ -331,6 +332,7 @@ const downloadError = ref('')
 const downloadedLayoutDensity = ref<LayoutDensity | null>(null)
 const isActive = ref(true)
 let searchLoadTimer: ReturnType<typeof setTimeout> | null = null
+let draftSaveTimer: ReturnType<typeof setTimeout> | null = null
 let draftHydrated = false
 let suppressDraftSave = false
 let activeDraftKey = ''
@@ -411,6 +413,7 @@ watch([search, filterSubject, filterDifficulty], () => {
 onBeforeUnmount(() => {
   isActive.value = false
   if (searchLoadTimer) clearTimeout(searchLoadTimer)
+  if (draftSaveTimer) clearTimeout(draftSaveTimer)
 })
 
 watch([bankMode], () => {
@@ -766,12 +769,20 @@ watch(() => getPaperSignature(), () => {
   downloadedLayoutDensity.value = null
 })
 
+function scheduleWorkspaceDraftSave () {
+  if (!import.meta.client || !draftHydrated || suppressDraftSave) return
+  if (draftSaveTimer) clearTimeout(draftSaveTimer)
+  draftSaveTimer = setTimeout(() => {
+    draftSaveTimer = null
+    if (!draftHydrated || suppressDraftSave) return
+    saveWorkspaceDraft(JSON.stringify(buildWorkspaceDraft()))
+  }, 300)
+}
+
 watch(
-  () => JSON.stringify(buildWorkspaceDraft()),
-  (serializedDraft) => {
-    if (!import.meta.client || !draftHydrated || suppressDraftSave) return
-    saveWorkspaceDraft(serializedDraft)
-  }
+  [paper, generationForm, exportMode, layoutDensity, includeAnswersInExport, savedPaperId, savedPaperSignature, generationDiagnostics],
+  scheduleWorkspaceDraftSave,
+  { deep: true }
 )
 
 async function ensureDownloadablePaper () {

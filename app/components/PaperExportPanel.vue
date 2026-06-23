@@ -85,6 +85,7 @@
                 height="120"
                 class="export-image-thumb"
                 loading="lazy"
+                decoding="async"
               />
             </div>
 

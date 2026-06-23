@@ -13,14 +13,14 @@
     </div>
     <div v-if="images.length" class="image-previews">
       <div v-for="(img, imgIdx) in images" :key="imgIdx" class="image-preview-item">
-        <img :src="img.url" alt="Question image" width="220" height="140" class="preview-thumb" />
+        <img :src="img.url" alt="Question image" width="220" height="140" loading="lazy" decoding="async" class="preview-thumb" />
         <div class="img-info">
           <input
             :value="img.caption"
             class="form-input form-input--sm"
             name="imageCaption"
             autocomplete="off"
-            placeholder="Image caption (optional)…"
+            placeholder="Image caption (optional)..."
             @input="updateCaption(imgIdx, ($event.target as HTMLInputElement).value)"
           />
           <button type="button" class="btn btn-outline btn-sm" @click="$emit('remove', imgIdx)">
@@ -30,7 +30,7 @@
         </div>
       </div>
     </div>
-    <span v-if="uploading" class="form-hint">Uploading image…</span>
+    <span v-if="uploading" class="form-hint">Uploading image...</span>
   </div>
 </template>
 

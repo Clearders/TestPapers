@@ -1,8 +1,21 @@
-export default defineNuxtPlugin(async () => {
+export default defineNuxtPlugin(() => {
   const auth = useAuth()
   const { user } = auth
   const realtime = useRealtime()
   const questionBank = useQuestionBank()
+
+  function runWhenIdle (callback: () => void) {
+    const idleWindow = window as Window & {
+      requestIdleCallback?: (callback: IdleRequestCallback, options?: IdleRequestOptions) => number
+    }
+
+    if (typeof idleWindow.requestIdleCallback === 'function') {
+      idleWindow.requestIdleCallback(() => callback(), { timeout: 2_000 })
+      return
+    }
+
+    window.setTimeout(callback, 0)
+  }
 
   const reloadQuestionBank = () => {
     if (!auth.hasPermission('questions:read')) return
@@ -54,15 +67,20 @@ export default defineNuxtPlugin(async () => {
     }
   })
 
-  await auth.loadSession({ force: true })
-  auth.scheduleRefresh()
-
-  if (auth.isAuthenticated.value) {
-    realtime.connect()
+  const connectRealtime = () => {
+    if (auth.isAuthenticated.value) realtime.connect()
   }
 
+  const initialiseSession = async () => {
+    if (!auth.isAuthReady.value) await auth.loadSession()
+    auth.scheduleRefresh()
+    runWhenIdle(connectRealtime)
+  }
+
+  void initialiseSession()
+
   watch(auth.isAuthenticated, (authenticated) => {
-    if (authenticated) realtime.connect()
+    if (authenticated) runWhenIdle(connectRealtime)
     else realtime.disconnect()
   })
 })

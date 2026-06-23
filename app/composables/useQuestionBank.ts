@@ -168,7 +168,7 @@ export function useQuestionBank () {
   }
 
   const loadMeta = async () => {
-    if (isLoadingMeta.value) return
+    if (isLoadingMeta.value || (availableSubjects.value.length && availableTags.value.length)) return
     isLoadingMeta.value = true
     try {
       const [subjectsRes, tagsRes] = await Promise.all([
