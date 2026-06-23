@@ -28,9 +28,14 @@ The frontend defaults already use `/api/v1` for browser requests. Set `NUXT_API_
 For HTTPS deployments, configure the backend cookie settings as well:
 
 ```bash
+APP_ENV=production
+CORS_ORIGINS=https://testpapers.example.com
+TRUSTED_HOSTS=testpapers.example.com
 AUTH_COOKIE_SECURE=true
 AUTH_COOKIE_SAMESITE=lax
 ```
+
+Production backend startup is fail-closed for browser origins and host headers: `CORS_ORIGINS` and `TRUSTED_HOSTS` are required, and neither setting may include `*`.
 
 ## Example Nginx Server
 

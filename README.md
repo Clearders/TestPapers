@@ -110,7 +110,7 @@ NUXT_SERVER_API_BASE=http://127.0.0.1:8000/api/v1
 NUXT_PUBLIC_WS_BASE=
 ```
 
-When `NUXT_PUBLIC_API_BASE` is a relative path (starting with `/`), Nuxt proxies matching API routes to the server API base. In production behind Nginx, leave `NUXT_PUBLIC_API_BASE=/api/v1` and configure Nginx to forward `/api/v1/*` to the backend.
+For production, prefer the same-origin Nginx layout: leave `NUXT_PUBLIC_API_BASE=/api/v1`, set `NUXT_API_BASE`/`NUXT_SERVER_API_BASE` to the private backend URL, and configure Nginx to forward `/api/v1/*` and `/api/v1/ws` to FastAPI.
 
 DOCX downloads use `NUXT_PUBLIC_API_BASE` by default. Set `NUXT_PUBLIC_DIRECT_API_BASE` only when browsers should call a public backend origin directly and CORS/cookies are configured for that origin.
 
@@ -160,7 +160,7 @@ DOCX downloads use `NUXT_PUBLIC_API_BASE` by default. Set `NUXT_PUBLIC_DIRECT_AP
 - DOCX download with:
   - LaTeX rendering via OMML (Word-compatible math)
   - Question illustrations (PNG images) embedded inline
-  - Configurable layout density: auto / compact / spacious
+  - Configurable layout density: auto / normal / compact / dense
 - Export mode selection: paper order or categorized by question type
 - Export preview with answer visibility control
 
@@ -216,6 +216,7 @@ See [docs/nginx-deployment.md](docs/nginx-deployment.md) for the recommended Ngi
 - The Nuxt server does **not** proxy API requests in production on its own
 - Place Nginx in front of both frontend (port 3000) and backend (port 8000)
 - Set `NUXT_PUBLIC_API_BASE=/api/v1` for same-origin requests through Nginx
+- Set explicit backend `CORS_ORIGINS` and `TRUSTED_HOSTS`; production startup rejects missing values and `*`
 - Set `AUTH_COOKIE_SECURE=true` for HTTPS deployments
 
 For a complete production deployment guide covering both frontend and backend, see [DEPLOYMENT-debian-production.md](../DEPLOYMENT-debian-production.md) in the project root.
