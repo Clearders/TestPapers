@@ -1,4 +1,4 @@
-﻿import { randomBytes } from 'node:crypto'
+﻿import { createHash, randomBytes } from 'node:crypto'
 import { spawn } from 'node:child_process'
 import { existsSync, mkdirSync, rmSync } from 'node:fs'
 import http from 'node:http'
@@ -216,7 +216,28 @@ class CdpClient {
         response += chunk.toString('latin1')
         if (!response.includes('\r\n\r\n')) return
         socket.off('data', onData)
-        response.includes('101 Switching Protocols') ? resolve() : reject(new Error(`WebSocket upgrade failed: ${response.split('\r\n')[0]}`))
+        const headersEnd = response.indexOf('\r\n\r\n')
+        const headerLines = response.slice(0, headersEnd).split('\r\n')
+        const statusLine = headerLines.shift() || ''
+        const statusCode = Number(statusLine.split(/\s+/)[1])
+        const headers = new Map()
+        for (const line of headerLines) {
+          const separatorIndex = line.indexOf(':')
+          if (separatorIndex === -1) continue
+          headers.set(line.slice(0, separatorIndex).trim().toLowerCase(), line.slice(separatorIndex + 1).trim())
+        }
+        const expectedAccept = createHash('sha1')
+          .update(`${key}258EAFA5-E914-47DA-95CA-C5AB0DC85B11`)
+          .digest('base64')
+        if (statusCode !== 101) {
+          reject(new Error(`WebSocket upgrade failed: ${statusLine}`))
+          return
+        }
+        if (headers.get('sec-websocket-accept') !== expectedAccept) {
+          reject(new Error('WebSocket upgrade failed: invalid Sec-WebSocket-Accept header'))
+          return
+        }
+        resolve()
       }
       socket.on('data', onData)
       socket.once('error', reject)
@@ -317,17 +338,23 @@ async function evaluate(cdp, expression) {
 
 async function waitFor(cdp, predicate, label, timeoutMs = TIMEOUT_MS) {
   const started = Date.now()
+  let lastError
   while (Date.now() - started < timeoutMs) {
-    if (await evaluate(cdp, predicate)) return
+    try {
+      if (await evaluate(cdp, predicate)) return
+    } catch (error) {
+      lastError = error
+    }
     await delay(250)
   }
-  throw new Error(`Timed out waiting for ${label}`)
+  throw new Error(`Timed out waiting for ${label}${lastError ? `: ${lastError.message}` : ''}`)
 }
 
 async function assertVisiblePage(cdp, label) {
   const state = await evaluate(cdp, jsExpression(`
+    const body = document.body
     const main = document.querySelector('main')
-    const text = document.body.innerText.trim()
+    const text = body ? body.innerText.trim() : ''
     const error = document.querySelector('.error-fallback')
     return {
       path: location.pathname,
@@ -384,6 +411,7 @@ async function runSmoke(cdp) {
   await delay(500)
 
   await cdp.send('Page.reload', { ignoreCache: true })
+  await waitFor(cdp, `document.readyState === 'complete' && performance.getEntriesByType('navigation').slice(-1)[0]?.type === 'reload'`, 'Workspace reload')
   await waitFor(cdp, `document.querySelector('#paper-title')?.value === 'Workspace Smoke Draft' && document.body.innerText.includes('Q1')`, 'restored Workspace draft')
   await assertVisiblePage(cdp, 'Workspace after refresh')
 

@@ -1,5 +1,6 @@
 import type { ExportMode, GenerationDiagnostics, GenerationFormState, LayoutDensity } from '~/types/generation'
 import type { Question, QuestionDifficulty, QuestionEntity, QuestionImage, QuestionType } from '~/types/question'
+import { toRaw } from 'vue'
 import {
   DEFAULT_ESSAY_BLANK_SPACE,
   DIFFICULTY_OPTIONS,
@@ -138,9 +139,15 @@ export function toPositiveInteger (value: unknown, fallback: number, min = 1) {
 }
 
 export function cloneData<T> (value: T): T {
-  return typeof structuredClone === 'function'
-    ? structuredClone(value)
-    : JSON.parse(JSON.stringify(value)) as T
+  const rawValue = toRaw(value)
+  if (typeof structuredClone === 'function') {
+    try {
+      return structuredClone(rawValue)
+    } catch {
+      // Vue proxies can still appear in nested values; JSON cloning handles plain API payloads.
+    }
+  }
+  return JSON.parse(JSON.stringify(rawValue)) as T
 }
 
 export function clonePaperQuestion (question: Question): PaperQuestion {
