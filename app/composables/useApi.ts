@@ -51,6 +51,8 @@ function waitForRetry (attempt: number) {
 }
 
 function syncAuthSession (session: AuthSession | null) {
+  if (import.meta.server) return
+
   const user = useState<AuthSession['user'] | null>('auth-user', () => null)
   const expiresAt = useState<string>('auth-expires-at', () => '')
   user.value = session?.user || null

@@ -1,15 +1,48 @@
+import type { ShallowRef } from 'vue'
 import type { AuthSession, AuthUser, PasswordChangePayload, Permission, ProfileUpdatePayload, RegisterPayload } from '~/types/auth'
 import { readFileAsBase64Payload } from '~/utils/fileData'
 
 export type { AuthSession, AuthUser, Permission, RegisterPayload, UserRole } from '~/types/auth'
 export type { PasswordChangePayload, ProfileUpdatePayload }
 
+type AuthServerState = {
+  user: ShallowRef<AuthUser | null>
+  expiresAt: ShallowRef<string>
+  isReady: ShallowRef<boolean>
+}
+
+type AuthServerContext = {
+  authState?: AuthServerState
+}
+
 let sessionLoadPromise: Promise<AuthUser | null> | null = null
 
+function createServerAuthState (): AuthServerState {
+  return {
+    user: shallowRef<AuthUser | null>(null),
+    expiresAt: shallowRef(''),
+    isReady: shallowRef(false)
+  }
+}
+
+function useServerAuthState () {
+  const event = useRequestEvent()
+  if (!event) return createServerAuthState()
+
+  const context = event.context as AuthServerContext
+  context.authState ||= createServerAuthState()
+  return context.authState
+}
+
 export function useAuth () {
-  const user = useState<AuthUser | null>('auth-user', () => null)
-  const expiresAt = useState<string>('auth-expires-at', () => '')
-  const isAuthReady = useState<boolean>('auth-ready', () => false)
+  const authState = import.meta.server
+    ? useServerAuthState()
+    : {
+        user: useState<AuthUser | null>('auth-user', () => null),
+        expiresAt: useState<string>('auth-expires-at', () => ''),
+        isReady: useState<boolean>('auth-ready', () => false)
+      }
+  const { user, expiresAt, isReady: isAuthReady } = authState
   const { apiFetch, refreshSessionCookie, scheduleSessionRefresh } = useApi()
 
   const isAuthenticated = computed(() => Boolean(user.value))
@@ -43,6 +76,7 @@ export function useAuth () {
 
   async function loadSession (options: { force?: boolean } = {}) {
     if (isAuthReady.value && !options.force) return user.value
+    if (import.meta.server) return await loadSessionInternal()
     if (sessionLoadPromise && !options.force) return await sessionLoadPromise
 
     sessionLoadPromise = loadSessionInternal()

@@ -3,6 +3,8 @@
 </template>
 
 <script setup lang="ts">
+import { shallowRef } from 'vue'
+
 type KatexModule = typeof import('katex')
 
 const props = defineProps<{
@@ -10,7 +12,7 @@ const props = defineProps<{
   block?: boolean
 }>()
 
-const el = ref<HTMLElement | null>(null)
+const el = shallowRef<HTMLElement | null>(null)
 let katexPromise: Promise<KatexModule> | null = null
 let lastRenderedSignature = ''
 
@@ -29,13 +31,14 @@ function currentSignature () {
 }
 
 async function render () {
-  if (!el.value) return
+  const target = el.value
+  if (!target) return
 
   const formula = props.formula.trim()
   const requestedSignature = currentSignature()
 
   if (!formula) {
-    el.value.textContent = ''
+    target.textContent = ''
     lastRenderedSignature = ''
     return
   }
@@ -44,16 +47,18 @@ async function render () {
 
   try {
     const katex = await loadKatex()
-    if (!el.value || requestedSignature !== currentSignature()) return
+    const target = el.value
+    if (!target || requestedSignature !== currentSignature()) return
 
-    katex.default.render(formula, el.value, {
+    katex.default.render(formula, target, {
       throwOnError: false,
-      displayMode: !!props.block
+      displayMode: props.block
     })
     lastRenderedSignature = requestedSignature
   } catch {
-    if (el.value && requestedSignature === currentSignature()) {
-      el.value.textContent = formula
+    const target = el.value
+    if (target && requestedSignature === currentSignature()) {
+      target.textContent = formula
       lastRenderedSignature = requestedSignature
     }
   }

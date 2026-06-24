@@ -4,8 +4,9 @@
   "private": true,
   "scripts": {
     "build": "node scripts/run-nuxi.mjs build",
-    "check": "node scripts/run-nuxi.mjs build",
+    "check": "node scripts/check-auth-ssr-state.mjs && node scripts/run-nuxi.mjs build",
     "check:realtime-backoff": "node scripts/check-realtime-backoff.mjs",
+    "check:auth-ssr-state": "node scripts/check-auth-ssr-state.mjs",
     "dev": "node scripts/run-nuxi.mjs dev",
     "generate": "node scripts/run-nuxi.mjs generate",
     "pm2:start": "pm2 start .output/server/index.mjs --name testpapers",

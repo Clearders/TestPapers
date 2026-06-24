@@ -190,86 +190,32 @@
 import QuestionBankToolbar from '~/components/questions/QuestionBankToolbar.vue'
 import PaperGenerationForm from '~/components/PaperGenerationForm.vue'
 import QuestionCardList from '~/components/QuestionCardList.vue'
-import type { Question, QuestionDifficulty, QuestionEntity, QuestionType } from '~/types/question'
-import type { GenerationDiagnostics, GenerationFormState, ExportMode, LayoutDensity } from '~/types/generation'
-import { normalizeQuestion, boundedNumber, optionalPositiveInteger } from '~/domain/questions'
+import type { Question, QuestionDifficulty } from '~/types/question'
+import type { ExportMode, GenerationDiagnostics, LayoutDensity } from '~/types/generation'
+import type { BankMode, GeneratedPaperResponse, PaperEntityResponse, PaperQuestion, WorkspaceDraft } from '~/domain/papers'
+import {
+  DOCX_CONTENT_TYPE,
+  buildPaperGeneratePayload,
+  buildPaperPayload,
+  buildWorkspaceDraft,
+  clonePaperQuestion,
+  createDefaultGenerationForm,
+  createDefaultPaper,
+  filenameFromDisposition,
+  getPaperSignature,
+  getWorkspaceDraftKey,
+  layoutDensityFromHeader,
+  normalizePaperQuestion,
+  parseBankMode,
+  parseQuestionDifficulty,
+  validateWorkspaceDraft
+} from '~/domain/papers'
+import { apiErrorMessage } from '~/utils/apiError'
 import { formatScoreWeight } from '~/utils/format'
 
 const EditQuestionModal = defineAsyncComponent(() => import('~/components/questions/EditQuestionModal.vue'))
 const QuestionCorrectionModal = defineAsyncComponent(() => import('~/components/questions/QuestionCorrectionModal.vue'))
 const PaperExportPanel = defineAsyncComponent(() => import('~/components/PaperExportPanel.vue'))
-
-type PaperQuestion = Question & { marks?: number; orderNo?: number }
-type ApiPaperQuestion = Partial<QuestionEntity> & { id: number; marks?: number | null; orderNo?: number | null }
-
-interface PaperMetadataPayload {
-  title: string
-  subject: string
-  duration: number
-  totalMarks: number
-}
-
-interface PaperQuestionRefPayload {
-  questionPublicId: string
-  orderNo: number
-  marks?: number
-}
-
-interface PaperCreatePayload extends PaperMetadataPayload {
-  questions: PaperQuestionRefPayload[]
-}
-
-interface PaperGeneratePayload {
-  title: string
-  duration: number
-  totalMarks: number
-  difficultyCoefficient: number
-  questionTypes: Array<{ questionType: QuestionType; count: number }>
-  ownQuestionsOnly: boolean
-  subjects: string[]
-  requiredTags?: string[]
-  preferredTags?: string[]
-}
-
-interface GeneratedPaperResponse {
-  paper: {
-    id: number
-    publicId: string
-    title: string
-    subject: string
-    duration: number
-    totalMarks: number
-    questions: ApiPaperQuestion[]
-  }
-  diagnostics: GenerationDiagnostics
-}
-
-interface PaperEntityResponse {
-  id: number
-  publicId: string
-  title: string
-  subject: string
-  duration: number
-  totalMarks: number
-}
-
-interface WorkspaceDraft {
-  version: 1
-  paper: {
-    title: string
-    subject: string
-    duration: number
-    totalMarks: number
-    questions: PaperQuestion[]
-  }
-  generationForm: GenerationFormState
-  exportMode: ExportMode
-  layoutDensity: LayoutDensity
-  includeAnswersInExport: boolean
-  savedPaperId: string | null
-  savedPaperSignature: string
-  generationDiagnostics: GenerationDiagnostics | null
-}
 
 const {
   canCreateQuestions,
@@ -293,34 +239,20 @@ const { hasPermission, isAuthReady, user } = useAuth()
 const { apiFetch } = useApi()
 const route = useRoute()
 const router = useRouter()
-type BankMode = 'all' | 'mine'
-
-const DEFAULT_PAPER = {
-  duration: 60,
-  totalMarks: 100
-}
-const WORKSPACE_DRAFT_PREFIX = 'testpapers.workspaceDraft.v1'
-const QUESTION_TYPES: QuestionType[] = ['single_choice', 'multiple_choice', 'true_false', 'blank', 'short_answer', 'essay']
-const QUESTION_DIFFICULTIES: QuestionDifficulty[] = ['easy', 'medium', 'hard']
 
 function parseQuerySubject(): string {
   const raw = route.query.subjects
   return typeof raw === 'string' ? raw : ''
 }
 
-function parseQueryBank(): BankMode {
-  const raw = route.query.bank
-  return raw === 'mine' ? 'mine' : 'all'
-}
-
 const search = ref((route.query.q as string) || '')
 const filterSubject = ref(parseQuerySubject())
-const filterDifficulty = ref<QuestionDifficulty | ''>((route.query.difficulty as QuestionDifficulty) || '')
+const filterDifficulty = ref<QuestionDifficulty | ''>(parseQuestionDifficulty(route.query.difficulty))
 const shownIds = reactive(new Set<number>())
 const exportMode = ref<ExportMode>('paper')
 const layoutDensity = ref<LayoutDensity>('auto')
 const includeAnswersInExport = ref(false)
-const bankMode = ref<BankMode>(parseQueryBank())
+const bankMode = ref<BankMode>(parseBankMode(route.query.bank))
 const pageSize = ref(20)
 const isGenerating = ref(false)
 const generationError = ref('')
@@ -337,13 +269,7 @@ let draftHydrated = false
 let suppressDraftSave = false
 let activeDraftKey = ''
 
-const paper = reactive({
-  title: '',
-  subject: '',
-  duration: DEFAULT_PAPER.duration,
-  totalMarks: DEFAULT_PAPER.totalMarks,
-  questions: [] as PaperQuestion[]
-})
+const paper = reactive(createDefaultPaper())
 
 const exported = ref(false)
 
@@ -366,17 +292,7 @@ function canDeleteQuestion (q: Question) {
   return q.ownerId === null || q.ownerId === user.value?.id
 }
 
-const generationForm = reactive<GenerationFormState>({
-  difficultyCoefficient: 0.5,
-  questionTypes: ['single_choice'],
-  typeCounts: { single_choice: 5 },
-  subjects: [],
-  requiredTagsStr: '',
-  requiredTags: [],
-  preferredTagsStr: '',
-  preferredTags: [],
-  customTagInput: ''
-})
+const generationForm = reactive(createDefaultGenerationForm())
 
 const currentQuestions = computed(() => bankMode.value === 'mine' ? myQuestions.value : questions.value)
 const activePagination = computed(() => bankMode.value === 'mine' ? myQuestionPagination.value : questionPagination.value)
@@ -384,7 +300,7 @@ const activeLoading = computed(() => bankMode.value === 'mine' ? isLoadingMine.v
 const canDownloadDocx = computed(() => {
   if (!paper.questions.length || !paper.title.trim() || !paper.subject.trim() || isDownloadingDocx.value) return false
   if (!hasPermission('papers:read')) return false
-  return hasPermission('papers:write') || (savedPaperId.value !== null && savedPaperSignature.value === getPaperSignature())
+  return hasPermission('papers:write') || (savedPaperId.value !== null && savedPaperSignature.value === currentPaperSignature())
 })
 
 watch(
@@ -480,7 +396,7 @@ function toggleQuestion (question: Question) {
     removeQuestion(question.id)
     return
   }
-  paper.questions.push(JSON.parse(JSON.stringify(question)))
+  paper.questions.push(clonePaperQuestion(question))
 }
 
 function onToggleAnswer (id: number) {
@@ -531,174 +447,25 @@ function exportPaper () {
   exported.value = true
 }
 
-function toPositiveInteger (value: unknown, fallback: number, min = 1) {
-  const parsed = Number(value)
-  if (!Number.isFinite(parsed)) return fallback
-  return Math.max(min, Math.round(parsed))
+function currentDraftKey () {
+  return getWorkspaceDraftKey(user.value?.id)
 }
 
-function paperMetadataPayload (): PaperMetadataPayload {
-  return {
-    title: paper.title.trim(),
-    subject: paper.subject.trim(),
-    duration: toPositiveInteger(paper.duration, DEFAULT_PAPER.duration),
-    totalMarks: toPositiveInteger(paper.totalMarks, DEFAULT_PAPER.totalMarks)
-  }
+function currentPaperSignature () {
+  return getPaperSignature(paper)
 }
 
-function getPaperPayload (): PaperCreatePayload {
-  return {
-    ...paperMetadataPayload(),
-    questions: paper.questions.map((question, index) => {
-      const marks = optionalPositiveInteger(question.marks)
-      return {
-        questionPublicId: question.publicId,
-        orderNo: index + 1,
-        ...(marks ? { marks } : {})
-      }
-    })
-  }
-}
-
-function getPaperSignature () {
-  return JSON.stringify(getPaperPayload())
-}
-
-function isRecord (value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
-
-function isQuestionType (value: unknown): value is QuestionType {
-  return typeof value === 'string' && QUESTION_TYPES.includes(value as QuestionType)
-}
-
-function isQuestionDifficulty (value: unknown): value is QuestionDifficulty {
-  return typeof value === 'string' && QUESTION_DIFFICULTIES.includes(value as QuestionDifficulty)
-}
-
-function stringArrayFromDraft (value: unknown) {
-  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : []
-}
-
-function optionalStringArrayFromDraft (value: unknown) {
-  const items = stringArrayFromDraft(value)
-  return Array.isArray(value) ? items : undefined
-}
-
-function numberFromDraft (value: unknown, fallback: number) {
-  const parsed = Number(value)
-  return Number.isFinite(parsed) ? parsed : fallback
-}
-
-function validateDraftQuestion (value: unknown): PaperQuestion | null {
-  if (!isRecord(value)) return null
-  if (!Number.isFinite(value.id) || typeof value.publicId !== 'string' || !value.publicId.trim()) return null
-  if (!isQuestionType(value.type) || !isQuestionDifficulty(value.difficulty)) return null
-  if (typeof value.text !== 'string') return null
-
-  return {
-    id: Number(value.id),
-    publicId: value.publicId,
-    type: value.type,
-    subjects: stringArrayFromDraft(value.subjects),
-    difficulty: value.difficulty,
-    tags: stringArrayFromDraft(value.tags),
-    text: value.text,
-    ...(optionalStringArrayFromDraft(value.options) ? { options: optionalStringArrayFromDraft(value.options) } : {}),
-    answer: Array.isArray(value.answer) ? stringArrayFromDraft(value.answer) : String(value.answer ?? ''),
-    hasLatex: Boolean(value.hasLatex),
-    ...(typeof value.source === 'string' ? { source: value.source } : {}),
-    ...(isRecord(value.essayBlankSpace) ? {
-      essayBlankSpace: {
-        lines: toPositiveInteger(value.essayBlankSpace.lines, 6),
-        lineHeight: toPositiveInteger(value.essayBlankSpace.lineHeight, 28)
-      }
-    } : {}),
-    ...(Array.isArray(value.images) ? { images: value.images.filter(isRecord).map(image => ({
-      url: typeof image.url === 'string' ? image.url : '',
-      ...(typeof image.caption === 'string' ? { caption: image.caption } : {})
-    })).filter(image => image.url) } : {}),
-    scoreWeight: numberFromDraft(value.scoreWeight, 1),
-    ...(optionalPositiveInteger(value.marks) ? { marks: optionalPositiveInteger(value.marks) } : {}),
-    ...(optionalPositiveInteger(value.orderNo) ? { orderNo: optionalPositiveInteger(value.orderNo) } : {}),
-    ...(typeof value.ownerId === 'number' || value.ownerId === null ? { ownerId: value.ownerId } : {})
-  }
-}
-
-function validateGenerationFormDraft (value: unknown): GenerationFormState {
-  if (!isRecord(value)) return { ...generationForm, questionTypes: [...generationForm.questionTypes], typeCounts: { ...generationForm.typeCounts } }
-
-  const questionTypes = stringArrayFromDraft(value.questionTypes).filter(isQuestionType)
-  const typeCounts: Record<string, number> = {}
-  if (isRecord(value.typeCounts)) {
-    for (const type of QUESTION_TYPES) {
-      const count = optionalPositiveInteger(value.typeCounts[type])
-      if (count) typeCounts[type] = count
-    }
-  }
-
-  return {
-    difficultyCoefficient: boundedNumber(value.difficultyCoefficient, 0.5, 0, 1),
-    questionTypes: questionTypes.length ? questionTypes : ['single_choice'],
-    typeCounts: Object.keys(typeCounts).length ? typeCounts : { single_choice: 5 },
-    subjects: stringArrayFromDraft(value.subjects),
-    requiredTagsStr: typeof value.requiredTagsStr === 'string' ? value.requiredTagsStr : '',
-    requiredTags: stringArrayFromDraft(value.requiredTags),
-    preferredTagsStr: typeof value.preferredTagsStr === 'string' ? value.preferredTagsStr : '',
-    preferredTags: stringArrayFromDraft(value.preferredTags),
-    customTagInput: typeof value.customTagInput === 'string' ? value.customTagInput : ''
-  }
-}
-
-function validateWorkspaceDraft (value: unknown): WorkspaceDraft | null {
-  if (!isRecord(value) || value.version !== 1 || !isRecord(value.paper)) return null
-  const questions = Array.isArray(value.paper.questions)
-    ? value.paper.questions.map(validateDraftQuestion).filter((question): question is PaperQuestion => question !== null)
-    : []
-  const draftExportMode = value.exportMode === 'categorized' ? 'categorized' : 'paper'
-  const draftLayoutDensity = layoutDensityFromHeader(typeof value.layoutDensity === 'string' ? value.layoutDensity : null) || 'auto'
-
-  return {
-    version: 1,
-    paper: {
-      title: typeof value.paper.title === 'string' ? value.paper.title : '',
-      subject: typeof value.paper.subject === 'string' ? value.paper.subject : '',
-      duration: toPositiveInteger(value.paper.duration, DEFAULT_PAPER.duration),
-      totalMarks: toPositiveInteger(value.paper.totalMarks, DEFAULT_PAPER.totalMarks),
-      questions
-    },
-    generationForm: validateGenerationFormDraft(value.generationForm),
-    exportMode: draftExportMode,
-    layoutDensity: draftLayoutDensity,
-    includeAnswersInExport: Boolean(value.includeAnswersInExport),
-    savedPaperId: typeof value.savedPaperId === 'string' && value.savedPaperId.trim() ? value.savedPaperId : null,
-    savedPaperSignature: typeof value.savedPaperSignature === 'string' ? value.savedPaperSignature : '',
-    generationDiagnostics: isRecord(value.generationDiagnostics) ? value.generationDiagnostics as unknown as GenerationDiagnostics : null
-  }
-}
-
-function getWorkspaceDraftKey () {
-  return user.value ? `${WORKSPACE_DRAFT_PREFIX}.${user.value.id}` : ''
-}
-
-function buildWorkspaceDraft (): WorkspaceDraft {
-  return {
-    version: 1,
-    paper: {
-      title: paper.title,
-      subject: paper.subject,
-      duration: toPositiveInteger(paper.duration, DEFAULT_PAPER.duration),
-      totalMarks: toPositiveInteger(paper.totalMarks, DEFAULT_PAPER.totalMarks),
-      questions: JSON.parse(JSON.stringify(paper.questions)) as PaperQuestion[]
-    },
-    generationForm: JSON.parse(JSON.stringify(generationForm)) as GenerationFormState,
+function createWorkspaceDraft () {
+  return buildWorkspaceDraft({
+    paper,
+    generationForm,
     exportMode: exportMode.value,
     layoutDensity: layoutDensity.value,
     includeAnswersInExport: includeAnswersInExport.value && canReadAnswers.value,
     savedPaperId: savedPaperId.value,
     savedPaperSignature: savedPaperSignature.value,
-    generationDiagnostics: generationDiagnostics.value ? JSON.parse(JSON.stringify(generationDiagnostics.value)) as GenerationDiagnostics : null
-  }
+    generationDiagnostics: generationDiagnostics.value
+  })
 }
 
 function applyWorkspaceDraft (draft: WorkspaceDraft) {
@@ -715,13 +482,13 @@ function applyWorkspaceDraft (draft: WorkspaceDraft) {
   downloadedLayoutDensity.value = null
   downloadError.value = ''
 
-  const signatureMatches = Boolean(draft.savedPaperId && draft.savedPaperSignature && draft.savedPaperSignature === getPaperSignature())
+  const signatureMatches = Boolean(draft.savedPaperId && draft.savedPaperSignature && draft.savedPaperSignature === currentPaperSignature())
   savedPaperId.value = signatureMatches ? draft.savedPaperId : null
   savedPaperSignature.value = signatureMatches ? draft.savedPaperSignature : ''
 }
 
 function restoreWorkspaceDraft () {
-  const key = getWorkspaceDraftKey()
+  const key = currentDraftKey()
   if (!key) return
   if (draftHydrated && activeDraftKey === key) return
 
@@ -742,7 +509,7 @@ function restoreWorkspaceDraft () {
 }
 
 function saveWorkspaceDraft (serializedDraft: string) {
-  const key = getWorkspaceDraftKey()
+  const key = currentDraftKey()
   if (!key) return
   activeDraftKey = key
   try {
@@ -753,7 +520,7 @@ function saveWorkspaceDraft (serializedDraft: string) {
 }
 
 function clearWorkspaceDraft () {
-  const key = activeDraftKey || getWorkspaceDraftKey()
+  const key = activeDraftKey || currentDraftKey()
   if (!key) return
   try {
     localStorage.removeItem(key)
@@ -765,7 +532,7 @@ watch([exportMode, layoutDensity, includeAnswersInExport], () => {
   downloadedLayoutDensity.value = null
 })
 
-watch(() => getPaperSignature(), () => {
+watch(() => currentPaperSignature(), () => {
   downloadedLayoutDensity.value = null
 })
 
@@ -775,7 +542,7 @@ function scheduleWorkspaceDraftSave () {
   draftSaveTimer = setTimeout(() => {
     draftSaveTimer = null
     if (!draftHydrated || suppressDraftSave) return
-    saveWorkspaceDraft(JSON.stringify(buildWorkspaceDraft()))
+    saveWorkspaceDraft(JSON.stringify(createWorkspaceDraft()))
   }, 300)
 }
 
@@ -786,14 +553,14 @@ watch(
 )
 
 async function ensureDownloadablePaper () {
-  const signature = getPaperSignature()
+  const signature = currentPaperSignature()
   if (savedPaperId.value !== null && savedPaperSignature.value === signature) {
     return savedPaperId.value
   }
 
   const response = await apiFetch<PaperEntityResponse>('/papers', {
     method: 'POST',
-    body: getPaperPayload()
+    body: buildPaperPayload(paper)
   })
   savedPaperId.value = response.data.publicId
   savedPaperSignature.value = signature
@@ -867,7 +634,7 @@ async function downloadDocx () {
     const objectUrl = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = objectUrl
-    link.download = filenameFromDisposition(response.headers.get('Content-Disposition'))
+    link.download = filenameFromDisposition(response.headers.get('Content-Disposition'), paper.title)
     document.body.appendChild(link)
     link.click()
     link.remove()
@@ -916,7 +683,7 @@ function setPaperQuestions (questions: ApiPaperQuestion[]) {
 
 function rememberSavedPaper (paperId: string) {
   savedPaperId.value = paperId
-  savedPaperSignature.value = getPaperSignature()
+  savedPaperSignature.value = currentPaperSignature()
 }
 
 function forgetSavedPaper () {

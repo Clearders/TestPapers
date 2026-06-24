@@ -62,8 +62,8 @@
 </template>
 
 <script setup lang="ts">
-import { onUnmounted } from 'vue'
-import Cropper from 'cropperjs'
+import { onUnmounted, shallowRef } from 'vue'
+import Cropper, { type CropperOptions } from 'cropperjs'
 
 const props = defineProps<{
   file: File | null
@@ -75,12 +75,12 @@ const emit = defineEmits<{
   cropped: [file: File]
 }>()
 
-const containerRef = ref<HTMLElement | null>(null)
-const imgRef = ref<HTMLImageElement | null>(null)
+const containerRef = shallowRef<HTMLElement | null>(null)
 const objectUrl = ref('')
 let cropper: Cropper | null = null
+let imageElement: HTMLImageElement | null = null
 
-const cropperOptions = {
+const cropperOptions: CropperOptions = {
   template: `
     <cropper-canvas background>
       <cropper-image
@@ -113,15 +113,21 @@ const cropperOptions = {
 }
 
 function initCropper() {
-  if (!containerRef.value || !imgRef.value) return
+  const container = containerRef.value
+  const image = imageElement
+  if (!container || !image) return
+
   if (cropper) {
     cropper.destroy()
     cropper = null
   }
-  containerRef.value.innerHTML = ''
-  containerRef.value.appendChild(imgRef.value)
+  container.innerHTML = ''
+  container.appendChild(image)
 
-  cropper = new Cropper(imgRef.value, cropperOptions)
+  cropper = new Cropper(image, {
+    ...cropperOptions,
+    container
+  })
 }
 
 watch(() => props.visible, (val) => {
@@ -135,7 +141,7 @@ watch(() => props.visible, (val) => {
     img.src = objectUrl.value
     img.alt = 'Avatar preview'
     img.style.display = 'none'
-    imgRef.value = img
+    imageElement = img
 
     document.body.appendChild(img)
     img.onload = () => {
@@ -145,9 +151,10 @@ watch(() => props.visible, (val) => {
       })
     }
   } else {
-    if (imgRef.value && imgRef.value.parentNode === document.body) {
-      document.body.removeChild(imgRef.value)
+    if (imageElement?.parentNode === document.body) {
+      document.body.removeChild(imageElement)
     }
+    imageElement = null
     if (cropper) {
       cropper.destroy()
       cropper = null
@@ -163,9 +170,10 @@ watch(() => props.visible, (val) => {
 })
 
 onUnmounted(() => {
-  if (imgRef.value?.parentNode === document.body) {
-    document.body.removeChild(imgRef.value)
+  if (imageElement?.parentNode === document.body) {
+    document.body.removeChild(imageElement)
   }
+  imageElement = null
   if (cropper) {
     cropper.destroy()
     cropper = null
