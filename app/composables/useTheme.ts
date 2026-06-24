@@ -1,6 +1,6 @@
 type Theme = 'light' | 'dark'
 
-export function useTheme() {
+export function useTheme () {
   const theme = useCookie<Theme>('theme', {
     maxAge: 365 * 24 * 60 * 60,
     sameSite: 'lax'
@@ -12,7 +12,7 @@ export function useTheme() {
 
   const isDark = computed(() => theme.value === 'dark')
 
-  function applyTheme(value: Theme) {
+  function applyTheme (value: Theme) {
     if (import.meta.server) return
     const root = document.documentElement
     if (value === 'dark') {
@@ -23,14 +23,14 @@ export function useTheme() {
     setThemeMeta(value)
   }
 
-  function setThemeMeta(value: Theme) {
+  function setThemeMeta (value: Theme) {
     const meta = document.querySelector('meta[name="theme-color"]')
     if (meta) {
       meta.setAttribute('content', value === 'dark' ? '#0f172a' : '#f5f7fb')
     }
   }
 
-  function toggleTheme() {
+  function toggleTheme () {
     theme.value = theme.value === 'dark' ? 'light' : 'dark'
   }
 

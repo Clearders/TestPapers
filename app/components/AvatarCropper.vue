@@ -17,19 +17,19 @@
                 class="btn btn-outline btn-sm"
                 aria-label="Rotate left"
                 @click="rotateLeft"
-              >↺</button>
+              >&#8634;</button>
               <button
                 type="button"
                 class="btn btn-outline btn-sm"
                 aria-label="Rotate right"
                 @click="rotateRight"
-              >↻</button>
+              >&#8635;</button>
               <button
                 type="button"
                 class="btn btn-outline btn-sm"
                 aria-label="Zoom out"
                 @click="zoomOut"
-              >−</button>
+              >&minus;</button>
               <button
                 type="button"
                 class="btn btn-outline btn-sm"
@@ -41,13 +41,13 @@
                 class="btn btn-outline btn-sm"
                 aria-label="Flip horizontal"
                 @click="flipHorizontal"
-              >⇔</button>
+              >&#8660;</button>
               <button
                 type="button"
                 class="btn btn-outline btn-sm"
                 aria-label="Flip vertical"
                 @click="flipVertical"
-              >⇕</button>
+              >&#8661;</button>
             </div>
           </div>
 
@@ -112,15 +112,41 @@ const cropperOptions: CropperOptions = {
     </cropper-canvas>`
 }
 
-function initCropper() {
-  const container = containerRef.value
-  const image = imageElement
-  if (!container || !image) return
-
+function destroyCropper () {
   if (cropper) {
     cropper.destroy()
     cropper = null
   }
+  if (containerRef.value) {
+    containerRef.value.innerHTML = ''
+  }
+}
+
+function revokeObjectUrl () {
+  if (!objectUrl.value) return
+  URL.revokeObjectURL(objectUrl.value)
+  objectUrl.value = ''
+}
+
+function cleanupImage () {
+  if (imageElement?.parentNode) {
+    imageElement.parentNode.removeChild(imageElement)
+  }
+  imageElement = null
+}
+
+function cleanupCropper () {
+  destroyCropper()
+  cleanupImage()
+  revokeObjectUrl()
+}
+
+function initCropper () {
+  const container = containerRef.value
+  const image = imageElement
+  if (!container || !image) return
+
+  destroyCropper()
   container.innerHTML = ''
   container.appendChild(image)
 
@@ -130,94 +156,63 @@ function initCropper() {
   })
 }
 
-watch(() => props.visible, (val) => {
-  if (val && props.file) {
-    if (objectUrl.value) {
-      URL.revokeObjectURL(objectUrl.value)
-    }
-    objectUrl.value = URL.createObjectURL(props.file)
+watch(() => [props.visible, props.file] as const, ([visible, file]) => {
+  cleanupCropper()
+  if (!visible || !file) return
 
-    const img = document.createElement('img')
-    img.src = objectUrl.value
-    img.alt = 'Avatar preview'
-    img.style.display = 'none'
-    imageElement = img
-
-    document.body.appendChild(img)
-    img.onload = () => {
-      document.body.removeChild(img)
-      nextTick(() => {
-        initCropper()
-      })
-    }
-  } else {
-    if (imageElement?.parentNode === document.body) {
-      document.body.removeChild(imageElement)
-    }
-    imageElement = null
-    if (cropper) {
-      cropper.destroy()
-      cropper = null
-    }
-    if (containerRef.value) {
-      containerRef.value.innerHTML = ''
-    }
-    if (objectUrl.value) {
-      URL.revokeObjectURL(objectUrl.value)
-      objectUrl.value = ''
-    }
+  objectUrl.value = URL.createObjectURL(file)
+  const img = document.createElement('img')
+  img.alt = 'Avatar preview'
+  img.style.display = 'none'
+  img.onload = () => {
+    if (imageElement !== img) return
+    void nextTick(initCropper)
   }
+  img.onerror = () => {
+    if (imageElement === img) cleanupCropper()
+  }
+  img.src = objectUrl.value
+  imageElement = img
 })
 
 onUnmounted(() => {
-  if (imageElement?.parentNode === document.body) {
-    document.body.removeChild(imageElement)
-  }
-  imageElement = null
-  if (cropper) {
-    cropper.destroy()
-    cropper = null
-  }
-  if (objectUrl.value) {
-    URL.revokeObjectURL(objectUrl.value)
-    objectUrl.value = ''
-  }
+  cleanupCropper()
 })
 
-function rotateLeft() {
+function rotateLeft () {
   cropper?.getCropperImage()?.$rotate(-Math.PI / 2)
 }
 
-function rotateRight() {
+function rotateRight () {
   cropper?.getCropperImage()?.$rotate(Math.PI / 2)
 }
 
-function zoomIn() {
+function zoomIn () {
   cropper?.getCropperImage()?.$zoom(0.1)
 }
 
-function zoomOut() {
+function zoomOut () {
   cropper?.getCropperImage()?.$zoom(-0.1)
 }
 
-function flipHorizontal() {
+function flipHorizontal () {
   const image = cropper?.getCropperImage()
   if (!image) return
   image.$scale(-1, 1)
 }
 
-function flipVertical() {
+function flipVertical () {
   const image = cropper?.getCropperImage()
   if (!image) return
   image.$scale(1, -1)
 }
 
-function handleReset() {
+function handleReset () {
   cropper?.getCropperImage()?.$resetTransform()
   cropper?.getCropperSelection()?.$reset()
 }
 
-async function handleConfirm() {
+async function handleConfirm () {
   if (!cropper) return
   const canvas = await cropper.getCropperSelection()?.$toCanvas({ width: 256, height: 256 })
   if (!canvas) return

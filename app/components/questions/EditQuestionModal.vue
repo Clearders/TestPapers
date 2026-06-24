@@ -104,6 +104,7 @@
 <script setup lang="ts">
 import type { Question } from '~/types/question'
 import { DIFFICULTY_OPTIONS, QUESTION_TYPE_OPTIONS, clampScoreWeight } from '~/domain/questions'
+import { apiErrorMessage } from '~/utils/apiError'
 
 const props = defineProps<{
   question: Question
@@ -177,7 +178,7 @@ async function handleSubmit () {
     emit('saved', updated)
     emit('close')
   } catch (err) {
-    errorMsg.value = err instanceof Error ? err.message : 'Failed to save changes.'
+    errorMsg.value = apiErrorMessage(err, 'Failed to save changes.')
   } finally {
     isSaving.value = false
   }

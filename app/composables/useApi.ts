@@ -1,11 +1,16 @@
 import type { ApiEnvelope } from '~/types/api'
 import type { AuthSession } from '~/types/auth'
+import { extractApiErrorInfo, getStatusCode } from '~/utils/apiError'
 import { DEFAULT_API_BASE, normalizeEndpoint } from '~/utils/apiEndpoint'
+import { AUTH_STATE_KEYS } from '~/utils/authStateKeys'
+
+type ApiMethod = 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE'
+type ApiRequestBody = BodyInit | object | null
 
 export interface ApiRequestOptions {
-  method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE'
+  method?: ApiMethod
   query?: Record<string, unknown>
-  body?: BodyInit | Record<string, any> | null
+  body?: ApiRequestBody
   headers?: Record<string, string>
   auth?: boolean
   retry?: number
@@ -24,8 +29,13 @@ const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS'])
 
 function readCookie (name: string): string {
   if (import.meta.server) return ''
-  const match = document.cookie.split('; ').find((row) => row.startsWith(name + '='))
-  return match ? decodeURIComponent(match.split('=')[1] ?? '') : ''
+  const value = document.cookie
+    .split('; ')
+    .find(row => row.startsWith(`${name}=`))
+    ?.split('=')
+    .slice(1)
+    .join('=') ?? ''
+  return value ? decodeURIComponent(value) : ''
 }
 
 function getApiBase () {
@@ -34,14 +44,16 @@ function getApiBase () {
   return normalizeEndpoint(apiBase, DEFAULT_API_BASE)
 }
 
-function getStatusCode (error: unknown) {
-  if (typeof error !== 'object' || error === null) return 0
-  const candidate = error as { status?: number, statusCode?: number, response?: { status?: number } }
-  return candidate.statusCode || candidate.status || candidate.response?.status || 0
+function getBlobApiBase () {
+  const config = useRuntimeConfig()
+  const apiBase = import.meta.client && config.public.directApiBase
+    ? config.public.directApiBase
+    : getApiBase()
+  return normalizeEndpoint(apiBase, DEFAULT_API_BASE)
 }
 
-function shouldRetryRequest (error: unknown, method: ApiRequestOptions['method']) {
-  if (method && method !== 'GET') return false
+function shouldRetryRequest (error: unknown, method: ApiMethod) {
+  if (method !== 'GET') return false
   const statusCode = getStatusCode(error)
   return statusCode === 0 || RETRYABLE_STATUS_CODES.has(statusCode)
 }
@@ -50,11 +62,93 @@ function waitForRetry (attempt: number) {
   return new Promise(resolve => setTimeout(resolve, 250 * 2 ** attempt))
 }
 
+function isPlainRecord (value: unknown): value is Record<string, unknown> {
+  return Object.prototype.toString.call(value) === '[object Object]'
+}
+
+function isJsonBody (body: ApiRequestBody): body is Record<string, unknown> {
+  return isPlainRecord(body)
+}
+
+function serializeBody (body: ApiRequestBody): BodyInit | undefined {
+  if (body == null) return undefined
+  return isJsonBody(body) ? JSON.stringify(body) : body as BodyInit
+}
+
+function bodyHeaders (body: ApiRequestBody): Record<string, string> {
+  return isJsonBody(body) ? { 'Content-Type': 'application/json' } : {}
+}
+
+function buildQueryString (query?: Record<string, unknown>) {
+  if (!query) return ''
+  const params = new URLSearchParams()
+  for (const [key, value] of Object.entries(query)) {
+    if (value === undefined || value === null) continue
+    if (Array.isArray(value)) {
+      for (const item of value) params.append(key, String(item))
+    } else {
+      params.set(key, String(value))
+    }
+  }
+  const queryString = params.toString()
+  return queryString ? `?${queryString}` : ''
+}
+
+function csrfHeaders (method: ApiMethod): Record<string, string> {
+  if (import.meta.server || SAFE_METHODS.has(method)) return {}
+  const csrfToken = readCookie(CSRF_COOKIE_NAME)
+  return csrfToken ? { 'x-csrf-token': csrfToken } : {}
+}
+
+function requestHeaders (method: ApiMethod, headers: Record<string, string> = {}) {
+  const serverHeaders = import.meta.server ? useRequestHeaders(['cookie']) : {}
+  return {
+    ...serverHeaders,
+    ...csrfHeaders(method),
+    ...headers
+  }
+}
+
+async function fetchWithTimeout (url: string, init: RequestInit, timeoutMs: number) {
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    return await fetch(url, {
+      ...init,
+      signal: controller.signal
+    })
+  } finally {
+    clearTimeout(timeoutId)
+  }
+}
+
+async function responseError (response: Response) {
+  return {
+    status: response.status,
+    statusCode: response.status,
+    message: await response.text().catch(() => response.statusText)
+  }
+}
+
+async function withRetry<T> (request: () => Promise<T>, method: ApiMethod, retryLimit: number) {
+  let lastError: unknown
+  for (let attempt = 0; attempt <= retryLimit; attempt += 1) {
+    try {
+      return await request()
+    } catch (error) {
+      lastError = error
+      if (attempt >= retryLimit || !shouldRetryRequest(error, method)) break
+      await waitForRetry(attempt)
+    }
+  }
+  throw lastError
+}
+
 function syncAuthSession (session: AuthSession | null) {
   if (import.meta.server) return
 
-  const user = useState<AuthSession['user'] | null>('auth-user', () => null)
-  const expiresAt = useState<string>('auth-expires-at', () => '')
+  const user = useState<AuthSession['user'] | null>(AUTH_STATE_KEYS.user, () => null)
+  const expiresAt = useState<string>(AUTH_STATE_KEYS.expiresAt, () => '')
   user.value = session?.user || null
   expiresAt.value = session?.expiresAt || ''
 
@@ -67,15 +161,17 @@ function scheduleSessionRefresh (expiresAt: string) {
     clearTimeout(refreshTimerId)
     refreshTimerId = null
   }
-  if (expiresAt) {
-    const expires = new Date(expiresAt).getTime()
-    const skew = 2 * 60 * 1000
-    const delay = Math.max(5_000, expires - skew - Date.now())
-    refreshTimerId = setTimeout(() => {
-      refreshTimerId = null
-      void refreshSessionCookie()
-    }, delay)
-  }
+  if (!expiresAt) return
+
+  const expires = Date.parse(expiresAt)
+  if (!Number.isFinite(expires)) return
+
+  const skew = 2 * 60 * 1000
+  const delay = Math.max(5_000, expires - skew - Date.now())
+  refreshTimerId = setTimeout(() => {
+    refreshTimerId = null
+    void refreshSessionCookie()
+  }, delay)
 }
 
 async function refreshSessionCookie () {
@@ -83,23 +179,12 @@ async function refreshSessionCookie () {
 
   refreshPromise = (async () => {
     try {
-      const requestHeaders = import.meta.server ? useRequestHeaders(['cookie']) : {}
-      const csrfHeaders: Record<string, string> = {}
-      if (import.meta.client) {
-        const csrfToken = readCookie(CSRF_COOKIE_NAME)
-        if (csrfToken) {
-          csrfHeaders['x-csrf-token'] = csrfToken
-        }
-      }
       const response = await $fetch<ApiEnvelope<AuthSession>>('/auth/refresh', {
         baseURL: getApiBase(),
         method: 'POST',
         credentials: 'include',
         timeout: DEFAULT_TIMEOUT_MS,
-        headers: {
-          ...requestHeaders,
-          ...csrfHeaders
-        }
+        headers: requestHeaders('POST')
       })
       syncAuthSession(response.data)
       return true
@@ -114,15 +199,6 @@ async function refreshSessionCookie () {
   return await refreshPromise
 }
 
-function extractErrorInfo(error: any): { code: string, message: string, status: number } {
-  const errorBody = error?.data?.error || error?.data?.detail
-  return {
-    status: error?.status || error?.statusCode || 0,
-    code: (typeof errorBody === 'object' && errorBody?.code) ? errorBody.code : 'UNKNOWN_ERROR',
-    message: (typeof errorBody === 'object' && errorBody?.message) ? errorBody.message : (error?.message || 'An error occurred'),
-  }
-}
-
 export function useApi () {
   async function apiFetch<T> (path: string, options: ApiRequestOptions = {}) {
     const {
@@ -134,132 +210,76 @@ export function useApi () {
       timeoutMs = DEFAULT_TIMEOUT_MS,
       responseType = 'json',
       rawResponse = false,
-      ...fetchOptions
+      query,
+      body = null
     } = options
     const retryLimit = retry ?? (method === 'GET' ? 1 : 0)
 
-    const requestHeaders = import.meta.server ? useRequestHeaders(['cookie']) : {}
-
-    const csrfHeaders: Record<string, string> = {}
-    if (import.meta.client && !SAFE_METHODS.has(method)) {
-      const csrfToken = readCookie(CSRF_COOKIE_NAME)
-      if (csrfToken) {
-        csrfHeaders['x-csrf-token'] = csrfToken
-      }
-    }
-
-    const mergedHeaders = { ...requestHeaders, ...csrfHeaders, ...headers }
-
     if (responseType === 'blob') {
-      const config = useRuntimeConfig()
-      const directApiBase = (import.meta.client && config.public.directApiBase) ? config.public.directApiBase : getApiBase()
-      const baseUrl = normalizeEndpoint(directApiBase, DEFAULT_API_BASE)
-      const queryString = options.query
-        ? '?' + new URLSearchParams(
-            Object.entries(options.query).reduce((acc, [k, v]) => { acc[k] = String(v); return acc }, {} as Record<string, string>)
-          ).toString()
-        : ''
+      const url = `${getBlobApiBase()}${path}${buildQueryString(query)}`
+      const fetchBlob = async () => {
+        const response = await fetchWithTimeout(url, {
+          method,
+          credentials: 'include',
+          headers: {
+            ...requestHeaders(method, headers),
+            ...bodyHeaders(body)
+          },
+          body: serializeBody(body)
+        }, timeoutMs)
 
-      const doBlobRequest = async () => {
-        for (let attempt = 0; attempt <= retryLimit; attempt += 1) {
-          const controller = new AbortController()
-          const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
-          try {
-            const resp = await fetch(`${baseUrl}${path}${queryString}`, {
-              method,
-              credentials: 'include',
-              headers: {
-                ...mergedHeaders,
-                ...(options.body && typeof options.body !== 'string' && !(options.body instanceof FormData) && !(options.body instanceof Blob)
-                  ? { 'Content-Type': 'application/json' } : {})
-              } as Record<string, string>,
-              body: options.body && typeof options.body !== 'string' ? JSON.stringify(options.body) : (options.body as BodyInit | null | undefined),
-              signal: controller.signal
-            })
-            clearTimeout(timeoutId)
-            if (resp.status === 401 && auth && retryOnUnauthorized && path !== '/auth/refresh' && import.meta.client) {
-              if (await refreshSessionCookie()) {
-                const retryCsrf: Record<string, string> = {}
-                const newCsrfToken = readCookie(CSRF_COOKIE_NAME)
-                if (newCsrfToken) retryCsrf['x-csrf-token'] = newCsrfToken
-                const retryResp = await fetch(`${baseUrl}${path}${queryString}`, {
-                  method,
-                  credentials: 'include',
-                  headers: {
-                    ...requestHeaders,
-                    ...headers,
-                    ...retryCsrf,
-                    ...(options.body && typeof options.body !== 'string' && !(options.body instanceof FormData) && !(options.body instanceof Blob)
-                      ? { 'Content-Type': 'application/json' } : {})
-                  } as Record<string, string>,
-                  body: options.body && typeof options.body !== 'string' ? JSON.stringify(options.body) : (options.body as BodyInit | null | undefined)
-                })
-                if (!retryResp.ok) {
-                  throw {
-                    status: retryResp.status,
-                    statusCode: retryResp.status,
-                    message: await retryResp.text().catch(() => '')
-                  }
-                }
-                if (rawResponse) return retryResp as unknown as ApiEnvelope<T>
-                return { data: await retryResp.blob() as unknown as T } as unknown as ApiEnvelope<T>
-              }
-            }
-            if (!resp.ok) throw { status: resp.status, statusCode: resp.status, message: await resp.text().catch(() => '') }
-            if (rawResponse) return resp as unknown as ApiEnvelope<T>
-            return { data: await resp.blob() as unknown as T } as unknown as ApiEnvelope<T>
-          } catch (error: any) {
-            clearTimeout(timeoutId)
-            if (attempt >= retryLimit || !shouldRetryRequest(error, method)) throw extractErrorInfo(error)
-            await waitForRetry(attempt)
-          }
-        }
-        throw new Error('API request failed')
-      }
-
-      return await doBlobRequest()
-    }
-
-    const makeRequest = async () => {
-      for (let attempt = 0; attempt <= retryLimit; attempt += 1) {
-        try {
-          return await $fetch<ApiEnvelope<T>>(path, {
-            baseURL: getApiBase(),
-            credentials: 'include',
+        const shouldRefresh = import.meta.client && auth && retryOnUnauthorized && path !== '/auth/refresh' && response.status === 401
+        if (shouldRefresh && await refreshSessionCookie()) {
+          const retryResponse = await fetchWithTimeout(url, {
             method,
-            ...fetchOptions,
-            retry: 0,
-            timeout: timeoutMs,
-            headers: mergedHeaders
-          })
-        } catch (error) {
-          if (attempt >= retryLimit || !shouldRetryRequest(error, method)) throw error
-          await waitForRetry(attempt)
+            credentials: 'include',
+            headers: {
+              ...requestHeaders(method, headers),
+              ...bodyHeaders(body)
+            },
+            body: serializeBody(body)
+          }, timeoutMs)
+          if (!retryResponse.ok) throw await responseError(retryResponse)
+          if (rawResponse) return retryResponse as unknown as ApiEnvelope<T>
+          return { data: await retryResponse.blob() as unknown as T } as ApiEnvelope<T>
         }
+
+        if (!response.ok) throw await responseError(response)
+        if (rawResponse) return response as unknown as ApiEnvelope<T>
+        return { data: await response.blob() as unknown as T } as ApiEnvelope<T>
       }
 
-      throw new Error('API request failed')
+      try {
+        return await withRetry(fetchBlob, method, retryLimit)
+      } catch (error) {
+        throw extractApiErrorInfo(error)
+      }
     }
 
-    const requestOnce = () => $fetch<ApiEnvelope<T>>(path, {
+    const fetchJson = () => $fetch<ApiEnvelope<T>>(path, {
       baseURL: getApiBase(),
       credentials: 'include',
       method,
-      ...fetchOptions,
+      query,
+      ...(body !== null ? { body } : {}),
       retry: 0,
       timeout: timeoutMs,
-      headers: mergedHeaders
+      headers: requestHeaders(method, headers)
     })
 
     try {
-      return await makeRequest()
+      return await withRetry(fetchJson, method, retryLimit)
     } catch (error) {
       const shouldRefresh = import.meta.client && auth && retryOnUnauthorized && path !== '/auth/refresh' && getStatusCode(error) === 401
       if (!shouldRefresh || !(await refreshSessionCookie())) {
-        throw extractErrorInfo(error)
+        throw extractApiErrorInfo(error)
       }
 
-      return await requestOnce()
+      try {
+        return await fetchJson()
+      } catch (retryError) {
+        throw extractApiErrorInfo(retryError)
+      }
     }
   }
 

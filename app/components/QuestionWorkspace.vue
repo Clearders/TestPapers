@@ -24,7 +24,7 @@
           v-model:filter-subject="filterSubject"
           v-model:filter-difficulty="filterDifficulty"
           :bank-mode="bankMode"
-          :subjects="subjects"
+          :subjects="availableSubjects"
           :can-create-questions="canCreateQuestions"
           @switch-bank-mode="switchBankMode"
         />
@@ -192,7 +192,7 @@ import PaperGenerationForm from '~/components/PaperGenerationForm.vue'
 import QuestionCardList from '~/components/QuestionCardList.vue'
 import type { Question, QuestionDifficulty } from '~/types/question'
 import type { ExportMode, GenerationDiagnostics, LayoutDensity } from '~/types/generation'
-import type { BankMode, GeneratedPaperResponse, PaperEntityResponse, PaperQuestion, WorkspaceDraft } from '~/domain/papers'
+import type { ApiPaperQuestion, BankMode, GeneratedPaperResponse, PaperEntityResponse, WorkspaceDraft } from '~/domain/papers'
 import {
   DOCX_CONTENT_TYPE,
   buildPaperGeneratePayload,
@@ -224,7 +224,6 @@ const {
   myQuestions,
   loadQuestions,
   loadMyQuestions,
-  deleteQuestion,
   isLoading,
   isLoadingMine,
   error: questionError,
@@ -240,7 +239,7 @@ const { apiFetch } = useApi()
 const route = useRoute()
 const router = useRouter()
 
-function parseQuerySubject(): string {
+function parseQuerySubject (): string {
   const raw = route.query.subjects
   return typeof raw === 'string' ? raw : ''
 }
@@ -332,11 +331,11 @@ onBeforeUnmount(() => {
   if (draftSaveTimer) clearTimeout(draftSaveTimer)
 })
 
-watch([bankMode], () => {
+watch(bankMode, () => {
   if (import.meta.client) syncQuery()
 })
 
-function syncQuery() {
+function syncQuery () {
   if (!isActive.value) return
   const query: Record<string, string> = {}
   const q = search.value.trim()
@@ -344,7 +343,7 @@ function syncQuery() {
   if (filterSubject.value) query.subjects = filterSubject.value
   if (filterDifficulty.value) query.difficulty = filterDifficulty.value
   if (bankMode.value !== 'all') query.bank = bankMode.value
-  router.replace({ query })
+  void router.replace({ query })
 }
 
 watch(canReadAnswers, (allowed) => {
@@ -379,8 +378,6 @@ async function loadCurrentPage (page: number) {
 function goToPage (page: number) {
   void loadCurrentPage(page)
 }
-
-const subjects = computed(() => availableSubjects.value)
 
 const paperQuestionIds = computed(() => {
   const ids = new Set<number>()
@@ -568,40 +565,18 @@ async function ensureDownloadablePaper () {
 }
 
 async function requestDocxDownload (paperPublicId: string) {
-  const params = new URLSearchParams({
-    format: 'docx',
-    questionOrder: exportMode.value,
-    includeAnswer: String(includeAnswersInExport.value && canReadAnswers.value),
-    layoutDensity: layoutDensity.value
-  })
   const response = await apiFetch<Response>(`/papers/${paperPublicId}/download`, {
     method: 'GET',
-    query: Object.fromEntries(params),
+    query: {
+      format: 'docx',
+      questionOrder: exportMode.value,
+      includeAnswer: String(includeAnswersInExport.value && canReadAnswers.value),
+      layoutDensity: layoutDensity.value
+    },
     responseType: 'blob',
     rawResponse: true
   })
   return response as unknown as Response
-}
-
-function filenameFromDisposition (disposition: string | null) {
-  if (!disposition) return `${paper.title.trim() || 'examination-paper'}.docx`
-
-  const encodedMatch = disposition.match(/filename\*=UTF-8''([^;]+)/i)
-  if (encodedMatch?.[1]) {
-    try {
-      return decodeURIComponent(encodedMatch[1])
-    } catch {
-      return encodedMatch[1]
-    }
-  }
-
-  const quotedMatch = disposition.match(/filename="([^"]+)"/i)
-  return quotedMatch?.[1] || `${paper.title.trim() || 'examination-paper'}.docx`
-}
-
-function layoutDensityFromHeader (value: string | null): LayoutDensity | null {
-  if (value === 'normal' || value === 'compact' || value === 'dense' || value === 'auto') return value
-  return null
 }
 
 async function downloadDocx () {
@@ -617,7 +592,7 @@ async function downloadDocx () {
     }
 
     const contentType = response.headers.get('Content-Type')?.split(';', 1)[0]?.toLowerCase()
-    if (contentType !== 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+    if (contentType !== DOCX_CONTENT_TYPE) {
       const responseText = await response.text()
       let message = 'The download endpoint did not return a DOCX file.'
       try {
@@ -640,40 +615,9 @@ async function downloadDocx () {
     link.remove()
     window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1_000)
   } catch (error) {
-    downloadError.value = error instanceof Error ? error.message : 'Failed to download DOCX.'
+    downloadError.value = apiErrorMessage(error, 'Failed to download DOCX.')
   } finally {
     isDownloadingDocx.value = false
-  }
-}
-
-function buildPaperGeneratePayload (): PaperGeneratePayload | null {
-  if (!paper.title.trim() || !generationForm.subjects.length) {
-    generationError.value = 'Please enter a paper title and select at least one subject.'
-    return null
-  }
-
-  return {
-    title: paper.title.trim(),
-    subjects: [...generationForm.subjects],
-    duration: toPositiveInteger(paper.duration, DEFAULT_PAPER.duration),
-    totalMarks: toPositiveInteger(paper.totalMarks, DEFAULT_PAPER.totalMarks),
-    difficultyCoefficient: boundedNumber(generationForm.difficultyCoefficient, 0.5, 0, 1),
-    questionTypes: generationForm.questionTypes.map(type => ({
-      questionType: type,
-      count: generationForm.typeCounts[type] || 1
-    })),
-    ownQuestionsOnly: bankMode.value === 'mine',
-    ...(generationForm.requiredTags.length ? { requiredTags: generationForm.requiredTags } : {}),
-    ...(generationForm.preferredTags.length ? { preferredTags: generationForm.preferredTags } : {})
-  }
-}
-
-function normalizePaperQuestion (question: ApiPaperQuestion): PaperQuestion {
-  const normalized = normalizeQuestion(question)
-  return {
-    ...normalized,
-    marks: optionalPositiveInteger(question.marks),
-    orderNo: optionalPositiveInteger(question.orderNo)
   }
 }
 
@@ -691,45 +635,6 @@ function forgetSavedPaper () {
   savedPaperSignature.value = ''
 }
 
-function apiErrorMessage (error: unknown, fallback: string) {
-  if (typeof error !== 'object' || error === null) return fallback
-
-  const candidate = error as {
-    message?: string
-    data?: {
-      detail?: unknown
-      error?: {
-        message?: unknown
-        details?: unknown
-      }
-    }
-  }
-  const envelopeError = candidate.data?.error
-  if (envelopeError && typeof envelopeError.message === 'string' && envelopeError.message.trim()) {
-    const details = envelopeError.details
-    if (Array.isArray(details) && details.length) {
-      const firstDetail = details[0] as { field?: unknown, reason?: unknown } | undefined
-      if (firstDetail && typeof firstDetail.reason === 'string' && firstDetail.reason.trim()) {
-        const field = typeof firstDetail.field === 'string' && firstDetail.field.trim() ? `${firstDetail.field}: ` : ''
-        return `${field}${firstDetail.reason}`
-      }
-    }
-    return envelopeError.message
-  }
-
-  const detail = candidate.data?.detail
-  if (typeof detail === 'string' && detail.trim()) return detail
-  if (typeof detail === 'object' && detail !== null && 'message' in detail) {
-    const message = (detail as { message?: unknown }).message
-    if (typeof message === 'string' && message.trim()) return message
-  }
-  if (Array.isArray(detail) && detail.length) {
-    const firstMessage = (detail[0] as { msg?: unknown } | undefined)?.msg
-    if (typeof firstMessage === 'string' && firstMessage.trim()) return firstMessage
-  }
-  return candidate.message || fallback
-}
-
 async function generatePaper () {
   generationError.value = ''
   generationDiagnostics.value = null
@@ -737,8 +642,11 @@ async function generatePaper () {
     generationError.value = 'You do not have permission to generate papers.'
     return
   }
-  const payload = buildPaperGeneratePayload()
-  if (!payload) return
+  const payload = buildPaperGeneratePayload(paper, generationForm, bankMode.value)
+  if (!payload) {
+    generationError.value = 'Please enter a paper title and select at least one subject.'
+    return
+  }
   isGenerating.value = true
 
   try {

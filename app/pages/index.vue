@@ -87,6 +87,7 @@
 </template>
 
 <script setup lang="ts">
+import { apiErrorMessage } from '~/utils/apiError'
 import type { PaginatedData } from '~/types/api'
 import type { QuestionEntity } from '~/types/question'
 
@@ -208,7 +209,7 @@ async function loadHeroStats () {
   } catch (error) {
     if (requestId !== heroStatsRequest) return
     resetHeroStats()
-    heroStatsError.value = error instanceof Error ? error.message : 'Failed to load question statistics.'
+    heroStatsError.value = apiErrorMessage(error, 'Failed to load question statistics.')
   } finally {
     if (requestId === heroStatsRequest) heroStatsLoading.value = false
   }

@@ -32,6 +32,7 @@
 
 <script setup lang="ts">
 import { stripLegacyLocalePrefix } from '~~/shared/legacy-locale'
+import { apiErrorMessage } from '~/utils/apiError'
 
 definePageMeta({
   guestOnly: true
@@ -81,9 +82,8 @@ async function submitLogin () {
   try {
     await login(username.value, password.value)
     await navigateTo(redirectTarget.value)
-  } catch (err: any) {
-    const errorBody = err?.data?.error
-    errorMessage.value = (typeof errorBody === 'object' && errorBody?.message) || (err instanceof Error ? err.message : 'Login failed.')
+  } catch (err) {
+    errorMessage.value = apiErrorMessage(err, 'Login failed.')
   } finally {
     isSubmitting.value = false
   }

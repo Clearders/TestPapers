@@ -5,6 +5,7 @@ import {
   normalizeQuestion,
   toQuestionPayload
 } from '~/domain/questions'
+import { apiErrorMessage } from '~/utils/apiError'
 import { readFileAsBase64Payload } from '~/utils/fileData'
 
 export type { CorrectionCategory, CorrectionStatus, EssayBlankSpace, Question, QuestionCorrection, QuestionEntity, QuestionFormInput, QuestionImage, QuestionQueryParams, QuestionRevision } from '~/types/question'
@@ -86,7 +87,7 @@ export function useQuestionBank () {
       return target.value
     } catch (err) {
       if (requestSequence !== sequence.value) return target.value
-      error.value = err instanceof Error ? err.message : errorMessage
+      error.value = apiErrorMessage(err, errorMessage)
       throw err
     } finally {
       if (requestSequence === sequence.value) loading.value = false

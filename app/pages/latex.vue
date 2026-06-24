@@ -153,12 +153,12 @@ function insertSymbol(str: string) {
   })
 }
 
-function clearInput() {
+function clearInput () {
   rawInput.value = ''
   renderError.value = ''
 }
 
-async function copyPreview() {
+async function copyPreview () {
   try {
     await navigator.clipboard.writeText(debouncedInput.value)
   } catch {

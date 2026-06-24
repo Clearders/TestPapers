@@ -1,5 +1,6 @@
 import type { ShallowRef } from 'vue'
 import type { AuthSession, AuthUser, PasswordChangePayload, Permission, ProfileUpdatePayload, RegisterPayload } from '~/types/auth'
+import { AUTH_STATE_KEYS } from '~/utils/authStateKeys'
 import { readFileAsBase64Payload } from '~/utils/fileData'
 
 export type { AuthSession, AuthUser, Permission, RegisterPayload, UserRole } from '~/types/auth'
@@ -37,10 +38,10 @@ function useServerAuthState () {
 export function useAuth () {
   const authState = import.meta.server
     ? useServerAuthState()
-    : {
-        user: useState<AuthUser | null>('auth-user', () => null),
-        expiresAt: useState<string>('auth-expires-at', () => ''),
-        isReady: useState<boolean>('auth-ready', () => false)
+      : {
+        user: useState<AuthUser | null>(AUTH_STATE_KEYS.user, () => null),
+        expiresAt: useState<string>(AUTH_STATE_KEYS.expiresAt, () => ''),
+        isReady: useState<boolean>(AUTH_STATE_KEYS.ready, () => false)
       }
   const { user, expiresAt, isReady: isAuthReady } = authState
   const { apiFetch, refreshSessionCookie, scheduleSessionRefresh } = useApi()

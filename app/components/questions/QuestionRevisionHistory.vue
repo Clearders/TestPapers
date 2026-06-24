@@ -53,6 +53,7 @@
 
 <script setup lang="ts">
 import type { QuestionRevision } from '~/types/question'
+import { apiErrorMessage } from '~/utils/apiError'
 
 const props = defineProps<{
   questionId: string
@@ -93,7 +94,7 @@ async function loadRevisions () {
   try {
     revisions.value = await fetchRevisions(props.questionId)
   } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Failed to load revision history.'
+    error.value = apiErrorMessage(err, 'Failed to load revision history.')
   } finally {
     loading.value = false
   }

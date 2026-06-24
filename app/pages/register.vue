@@ -44,6 +44,8 @@
 </template>
 
 <script setup lang="ts">
+import { apiErrorMessage } from '~/utils/apiError'
+
 definePageMeta({
   guestOnly: true
 })
@@ -95,9 +97,8 @@ async function submitRegister () {
       password: password.value
     })
     await navigateTo('/questions')
-  } catch (err: any) {
-    const errorBody = err?.data?.error
-    message.value = (typeof errorBody === 'object' && errorBody?.message) || 'Registration failed.'
+  } catch (err) {
+    message.value = apiErrorMessage(err, 'Registration failed.')
     hasError.value = true
   } finally {
     isSubmitting.value = false

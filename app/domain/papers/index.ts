@@ -85,7 +85,7 @@ export interface WorkspaceDraft {
   generationDiagnostics: GenerationDiagnostics | null
 }
 
-export interface BuildWorkspaceDraftInput extends Omit<WorkspaceDraft, 'version'> {}
+export type BuildWorkspaceDraftInput = Omit<WorkspaceDraft, 'version'>
 
 export const DEFAULT_PAPER = {
   duration: 60,
@@ -138,7 +138,9 @@ export function toPositiveInteger (value: unknown, fallback: number, min = 1) {
 }
 
 export function cloneData<T> (value: T): T {
-  return structuredClone(value)
+  return typeof structuredClone === 'function'
+    ? structuredClone(value)
+    : JSON.parse(JSON.stringify(value)) as T
 }
 
 export function clonePaperQuestion (question: Question): PaperQuestion {
@@ -291,16 +293,23 @@ function numberFromDraft (value: unknown, fallback: number) {
 
 function validateDraftQuestion (value: unknown): PaperQuestion | null {
   if (!isRecord(value)) return null
-  if (!Number.isFinite(value.id) || typeof value.publicId !== 'string' || !value.publicId.trim()) return null
+  const id = Number(value.id)
+  if (!Number.isFinite(id) || typeof value.publicId !== 'string' || !value.publicId.trim()) return null
   if (!isQuestionType(value.type) || !isQuestionDifficulty(value.difficulty)) return null
   if (typeof value.text !== 'string') return null
 
   const options = optionalStringArrayFromDraft(value.options)
   const marks = optionalPositiveInteger(value.marks)
   const orderNo = optionalPositiveInteger(value.orderNo)
+  const images = questionImagesFromDraft(value.images)
+  const essayBlankSpace = isRecord(value.essayBlankSpace)
+    ? normalizeEssayBlankSpace(value.essayBlankSpace)
+    : value.type === 'essay'
+      ? { ...DEFAULT_ESSAY_BLANK_SPACE }
+      : undefined
 
   return {
-    id: Number(value.id),
+    id,
     publicId: value.publicId,
     type: value.type,
     subjects: stringArrayFromDraft(value.subjects),
@@ -311,8 +320,8 @@ function validateDraftQuestion (value: unknown): PaperQuestion | null {
     answer: Array.isArray(value.answer) ? stringArrayFromDraft(value.answer) : String(value.answer ?? ''),
     hasLatex: Boolean(value.hasLatex),
     ...(typeof value.source === 'string' ? { source: value.source } : {}),
-    ...(isRecord(value.essayBlankSpace) ? { essayBlankSpace: normalizeEssayBlankSpace(value.essayBlankSpace) } : { essayBlankSpace: DEFAULT_ESSAY_BLANK_SPACE }),
-    ...(questionImagesFromDraft(value.images).length ? { images: questionImagesFromDraft(value.images) } : {}),
+    ...(essayBlankSpace ? { essayBlankSpace } : {}),
+    ...(images.length ? { images } : {}),
     scoreWeight: numberFromDraft(value.scoreWeight, 1),
     ...(marks ? { marks } : {}),
     ...(orderNo ? { orderNo } : {}),

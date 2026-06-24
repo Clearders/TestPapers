@@ -55,6 +55,7 @@
 <script setup lang="ts">
 import type { Question } from '~/types/question'
 import type { CorrectionCategory } from '~/types/question'
+import { apiErrorMessage } from '~/utils/apiError'
 
 const props = defineProps<{
   question: Question
@@ -91,7 +92,7 @@ async function handleSubmit () {
     emit('submitted')
     emit('close')
   } catch (err) {
-    errorMsg.value = err instanceof Error ? err.message : 'Failed to submit report.'
+    errorMsg.value = apiErrorMessage(err, 'Failed to submit report.')
   } finally {
     isSubmitting.value = false
   }

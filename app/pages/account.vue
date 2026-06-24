@@ -221,6 +221,8 @@
 </template>
 
 <script setup lang="ts">
+import { apiErrorMessage } from '~/utils/apiError'
+
 const AvatarCropper = defineAsyncComponent(() => import('~/components/AvatarCropper.vue'))
 
 definePageMeta({ requiresAuth: true })
@@ -289,10 +291,9 @@ async function saveProfile () {
     profileForm.username = ''
     profileForm.displayName = ''
     profileMessage.value = 'Profile updated successfully.'
-  } catch (err: any) {
+  } catch (err) {
     profileError.value = true
-    const errorBody = err?.data?.error
-    profileMessage.value = (typeof errorBody === 'object' && errorBody?.message) || 'Failed to update profile.'
+    profileMessage.value = apiErrorMessage(err, 'Failed to update profile.')
   } finally {
     profileSaving.value = false
   }
@@ -312,10 +313,9 @@ async function savePassword () {
     passwordForm.newPassword = ''
     passwordForm.confirmPassword = ''
     passwordMessage.value = 'Password changed successfully.'
-  } catch (err: any) {
+  } catch (err) {
     passwordError.value = true
-    const errorBody = err?.data?.error
-    passwordMessage.value = (typeof errorBody === 'object' && errorBody?.message) || 'Failed to change password.'
+    passwordMessage.value = apiErrorMessage(err, 'Failed to change password.')
   } finally {
     passwordSaving.value = false
   }
@@ -329,11 +329,11 @@ function handleAvatarSelected (event: Event) {
   }
 }
 
-function openCropper() {
+function openCropper () {
   showCropper.value = true
 }
 
-function onCropped(file: File) {
+function onCropped (file: File) {
   avatarFile.value = file
   showCropper.value = false
 }
@@ -347,10 +347,9 @@ async function uploadAvatarFile () {
     await uploadAvatar(avatarFile.value)
     avatarFile.value = null
     avatarMessage.value = 'Avatar updated successfully.'
-  } catch (err: any) {
+  } catch (err) {
     avatarError.value = true
-    const errorBody = err?.data?.error
-    avatarMessage.value = (typeof errorBody === 'object' && errorBody?.message) || 'Failed to upload avatar.'
+    avatarMessage.value = apiErrorMessage(err, 'Failed to upload avatar.')
   } finally {
     avatarUploading.value = false
   }
@@ -363,10 +362,9 @@ async function handleDeleteAccount () {
   deleteMessage.value = ''
   try {
     await deleteAccount()
-  } catch (err: any) {
+  } catch (err) {
     deleteError.value = true
-    const errorBody = err?.data?.error
-    deleteMessage.value = (typeof errorBody === 'object' && errorBody?.message) || 'Failed to delete account.'
+    deleteMessage.value = apiErrorMessage(err, 'Failed to delete account.')
   } finally {
     deleteSaving.value = false
   }

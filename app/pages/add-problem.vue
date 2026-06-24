@@ -256,6 +256,7 @@ import {
   getEssayBlankHeightPx,
   isOptionQuestionType
 } from '~/domain/questions'
+import { apiErrorMessage } from '~/utils/apiError'
 
 definePageMeta({
   requiresAuth: true,
@@ -359,9 +360,8 @@ async function handleImageSelected (event: Event) {
   try {
     const url = await uploadImage(file)
     form.images.push({ url, caption: '' })
-  } catch (error: any) {
-    const errorBody = error?.data?.error
-    submitError.value = (typeof errorBody === 'object' && errorBody?.message) || (error instanceof Error ? error.message : 'Failed to upload image.')
+  } catch (error) {
+    submitError.value = apiErrorMessage(error, 'Failed to upload image.')
   } finally {
     uploadingImage.value = false
   }
@@ -413,9 +413,8 @@ async function submitProblem () {
     if (submittedTimer.value) clearTimeout(submittedTimer.value)
     submittedTimer.value = setTimeout(() => { submitted.value = false }, 4000)
     resetForm(false)
-  } catch (error: any) {
-    const errorBody = error?.data?.error
-    submitError.value = (typeof errorBody === 'object' && errorBody?.message) || (error instanceof Error ? error.message : 'Failed to save problem.')
+  } catch (error) {
+    submitError.value = apiErrorMessage(error, 'Failed to save problem.')
   } finally {
     isSaving.value = false
   }

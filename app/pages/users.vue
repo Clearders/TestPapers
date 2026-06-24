@@ -69,6 +69,7 @@
 
 <script setup lang="ts">
 import type { AuthUser, UserRole } from '~/composables/useAuth'
+import { apiErrorMessage } from '~/utils/apiError'
 
 definePageMeta({
   requiresAuth: true,
@@ -132,9 +133,8 @@ async function createUser () {
     form.role = 'viewer'
     message.value = 'User created.'
     await loadUsers()
-  } catch (err: any) {
-    const errorBody = err?.data?.error
-    message.value = (typeof errorBody === 'object' && errorBody?.message) || (err instanceof Error ? err.message : 'Failed to create user.')
+  } catch (err) {
+    message.value = apiErrorMessage(err, 'Failed to create user.')
   } finally {
     isSaving.value = false
   }
@@ -152,9 +152,8 @@ async function updateUser (item: AuthUser) {
       body
     })
     await loadUsers()
-  } catch (err: any) {
-    const errorBody = err?.data?.error
-    message.value = (typeof errorBody === 'object' && errorBody?.message) || (err instanceof Error ? err.message : 'Failed to update user.')
+  } catch (err) {
+    message.value = apiErrorMessage(err, 'Failed to update user.')
     await loadUsers()
   }
 }
@@ -164,9 +163,8 @@ async function deleteUser (publicId: string) {
   try {
     await authFetch(`/users/${publicId}`, { method: 'DELETE' })
     users.value = users.value.filter(item => item.publicId !== publicId)
-  } catch (err: any) {
-    const errorBody = err?.data?.error
-    message.value = (typeof errorBody === 'object' && errorBody?.message) || (err instanceof Error ? err.message : 'Failed to delete user.')
+  } catch (err) {
+    message.value = apiErrorMessage(err, 'Failed to delete user.')
   }
 }
 </script>
