@@ -9,7 +9,7 @@
           </div>
 
           <div class="cropper-body">
-            <div ref="containerRef" class="cropper-area"></div>
+            <div ref="containerRef" class="cropper-area"/>
 
             <div class="cropper-toolbar">
               <button

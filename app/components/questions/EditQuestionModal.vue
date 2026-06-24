@@ -37,7 +37,7 @@
                     min="0.01"
                     max="100"
                     step="0.1"
-                  />
+                  >
                 </div>
               </div>
 
@@ -52,11 +52,11 @@
               </div>
 
               <div v-if="isChoiceType" class="form-group">
-                <label class="form-label" id="edit-options-label">Options</label>
+                <label id="edit-options-label" class="form-label">Options</label>
                 <div role="group" aria-labelledby="edit-options-label">
                 <div v-for="(opt, index) in form.options" :key="index" class="option-row">
                   <span class="option-label">{{ String.fromCharCode(65 + index) }}.</span>
-                  <input v-model="form.options[index]" class="form-input" name="editOption" autocomplete="off" required />
+                  <input v-model="form.options[index]" class="form-input" name="editOption" autocomplete="off" required >
                 </div>
                 </div>
               </div>
@@ -80,7 +80,7 @@
 
               <div class="form-group">
                 <label class="form-label" for="edit-source">Source / Reference</label>
-                <input id="edit-source" v-model="form.source" class="form-input" autocomplete="off" />
+                <input id="edit-source" v-model="form.source" class="form-input" autocomplete="off" >
               </div>
 
               <div class="form-actions">

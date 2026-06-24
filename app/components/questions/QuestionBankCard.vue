@@ -41,7 +41,7 @@
           class="q-image-thumb"
           loading="lazy"
           decoding="async"
-        />
+        >
       </div>
 
       <p v-if="question.source" class="q-source">Source: {{ question.source }}</p>
@@ -131,7 +131,7 @@
           <template v-if="Array.isArray(question.answer)">
             {{ question.answer.join(', ') }}
           </template>
-          <template v-else v-for="(part, i) in parseLatexParts(question.answer)" :key="i">
+          <template v-for="(part, i) in parseLatexParts(question.answer)" v-else :key="i">
             <LatexRenderer v-if="part.isLatex" :formula="part.content" />
             <span v-else>{{ part.content }}</span>
           </template>

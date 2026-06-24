@@ -10,163 +10,64 @@
     </div>
 
     <div v-else class="workspace-layout">
-      <div class="bank-panel">
-        <div class="panel-head">
-          <div>
-            <h2><AppIcon name="search" /> Question Bank</h2>
-            <p class="panel-sub">Loaded from the backend question service.</p>
-          </div>
-          <span class="tag count-tag">{{ currentQuestions.length }} / {{ activePagination.total }}</span>
-        </div>
+      <QuestionBankPanel
+        v-model:search="search"
+        v-model:filter-subject="filterSubject"
+        v-model:filter-difficulty="filterDifficulty"
+        :bank-mode="bankMode"
+        :available-subjects="availableSubjects"
+        :can-create-questions="canCreateQuestions"
+        :current-questions="currentQuestions"
+        :active-pagination="activePagination"
+        :active-loading="activeLoading"
+        :question-error="questionError"
+        :shown-ids="shownIds"
+        :paper-question-ids="paperQuestionIds"
+        :can-read-answers="canReadAnswers"
+        :can-review="canReview"
+        :can-delete-question="canDeleteQuestion"
+        :can-edit-question="canEditQuestion"
+        @switch-bank-mode="switchBankMode"
+        @toggle-question="toggleQuestion"
+        @edit="openEditModal"
+        @report="openCorrectionModal"
+        @delete="onDeleteQuestionFromCard"
+        @page-change="goToPage"
+        @toggle-answer="onToggleAnswer"
+      />
 
-        <QuestionBankToolbar
-          v-model:search="search"
-          v-model:filter-subject="filterSubject"
-          v-model:filter-difficulty="filterDifficulty"
-          :bank-mode="bankMode"
-          :subjects="availableSubjects"
-          :can-create-questions="canCreateQuestions"
-          @switch-bank-mode="switchBankMode"
-        />
-
-        <QuestionCardList
-          :questions="currentQuestions"
-          :paper-question-ids="paperQuestionIds"
-          :loading="activeLoading"
-          :question-error="questionError"
-          :shown-ids="shownIds"
-          :pagination="activePagination"
-          :can-read-answers="canReadAnswers"
-          :can-review="canReview"
-          :can-delete-question="canDeleteQuestion"
-          :can-edit-question="canEditQuestion"
-          :can-create-questions="canCreateQuestions"
-          @toggle-question="toggleQuestion"
-          @edit="openEditModal"
-          @report="openCorrectionModal"
-          @delete="onDeleteQuestionFromCard"
-          @page-change="goToPage"
-          @toggle-answer="onToggleAnswer"
-        />
-      </div>
-
-      <div class="paper-panel">
-        <div class="panel-head">
-          <div>
-            <h2><AppIcon name="paper" /> Paper Builder</h2>
-            <p class="panel-sub">Build directly from the filtered bank.</p>
-          </div>
-          <span class="badge tag-count">
-            {{ paper.questions.length }} question{{ paper.questions.length !== 1 ? 's' : '' }}
-          </span>
-        </div>
-
-        <div class="card paper-meta-card">
-          <div class="form-group">
-            <label class="form-label" for="paper-title">Paper Title</label>
-            <input id="paper-title" v-model="paper.title" class="form-input" name="paperTitle" placeholder="e.g. Mid-term Examination 2026..." />
-          </div>
-          <div class="paper-meta-row">
-            <div class="form-group paper-meta-field">
-              <label class="form-label" for="paper-subject">Subject</label>
-              <input id="paper-subject" v-model="paper.subject" class="form-input" name="paperSubject" placeholder="e.g. Mathematics..." />
-            </div>
-            <div class="form-group paper-meta-field">
-              <label class="form-label" for="paper-duration">Duration (min)</label>
-              <input id="paper-duration" v-model.number="paper.duration" type="number" min="1" class="form-input" name="paperDuration" placeholder="60..." />
-            </div>
-          </div>
-          <label v-if="canReadAnswers" class="export-toggle">
-            <input v-model="includeAnswersInExport" type="checkbox" />
-            <span>Include answers in exported paper</span>
-          </label>
-        </div>
-
-        <PaperGenerationForm
-          :generation-form="generationForm"
-          :can-write-papers="canWritePapers"
-          :is-generating="isGenerating"
-          :generation-error="generationError"
-          :generation-diagnostics="generationDiagnostics"
-          :available-subjects="availableSubjects"
-          :available-tags="availableTags"
-          :is-loading-meta="isLoadingMeta"
-          :total-marks="paper.totalMarks"
-          :paper-title="paper.title"
-          @update:generation-form="Object.assign(generationForm, $event)"
-          @update:total-marks="paper.totalMarks = $event"
-          @generate="generatePaper"
-        />
-
-        <Transition name="fade" mode="out-in">
-          <TransitionGroup name="list" tag="div" class="paper-question-list" v-if="paper.questions.length">
-            <div v-for="(q, idx) in paper.questions" :key="q.id" class="paper-q-item card">
-              <div class="paper-q-controls">
-                <button class="icon-btn" :disabled="idx === 0" @click="moveUp(idx)" aria-label="Move question up"><AppIcon name="arrow-up" /></button>
-                <button class="icon-btn" :disabled="idx === paper.questions.length - 1" @click="moveDown(idx)" aria-label="Move question down"><AppIcon name="arrow-down" /></button>
-              </div>
-              <div class="paper-q-body">
-                <div class="paper-q-num">Q{{ idx + 1 }}</div>
-                <div class="paper-q-content">
-                  <div class="q-meta">
-                    <span class="badge" :class="`badge-${q.difficulty}`">{{ q.difficulty }}</span>
-                    <span v-for="sub in q.subjects" :key="sub" class="subject-pill">{{ sub }}</span>
-                    <span class="tag">weight {{ formatScoreWeight(q.scoreWeight) }}</span>
-                    <span v-if="q.marks" class="tag">{{ q.marks }} mark{{ q.marks !== 1 ? 's' : '' }}</span>
-                    <span v-for="tag in q.tags" :key="tag" class="tag">{{ tag }}</span>
-                  </div>
-                  <div class="q-text-wrap">
-                    <template v-for="(part, i) in parseLatexParts(q.text)" :key="i">
-                      <LatexRenderer v-if="part.isLatex" :formula="part.content" :block="part.block" />
-                      <span v-else>{{ part.content }}</span>
-                    </template>
-                  </div>
-                </div>
-              </div>
-              <button class="btn btn-danger btn-sm remove-btn" @click="removeQuestion(q.id)">
-                <AppIcon name="trash" />
-                Remove
-              </button>
-            </div>
-          </TransitionGroup>
-          <div v-else class="empty-paper card">
-            <p>No questions added yet. Add them from the bank on the left.</p>
-          </div>
-        </Transition>
-
-        <div class="paper-actions paper-actions--export">
-          <button class="btn btn-success" :disabled="!paper.questions.length || !paper.title.trim()" @click="exportPaper">
-            <AppIcon name="paper" />
-            Export Paper
-          </button>
-          <button class="btn btn-primary" :disabled="!canDownloadDocx" @click="downloadDocx">
-            <AppIcon name="download" />
-            {{ isDownloadingDocx ? 'Preparing DOCX...' : 'Download DOCX' }}
-          </button>
-          <button class="btn btn-outline" :disabled="!paper.questions.length" @click="clearPaper">
-            <AppIcon name="x" />
-            Clear All
-          </button>
-        </div>
-
-        <div v-if="downloadError" class="status-banner status-banner--error download-error" aria-live="polite">
-          {{ downloadError }}
-        </div>
-
-        <PaperExportPanel
-          :visible="exported"
-          :paper-title="paper.title"
-          :paper-subject="paper.subject"
-          :paper-duration="paper.duration"
-          :paper-total-marks="paper.totalMarks"
-          :paper-questions="paper.questions"
-          v-model:export-mode="exportMode"
-          v-model:layout-density="layoutDensity"
-          v-model:include-answers-in-export="includeAnswersInExport"
-          :can-read-answers="canReadAnswers"
-          :downloaded-layout-density="downloadedLayoutDensity"
-        />
-      </div>
+      <PaperBuilderPanel
+        v-model:export-mode="exportMode"
+        v-model:layout-density="layoutDensity"
+        v-model:include-answers-in-export="includeAnswersInExport"
+        :paper="paper"
+        :generation-form="generationForm"
+        :can-read-answers="canReadAnswers"
+        :can-write-papers="canWritePapers"
+        :is-generating="isGenerating"
+        :generation-error="generationError"
+        :generation-diagnostics="generationDiagnostics"
+        :available-subjects="availableSubjects"
+        :available-tags="availableTags"
+        :is-loading-meta="isLoadingMeta"
+        :exported="exported"
+        :is-downloading-docx="isDownloadingDocx"
+        :download-error="downloadError"
+        :downloaded-layout-density="downloadedLayoutDensity"
+        :can-download-docx="canDownloadDocx"
+        @update:paper-title="paper.title = $event"
+        @update:paper-subject="paper.subject = $event"
+        @update:paper-duration="paper.duration = $event"
+        @update:generation-form="Object.assign(generationForm, $event)"
+        @update:total-marks="paper.totalMarks = $event"
+        @generate="generatePaper"
+        @move-up="moveUp"
+        @move-down="moveDown"
+        @remove-question="removeQuestion"
+        @export-paper="exportPaper"
+        @download-docx="downloadDocx"
+        @clear-paper="clearPaper"
+      />
     </div>
     <EditQuestionModal
       v-if="editingQuestion"
@@ -187,35 +88,21 @@
 </template>
 
 <script setup lang="ts">
-import QuestionBankToolbar from '~/components/questions/QuestionBankToolbar.vue'
-import PaperGenerationForm from '~/components/PaperGenerationForm.vue'
-import QuestionCardList from '~/components/QuestionCardList.vue'
 import type { Question, QuestionDifficulty } from '~/types/question'
 import type { ExportMode, GenerationDiagnostics, LayoutDensity } from '~/types/generation'
-import type { ApiPaperQuestion, BankMode, GeneratedPaperResponse, PaperEntityResponse, WorkspaceDraft } from '~/domain/papers'
+import type { BankMode, GeneratedPaperResponse } from '~/domain/papers'
 import {
-  DOCX_CONTENT_TYPE,
   buildPaperGeneratePayload,
-  buildPaperPayload,
-  buildWorkspaceDraft,
   clonePaperQuestion,
   createDefaultGenerationForm,
   createDefaultPaper,
-  filenameFromDisposition,
-  getPaperSignature,
-  getWorkspaceDraftKey,
-  layoutDensityFromHeader,
-  normalizePaperQuestion,
   parseBankMode,
-  parseQuestionDifficulty,
-  validateWorkspaceDraft
+  parseQuestionDifficulty
 } from '~/domain/papers'
 import { apiErrorMessage } from '~/utils/apiError'
-import { formatScoreWeight } from '~/utils/format'
 
 const EditQuestionModal = defineAsyncComponent(() => import('~/components/questions/EditQuestionModal.vue'))
 const QuestionCorrectionModal = defineAsyncComponent(() => import('~/components/questions/QuestionCorrectionModal.vue'))
-const PaperExportPanel = defineAsyncComponent(() => import('~/components/PaperExportPanel.vue'))
 
 const {
   canCreateQuestions,
@@ -235,7 +122,7 @@ const {
   isLoadingMeta
 } = useQuestionBank()
 const { hasPermission, isAuthReady, user } = useAuth()
-const { apiFetch } = useApi()
+const { apiFetch, apiFetchRaw } = useApi()
 const route = useRoute()
 const router = useRouter()
 
@@ -256,27 +143,16 @@ const pageSize = ref(20)
 const isGenerating = ref(false)
 const generationError = ref('')
 const generationDiagnostics = ref<GenerationDiagnostics | null>(null)
-const savedPaperId = ref<string | null>(null)
-const savedPaperSignature = ref('')
-const isDownloadingDocx = ref(false)
-const downloadError = ref('')
-const downloadedLayoutDensity = ref<LayoutDensity | null>(null)
 const isActive = ref(true)
 let searchLoadTimer: ReturnType<typeof setTimeout> | null = null
-let draftSaveTimer: ReturnType<typeof setTimeout> | null = null
-let draftHydrated = false
-let suppressDraftSave = false
-let activeDraftKey = ''
 
 const paper = reactive(createDefaultPaper())
-
-const exported = ref(false)
+const generationForm = reactive(createDefaultGenerationForm())
 
 const editingQuestion = ref<Question | null>(null)
 const reportingQuestion = ref<Question | null>(null)
 
 const canReadQuestions = computed(() => hasPermission('questions:read'))
-const canWritePapers = computed(() => hasPermission('papers:write'))
 const isAdmin = computed(() => hasPermission('users:manage'))
 const canReview = computed(() => hasPermission('questions:write'))
 function canEditQuestion (q: Question) {
@@ -291,15 +167,62 @@ function canDeleteQuestion (q: Question) {
   return q.ownerId === null || q.ownerId === user.value?.id
 }
 
-const generationForm = reactive(createDefaultGenerationForm())
-
 const currentQuestions = computed(() => bankMode.value === 'mine' ? myQuestions.value : questions.value)
 const activePagination = computed(() => bankMode.value === 'mine' ? myQuestionPagination.value : questionPagination.value)
 const activeLoading = computed(() => bankMode.value === 'mine' ? isLoadingMine.value : isLoading.value)
-const canDownloadDocx = computed(() => {
-  if (!paper.questions.length || !paper.title.trim() || !paper.subject.trim() || isDownloadingDocx.value) return false
-  if (!hasPermission('papers:read')) return false
-  return hasPermission('papers:write') || (savedPaperId.value !== null && savedPaperSignature.value === currentPaperSignature())
+
+const paperQuestionIds = computed(() => {
+  const ids = new Set<number>()
+  for (const q of paper.questions) ids.add(q.id)
+  return ids
+})
+
+const savedPaperId = ref<string | null>(null)
+const savedPaperSignature = ref('')
+
+const {
+  suppressDraftSave,
+  currentPaperSignature,
+  restoreWorkspaceDraft,
+  clearWorkspaceDraft,
+  scheduleWorkspaceDraftSave,
+  clearDraftSaveTimer
+} = useWorkspaceDraft({
+  paper,
+  generationForm,
+  exportMode,
+  layoutDensity,
+  includeAnswersInExport,
+  canReadAnswers,
+  savedPaperId,
+  savedPaperSignature,
+  generationDiagnostics,
+  user
+})
+
+const {
+  exported,
+  isDownloadingDocx,
+  downloadError,
+  downloadedLayoutDensity,
+  canWritePapers,
+  canDownloadDocx,
+  exportPaper,
+  downloadDocx,
+  resetExportState,
+  applyGenerationResult
+} = usePaperExport({
+  paper,
+  exportMode,
+  layoutDensity,
+  includeAnswersInExport,
+  canReadAnswers,
+  savedPaperId,
+  savedPaperSignature,
+  currentPaperSignature,
+  hasPermission,
+  apiFetch,
+  apiFetchRaw
 })
 
 watch(
@@ -328,7 +251,7 @@ watch([search, filterSubject, filterDifficulty], () => {
 onBeforeUnmount(() => {
   isActive.value = false
   if (searchLoadTimer) clearTimeout(searchLoadTimer)
-  if (draftSaveTimer) clearTimeout(draftSaveTimer)
+  clearDraftSaveTimer()
 })
 
 watch(bankMode, () => {
@@ -379,17 +302,8 @@ function goToPage (page: number) {
   void loadCurrentPage(page)
 }
 
-const paperQuestionIds = computed(() => {
-  const ids = new Set<number>()
-  for (const q of paper.questions) ids.add(q.id)
-  return ids
-})
-function isAdded (id: number) {
-  return paperQuestionIds.value.has(id)
-}
-
 function toggleQuestion (question: Question) {
-  if (isAdded(question.id)) {
+  if (paperQuestionIds.value.has(question.id)) {
     removeQuestion(question.id)
     return
   }
@@ -426,105 +340,15 @@ function moveDown (idx: number) {
 
 function clearPaper () {
   if (!window.confirm('Clear all questions from the paper? This cannot be undone.')) return
-  suppressDraftSave = true
+  suppressDraftSave.value = true
   paper.questions.length = 0
-  exported.value = false
-  exportMode.value = 'paper'
-  layoutDensity.value = 'auto'
-  downloadedLayoutDensity.value = null
-  forgetSavedPaper()
-  downloadError.value = ''
+  resetExportState()
   clearWorkspaceDraft()
   void nextTick(() => {
-    suppressDraftSave = false
+    suppressDraftSave.value = false
   })
 }
 
-function exportPaper () {
-  exported.value = true
-}
-
-function currentDraftKey () {
-  return getWorkspaceDraftKey(user.value?.id)
-}
-
-function currentPaperSignature () {
-  return getPaperSignature(paper)
-}
-
-function createWorkspaceDraft () {
-  return buildWorkspaceDraft({
-    paper,
-    generationForm,
-    exportMode: exportMode.value,
-    layoutDensity: layoutDensity.value,
-    includeAnswersInExport: includeAnswersInExport.value && canReadAnswers.value,
-    savedPaperId: savedPaperId.value,
-    savedPaperSignature: savedPaperSignature.value,
-    generationDiagnostics: generationDiagnostics.value
-  })
-}
-
-function applyWorkspaceDraft (draft: WorkspaceDraft) {
-  paper.title = draft.paper.title
-  paper.subject = draft.paper.subject
-  paper.duration = draft.paper.duration
-  paper.totalMarks = draft.paper.totalMarks
-  paper.questions.splice(0, paper.questions.length, ...draft.paper.questions)
-  Object.assign(generationForm, draft.generationForm)
-  exportMode.value = draft.exportMode
-  layoutDensity.value = draft.layoutDensity
-  includeAnswersInExport.value = draft.includeAnswersInExport && canReadAnswers.value
-  generationDiagnostics.value = draft.generationDiagnostics
-  downloadedLayoutDensity.value = null
-  downloadError.value = ''
-
-  const signatureMatches = Boolean(draft.savedPaperId && draft.savedPaperSignature && draft.savedPaperSignature === currentPaperSignature())
-  savedPaperId.value = signatureMatches ? draft.savedPaperId : null
-  savedPaperSignature.value = signatureMatches ? draft.savedPaperSignature : ''
-}
-
-function restoreWorkspaceDraft () {
-  const key = currentDraftKey()
-  if (!key) return
-  if (draftHydrated && activeDraftKey === key) return
-
-  activeDraftKey = key
-  draftHydrated = false
-  try {
-    const raw = localStorage.getItem(key)
-    if (raw) {
-      const draft = validateWorkspaceDraft(JSON.parse(raw))
-      if (draft) applyWorkspaceDraft(draft)
-      else localStorage.removeItem(key)
-    }
-  } catch {
-    localStorage.removeItem(key)
-  } finally {
-    draftHydrated = true
-  }
-}
-
-function saveWorkspaceDraft (serializedDraft: string) {
-  const key = currentDraftKey()
-  if (!key) return
-  activeDraftKey = key
-  try {
-    localStorage.setItem(key, serializedDraft)
-  } catch {
-    // Storage can be unavailable or full; the Workspace should remain usable.
-  }
-}
-
-function clearWorkspaceDraft () {
-  const key = activeDraftKey || currentDraftKey()
-  if (!key) return
-  try {
-    localStorage.removeItem(key)
-  } catch {
-    // Ignore storage failures during local draft cleanup.
-  }
-}
 watch([exportMode, layoutDensity, includeAnswersInExport], () => {
   downloadedLayoutDensity.value = null
 })
@@ -533,107 +357,10 @@ watch(() => currentPaperSignature(), () => {
   downloadedLayoutDensity.value = null
 })
 
-function scheduleWorkspaceDraftSave () {
-  if (!import.meta.client || !draftHydrated || suppressDraftSave) return
-  if (draftSaveTimer) clearTimeout(draftSaveTimer)
-  draftSaveTimer = setTimeout(() => {
-    draftSaveTimer = null
-    if (!draftHydrated || suppressDraftSave) return
-    saveWorkspaceDraft(JSON.stringify(createWorkspaceDraft()))
-  }, 300)
-}
-
 watch(
-  [paper, generationForm, exportMode, layoutDensity, includeAnswersInExport, savedPaperId, savedPaperSignature, generationDiagnostics],
-  scheduleWorkspaceDraftSave,
-  { deep: true }
+  [() => currentPaperSignature(), () => JSON.stringify(generationForm), exportMode, layoutDensity, includeAnswersInExport, savedPaperId, savedPaperSignature, generationDiagnostics],
+  scheduleWorkspaceDraftSave
 )
-
-async function ensureDownloadablePaper () {
-  const signature = currentPaperSignature()
-  if (savedPaperId.value !== null && savedPaperSignature.value === signature) {
-    return savedPaperId.value
-  }
-
-  const response = await apiFetch<PaperEntityResponse>('/papers', {
-    method: 'POST',
-    body: buildPaperPayload(paper)
-  })
-  savedPaperId.value = response.data.publicId
-  savedPaperSignature.value = signature
-  return response.data.publicId
-}
-
-async function requestDocxDownload (paperPublicId: string) {
-  const response = await apiFetch<Response>(`/papers/${paperPublicId}/download`, {
-    method: 'GET',
-    query: {
-      format: 'docx',
-      questionOrder: exportMode.value,
-      includeAnswer: String(includeAnswersInExport.value && canReadAnswers.value),
-      layoutDensity: layoutDensity.value
-    },
-    responseType: 'blob',
-    rawResponse: true
-  })
-  return response as unknown as Response
-}
-
-async function downloadDocx () {
-  if (isDownloadingDocx.value) return
-
-  downloadError.value = ''
-  isDownloadingDocx.value = true
-  try {
-    const paperId = await ensureDownloadablePaper()
-    const response = await requestDocxDownload(paperId)
-    if (!response.ok) {
-      throw new Error(await response.text() || 'Failed to download DOCX.')
-    }
-
-    const contentType = response.headers.get('Content-Type')?.split(';', 1)[0]?.toLowerCase()
-    if (contentType !== DOCX_CONTENT_TYPE) {
-      const responseText = await response.text()
-      let message = 'The download endpoint did not return a DOCX file.'
-      try {
-        const payload = JSON.parse(responseText)
-        message = payload?.error?.message || payload?.detail?.message || message
-      } catch {
-        if (responseText.trim()) message = responseText
-      }
-      throw new Error(message)
-    }
-
-    const blob = await response.blob()
-    downloadedLayoutDensity.value = layoutDensityFromHeader(response.headers.get('X-Layout-Density'))
-    const objectUrl = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = objectUrl
-    link.download = filenameFromDisposition(response.headers.get('Content-Disposition'), paper.title)
-    document.body.appendChild(link)
-    link.click()
-    link.remove()
-    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1_000)
-  } catch (error) {
-    downloadError.value = apiErrorMessage(error, 'Failed to download DOCX.')
-  } finally {
-    isDownloadingDocx.value = false
-  }
-}
-
-function setPaperQuestions (questions: ApiPaperQuestion[]) {
-  paper.questions.splice(0, paper.questions.length, ...questions.map(normalizePaperQuestion))
-}
-
-function rememberSavedPaper (paperId: string) {
-  savedPaperId.value = paperId
-  savedPaperSignature.value = currentPaperSignature()
-}
-
-function forgetSavedPaper () {
-  savedPaperId.value = null
-  savedPaperSignature.value = ''
-}
 
 async function generatePaper () {
   generationError.value = ''
@@ -655,15 +382,8 @@ async function generatePaper () {
       body: payload
     })
 
-    paper.title = response.data.paper.title
-    paper.subject = response.data.paper.subject
-    paper.duration = response.data.paper.duration
-    paper.totalMarks = response.data.paper.totalMarks
-    setPaperQuestions(response.data.paper.questions)
-    rememberSavedPaper(response.data.paper.publicId)
+    applyGenerationResult(response)
     generationDiagnostics.value = response.data.diagnostics
-    exported.value = false
-    downloadError.value = ''
   } catch (error) {
     generationError.value = apiErrorMessage(error, 'Failed to generate paper.')
   } finally {

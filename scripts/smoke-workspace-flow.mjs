@@ -1,4 +1,4 @@
-﻿import { createHash, randomBytes } from 'node:crypto'
+import { createHash, randomBytes } from 'node:crypto'
 import { spawn } from 'node:child_process'
 import { existsSync, mkdirSync, rmSync } from 'node:fs'
 import http from 'node:http'
@@ -429,11 +429,11 @@ async function runSmoke(cdp) {
 }
 
 async function cleanup(cdp) {
-  try { cdp?.close() } catch {}
+  try { cdp?.close() } catch { /* ignore close errors */ }
   if (browserProcess && !browserProcess.killed) browserProcess.kill()
   if (appProcess && !appProcess.killed) appProcess.kill()
   if (browserDir) {
-    try { rmSync(browserDir, { recursive: true, force: true }) } catch {}
+    try { rmSync(browserDir, { recursive: true, force: true }) } catch { /* ignore cleanup errors */ }
   }
 }
 

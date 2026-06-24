@@ -47,7 +47,7 @@
           placeholder="Search questions…"
           aria-label="Search questions"
           @input="$emit('update:search', ($event.target as HTMLInputElement).value)"
-        />
+        >
       </label>
       <label class="filter-wrap">
         <AppIcon name="filter" />

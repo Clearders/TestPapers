@@ -8,14 +8,14 @@
       <form class="auth-form" @submit.prevent="submitLogin">
         <div class="form-group">
           <label class="form-label" for="login-username">Username</label>
-          <input id="login-username" v-model="username" class="form-input" autocomplete="username" name="username" required />
+          <input id="login-username" v-model="username" class="form-input" autocomplete="username" name="username" required >
         </div>
         <div class="form-group">
           <label class="form-label" for="login-password">Password</label>
-          <input id="login-password" v-model="password" class="form-input" type="password" autocomplete="current-password" name="password" required />
+          <input id="login-password" v-model="password" class="form-input" type="password" autocomplete="current-password" name="password" required >
         </div>
         <button class="btn btn-primary" type="submit" :disabled="isSubmitting">
-          <span v-if="isSubmitting" class="auth-spinner"></span>
+          <span v-if="isSubmitting" class="auth-spinner"/>
           <AppIcon v-else name="login" />
           {{ isSubmitting ? 'Signing in…' : 'Sign In' }}
         </button>

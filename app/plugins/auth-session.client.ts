@@ -1,3 +1,16 @@
+import type { QuestionEntity } from '~/types/question'
+
+interface RealtimePayload {
+  question?: QuestionEntity
+  questionId?: string
+  actorId?: number
+  paper?: { publicId?: string }
+}
+
+function isRealtimePayload (value: unknown): value is RealtimePayload {
+  return typeof value === 'object' && value !== null
+}
+
 export default defineNuxtPlugin(() => {
   const auth = useAuth()
   const { user } = auth
@@ -23,46 +36,46 @@ export default defineNuxtPlugin(() => {
     void questionBank.loadMyQuestions().catch(() => {})
   }
 
-  realtime.on('question.created', (payload: any) => {
-    if (!payload?.question) return
+  realtime.on('question.created', (payload: unknown) => {
+    if (!isRealtimePayload(payload) || !payload.question) return
     if (auth.hasPermission('questions:read') && payload.actorId !== user.value?.id) {
       questionBank.addQuestionLocally(payload.question, user.value?.id)
     }
   })
-  realtime.on('question.updated', (payload: any) => {
-    if (!payload?.question) return
+  realtime.on('question.updated', (payload: unknown) => {
+    if (!isRealtimePayload(payload) || !payload.question) return
     if (auth.hasPermission('questions:read') && payload.actorId !== user.value?.id) {
       questionBank.replaceQuestionLocally(payload.question, user.value?.id)
     }
   })
-  realtime.on('question.deleted', (payload: any) => {
+  realtime.on('question.deleted', (payload: unknown) => {
     if (!auth.hasPermission('questions:read')) return
-    if (payload?.questionId !== undefined) questionBank.removeQuestionLocally(payload.questionId)
+    if (isRealtimePayload(payload) && payload.questionId !== undefined) questionBank.removeQuestionLocally(payload.questionId)
     else reloadQuestionBank()
   })
 
-  realtime.on('paper.created', (payload: any) => {
-    if (payload?.paper) {
+  realtime.on('paper.created', (payload: unknown) => {
+    if (isRealtimePayload(payload) && payload.paper) {
       console.info('[Session] Paper created by another user:', payload.paper.publicId)
     }
   })
-  realtime.on('paper.updated', (payload: any) => {
-    if (payload?.paper) {
+  realtime.on('paper.updated', (payload: unknown) => {
+    if (isRealtimePayload(payload) && payload.paper) {
       console.info('[Session] Paper updated by another user:', payload.paper.publicId)
     }
   })
-  realtime.on('paper.questions.added', (payload: any) => {
-    if (payload?.paper?.publicId) {
+  realtime.on('paper.questions.added', (payload: unknown) => {
+    if (isRealtimePayload(payload) && payload.paper?.publicId) {
       console.info('[Session] Questions added to paper:', payload.paper.publicId)
     }
   })
-  realtime.on('paper.question.removed', (payload: any) => {
-    if (payload?.paper?.publicId) {
+  realtime.on('paper.question.removed', (payload: unknown) => {
+    if (isRealtimePayload(payload) && payload.paper?.publicId) {
       console.info('[Session] Question removed from paper:', payload.paper.publicId)
     }
   })
-  realtime.on('paper.questions.reordered', (payload: any) => {
-    if (payload?.paper?.publicId) {
+  realtime.on('paper.questions.reordered', (payload: unknown) => {
+    if (isRealtimePayload(payload) && payload.paper?.publicId) {
       console.info('[Session] Paper questions reordered:', payload.paper.publicId)
     }
   })

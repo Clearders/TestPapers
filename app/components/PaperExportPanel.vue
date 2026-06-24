@@ -86,7 +86,7 @@
                 class="export-image-thumb"
                 loading="lazy"
                 decoding="async"
-              />
+              >
             </div>
 
             <div v-if="includeAnswersInExport && canReadAnswers" class="export-answer">
@@ -94,7 +94,7 @@
               <template v-if="Array.isArray(q.answer)">
                 {{ q.answer.join(', ') }}
               </template>
-              <template v-else v-for="(part, i) in parseLatexParts(q.answer)" :key="i">
+              <template v-for="(part, i) in parseLatexParts(q.answer)" v-else :key="i">
                 <LatexRenderer v-if="part.isLatex" :formula="part.content" />
                 <span v-else>{{ part.content }}</span>
               </template>

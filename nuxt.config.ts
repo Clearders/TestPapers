@@ -32,6 +32,10 @@ export default defineNuxtConfig({
   buildDir: env.NUXT_BUILD_DIR || undefined,
   devtools: { enabled: env.NODE_ENV !== 'production' },
 
+  modules: ['@nuxt/eslint'],
+
+  css: ['~/assets/css/main.css'],
+
   nitro: {
     compressPublicAssets: true
   },

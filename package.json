@@ -9,6 +9,8 @@
     "check:auth-ssr-state": "node scripts/check-auth-ssr-state.mjs",
     "dev": "node scripts/run-nuxi.mjs dev",
     "generate": "node scripts/run-nuxi.mjs generate",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "pm2:start": "pm2 start .output/server/index.mjs --name testpapers",
     "preview": "node scripts/run-nuxi.mjs preview",
     "smoke:workspace": "node scripts/smoke-workspace-flow.mjs",
@@ -23,6 +25,8 @@
     "vue-router": "^4.5.1"
   },
   "devDependencies": {
+    "@nuxt/eslint": "^1.16.0",
+    "eslint": "^10.5.0",
     "typescript": "^5.7.0"
   },
   "overrides": {

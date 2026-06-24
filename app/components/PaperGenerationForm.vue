@@ -15,7 +15,7 @@
 
     <div class="gen-controls">
       <div class="gen-field">
-        <label class="form-label" id="gen-subjects-label">Subjects</label>
+        <label id="gen-subjects-label" class="form-label">Subjects</label>
         <div v-if="availableSubjects.length" class="gen-subject-pool" role="group" aria-labelledby="gen-subjects-label">
           <button
             v-for="subject in availableSubjects"
@@ -33,7 +33,7 @@
       </div>
 
       <div class="gen-field">
-        <label class="form-label" id="gen-score-label">Total Score</label>
+        <label id="gen-score-label" class="form-label">Total Score</label>
         <div class="gen-pill-group" role="group" aria-labelledby="gen-score-label">
           <button
             v-for="score in [50, 100, 120, 150]"
@@ -50,7 +50,7 @@
             min="1"
             placeholder="Custom"
             @input="$emit('update:totalMarks', Number(($event.target as HTMLInputElement).value))"
-          />
+          >
         </div>
       </div>
 
@@ -85,7 +85,7 @@
               type="number"
               min="1"
               @input="updateTypeCount(type, Number(($event.target as HTMLInputElement).value))"
-            />
+            >
           </div>
         </div>
       </div>
@@ -105,7 +105,7 @@
             max="1"
             step="0.05"
             @input="updateDifficultyCoefficient(Number(($event.target as HTMLInputElement).value))"
-          />
+          >
           <div class="gen-range-ticks">
             <span>Easy</span>
             <span>Medium</span>
@@ -115,7 +115,7 @@
       </div>
 
       <div class="gen-field">
-        <label class="form-label" id="gen-tags-label">Tag Filters <span class="gen-optional">(optional)</span></label>
+        <label id="gen-tags-label" class="form-label">Tag Filters <span class="gen-optional">(optional)</span></label>
         <div v-if="availableTags.length" class="gen-tag-pool" role="group" aria-labelledby="gen-tags-label">
           <button
             v-for="tag in availableTags"
@@ -137,7 +137,7 @@
             :class="'gen-spill--' + tag.group"
           >
             {{ tag.value }}
-            <button type="button" class="gen-pill-remove" @click="removeTag(tag.value)" aria-label="Remove">×</button>
+            <button type="button" class="gen-pill-remove" aria-label="Remove" @click="removeTag(tag.value)">×</button>
           </span>
         </div>
         <label class="form-label" for="gen-custom-tag">Custom Tag</label>
@@ -148,7 +148,7 @@
           name="customTag"
           placeholder="Type custom tag and press Enter…"
           @keydown.enter.prevent="addCustomTag"
-        />
+        >
         <p class="form-hint">Click a tag to add as Required; Shift+click for Preferred. Tap × to remove.</p>
       </div>
     </div>
@@ -159,7 +159,7 @@
         type="submit"
         :disabled="isGenerating || !generationForm.subjects.length || !paperTitle.trim() || !generationForm.questionTypes.length"
       >
-        <span v-if="isGenerating" class="gen-spinner"></span>
+        <span v-if="isGenerating" class="gen-spinner"/>
         {{ isGenerating ? 'Generating…' : 'Generate Paper' }}
       </button>
       <span class="form-hint">Uses the paper title, duration, and the generation subject above.</span>
@@ -242,9 +242,8 @@ function toggleQuestionType (type: QuestionType) {
     form.typeCounts = { ...form.typeCounts, [type]: form.typeCounts[type] || 1 }
   } else {
     form.questionTypes = form.questionTypes.filter(t => t !== type)
-    const newCounts = { ...form.typeCounts }
-    delete newCounts[type]
-    form.typeCounts = newCounts
+    const { [type]: _removed, ...restCounts } = form.typeCounts
+    form.typeCounts = restCounts
   }
   emit('update:generationForm', form)
 }

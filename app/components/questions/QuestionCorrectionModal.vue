@@ -53,8 +53,7 @@
 </template>
 
 <script setup lang="ts">
-import type { Question } from '~/types/question'
-import type { CorrectionCategory } from '~/types/question'
+import type { Question, CorrectionCategory  } from '~/types/question'
 import { apiErrorMessage } from '~/utils/apiError'
 
 const props = defineProps<{

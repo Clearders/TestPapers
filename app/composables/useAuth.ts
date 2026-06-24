@@ -60,6 +60,12 @@ export function useAuth () {
     scheduleRefresh()
   }
 
+  function syncSession (session: AuthSession | null) {
+    user.value = session?.user || null
+    expiresAt.value = session?.expiresAt || ''
+    scheduleRefresh()
+  }
+
   function clearSession () {
     applySession(null)
   }
@@ -213,6 +219,7 @@ export function useAuth () {
     refreshSession,
     register,
     scheduleRefresh,
+    syncSession,
     updateProfile,
     uploadAvatar,
     user

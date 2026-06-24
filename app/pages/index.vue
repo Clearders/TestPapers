@@ -32,7 +32,7 @@
 
       <div class="hero-board" aria-label="TestPapers workflow preview">
         <div class="board-topline">
-          <span class="board-dot"></span>
+          <span class="board-dot"/>
           <span>Paper Studio</span>
           <strong>92%</strong>
         </div>
@@ -54,9 +54,9 @@
           </div>
         </div>
         <div class="paper-stack">
-          <span></span>
-          <span></span>
-          <span></span>
+          <span/>
+          <span/>
+          <span/>
         </div>
       </div>
     </section>

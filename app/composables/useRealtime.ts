@@ -1,7 +1,6 @@
 import { buildRealtimeUrl } from '~/utils/apiEndpoint'
 import { createRealtimeReconnectBackoff } from '~/utils/realtimeBackoff'
 
-type RealtimeStatus = 'idle' | 'connecting' | 'connected' | 'disconnected'
 type RealtimeHandler = (payload: unknown) => void
 
 let socket: WebSocket | null = null
@@ -79,6 +78,7 @@ export function useRealtime () {
         if (!message.event) return
         emit(message.event, message.payload)
       } catch {
+        console.warn('[Realtime] Failed to parse message', event.data)
       }
     }
 
@@ -97,6 +97,13 @@ export function useRealtime () {
     const listeners = handlers.get(event) || new Set<RealtimeHandler>()
     listeners.add(handler)
     handlers.set(event, listeners)
+
+    if (getCurrentScope()) {
+      onScopeDispose(() => {
+        listeners.delete(handler)
+        if (!listeners.size) handlers.delete(event)
+      })
+    }
 
     return () => {
       listeners.delete(handler)

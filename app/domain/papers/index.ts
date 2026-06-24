@@ -11,6 +11,7 @@ import {
   optionalPositiveInteger
 } from '~/domain/questions'
 
+export type { GenerationFormState } from '~/types/generation'
 export type BankMode = 'all' | 'mine'
 export type PaperQuestion = Question & { marks?: number; orderNo?: number }
 export type ApiPaperQuestion = Partial<QuestionEntity> & { id: number; marks?: number | null; orderNo?: number | null }

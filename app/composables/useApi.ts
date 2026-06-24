@@ -2,7 +2,6 @@ import type { ApiEnvelope } from '~/types/api'
 import type { AuthSession } from '~/types/auth'
 import { extractApiErrorInfo, getStatusCode } from '~/utils/apiError'
 import { DEFAULT_API_BASE, normalizeEndpoint } from '~/utils/apiEndpoint'
-import { AUTH_STATE_KEYS } from '~/utils/authStateKeys'
 
 type ApiMethod = 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE'
 type ApiRequestBody = BodyInit | object | null
@@ -16,8 +15,17 @@ export interface ApiRequestOptions {
   retry?: number
   retryOnUnauthorized?: boolean
   timeoutMs?: number
-  responseType?: 'json' | 'blob'
-  rawResponse?: boolean
+}
+
+export interface ApiRawRequestOptions {
+  method?: ApiMethod
+  query?: Record<string, unknown>
+  body?: ApiRequestBody
+  headers?: Record<string, string>
+  auth?: boolean
+  retryOnUnauthorized?: boolean
+  timeoutMs?: number
+  retry?: number
 }
 
 let refreshPromise: Promise<boolean> | null = null
@@ -146,13 +154,7 @@ async function withRetry<T> (request: () => Promise<T>, method: ApiMethod, retry
 
 function syncAuthSession (session: AuthSession | null) {
   if (import.meta.server) return
-
-  const user = useState<AuthSession['user'] | null>(AUTH_STATE_KEYS.user, () => null)
-  const expiresAt = useState<string>(AUTH_STATE_KEYS.expiresAt, () => '')
-  user.value = session?.user || null
-  expiresAt.value = session?.expiresAt || ''
-
-  scheduleSessionRefresh(session?.expiresAt || '')
+  useAuth().syncSession(session)
 }
 
 function scheduleSessionRefresh (expiresAt: string) {
@@ -208,53 +210,10 @@ export function useApi () {
       method = 'GET',
       retry,
       timeoutMs = DEFAULT_TIMEOUT_MS,
-      responseType = 'json',
-      rawResponse = false,
       query,
       body = null
     } = options
     const retryLimit = retry ?? (method === 'GET' ? 1 : 0)
-
-    if (responseType === 'blob') {
-      const url = `${getBlobApiBase()}${path}${buildQueryString(query)}`
-      const fetchBlob = async () => {
-        const response = await fetchWithTimeout(url, {
-          method,
-          credentials: 'include',
-          headers: {
-            ...requestHeaders(method, headers),
-            ...bodyHeaders(body)
-          },
-          body: serializeBody(body)
-        }, timeoutMs)
-
-        const shouldRefresh = import.meta.client && auth && retryOnUnauthorized && path !== '/auth/refresh' && response.status === 401
-        if (shouldRefresh && await refreshSessionCookie()) {
-          const retryResponse = await fetchWithTimeout(url, {
-            method,
-            credentials: 'include',
-            headers: {
-              ...requestHeaders(method, headers),
-              ...bodyHeaders(body)
-            },
-            body: serializeBody(body)
-          }, timeoutMs)
-          if (!retryResponse.ok) throw await responseError(retryResponse)
-          if (rawResponse) return retryResponse as unknown as ApiEnvelope<T>
-          return { data: await retryResponse.blob() as unknown as T } as ApiEnvelope<T>
-        }
-
-        if (!response.ok) throw await responseError(response)
-        if (rawResponse) return response as unknown as ApiEnvelope<T>
-        return { data: await response.blob() as unknown as T } as ApiEnvelope<T>
-      }
-
-      try {
-        return await withRetry(fetchBlob, method, retryLimit)
-      } catch (error) {
-        throw extractApiErrorInfo(error)
-      }
-    }
 
     const fetchJson = () => $fetch<ApiEnvelope<T>>(path, {
       baseURL: getApiBase(),
@@ -283,8 +242,60 @@ export function useApi () {
     }
   }
 
+  async function apiFetchRaw (path: string, options: ApiRawRequestOptions = {}) {
+    const {
+      auth = true,
+      retryOnUnauthorized = true,
+      headers = {},
+      method = 'GET',
+      retry,
+      timeoutMs = DEFAULT_TIMEOUT_MS,
+      query,
+      body = null
+    } = options
+    const retryLimit = retry ?? (method === 'GET' ? 1 : 0)
+    const url = `${getBlobApiBase()}${path}${buildQueryString(query)}`
+
+    const fetchBlob = async () => {
+      const response = await fetchWithTimeout(url, {
+        method,
+        credentials: 'include',
+        headers: {
+          ...requestHeaders(method, headers),
+          ...bodyHeaders(body)
+        },
+        body: serializeBody(body)
+      }, timeoutMs)
+
+      const shouldRefresh = import.meta.client && auth && retryOnUnauthorized && path !== '/auth/refresh' && response.status === 401
+      if (shouldRefresh && await refreshSessionCookie()) {
+        const retryResponse = await fetchWithTimeout(url, {
+          method,
+          credentials: 'include',
+          headers: {
+            ...requestHeaders(method, headers),
+            ...bodyHeaders(body)
+          },
+          body: serializeBody(body)
+        }, timeoutMs)
+        if (!retryResponse.ok) throw await responseError(retryResponse)
+        return retryResponse
+      }
+
+      if (!response.ok) throw await responseError(response)
+      return response
+    }
+
+    try {
+      return await withRetry(fetchBlob, method, retryLimit)
+    } catch (error) {
+      throw extractApiErrorInfo(error)
+    }
+  }
+
   return {
     apiFetch,
+    apiFetchRaw,
     getApiBase,
     refreshSessionCookie,
     scheduleSessionRefresh

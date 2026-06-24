@@ -14,15 +14,15 @@
         <h2>Create User</h2>
         <div class="form-group">
           <label class="form-label" for="users-username">Username</label>
-          <input id="users-username" v-model="form.username" class="form-input" autocomplete="off" required />
+          <input id="users-username" v-model="form.username" class="form-input" autocomplete="off" required >
         </div>
         <div class="form-group">
           <label class="form-label" for="users-displayname">Display Name</label>
-          <input id="users-displayname" v-model="form.displayName" class="form-input" required />
+          <input id="users-displayname" v-model="form.displayName" class="form-input" required >
         </div>
         <div class="form-group">
           <label class="form-label" for="users-password">Password</label>
-          <input id="users-password" v-model="form.password" class="form-input" type="password" autocomplete="new-password" minlength="8" required />
+          <input id="users-password" v-model="form.password" class="form-input" type="password" autocomplete="new-password" minlength="8" required >
         </div>
         <div class="form-group">
           <label class="form-label" for="users-role">Role</label>
@@ -51,7 +51,7 @@
               <option value="viewer">Viewer</option>
             </select>
             <label class="active-toggle">
-              <input v-model="item.isActive" type="checkbox" @change="updateUser(item)" />
+              <input v-model="item.isActive" type="checkbox" @change="updateUser(item)" >
               <span>Active</span>
             </label>
             <button class="btn btn-danger btn-sm" type="button" :disabled="item.id === user?.id" @click="deleteUser(item.publicId)">

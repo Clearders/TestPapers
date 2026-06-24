@@ -20,8 +20,8 @@
             class="form-input"
             :placeholder="user?.username"
             maxlength="64"
-          />
-          <span class="form-hint" v-if="profileForm.username && profileForm.username !== user?.username">
+          >
+          <span v-if="profileForm.username && profileForm.username !== user?.username" class="form-hint">
             Username can only be changed once every 30 days.
           </span>
         </div>
@@ -37,7 +37,7 @@
             class="form-input"
             :placeholder="user?.displayName"
             maxlength="120"
-          />
+          >
         </div>
 
         <div class="section-actions">
@@ -49,7 +49,7 @@
             <AppIcon name="upload" />
             {{ profileSaving ? 'Saving...' : 'Save Changes' }}
           </button>
-          <span class="action-feedback" v-if="profileMessage" :class="{ 'is-error': profileError }" aria-live="polite">
+          <span v-if="profileMessage" class="action-feedback" :class="{ 'is-error': profileError }" aria-live="polite">
             {{ profileMessage }}
           </span>
         </div>
@@ -69,7 +69,7 @@
             autocomplete="current-password"
             class="form-input"
             placeholder="Enter current password..."
-          />
+          >
         </div>
 
         <div class="form-group">
@@ -84,7 +84,7 @@
             placeholder="Enter new password (min 8 characters)..."
             minlength="8"
             maxlength="128"
-          />
+          >
         </div>
 
         <div class="form-group">
@@ -97,8 +97,8 @@
             autocomplete="new-password"
             class="form-input"
             placeholder="Confirm new password..."
-          />
-          <span class="form-hint" v-if="passwordMismatch">Passwords do not match</span>
+          >
+          <span v-if="passwordMismatch" class="form-hint">Passwords do not match</span>
         </div>
 
         <div class="section-actions">
@@ -110,7 +110,7 @@
             <AppIcon name="settings" />
             {{ passwordSaving ? 'Changing...' : 'Change Password' }}
           </button>
-          <span class="action-feedback" v-if="passwordMessage" :class="{ 'is-error': passwordError }" aria-live="polite">
+          <span v-if="passwordMessage" class="action-feedback" :class="{ 'is-error': passwordError }" aria-live="polite">
             {{ passwordMessage }}
           </span>
         </div>
@@ -122,8 +122,8 @@
 
         <div class="avatar-section">
           <div class="avatar-preview">
-            <img v-if="currentAvatarUrl" :src="currentAvatarUrl" alt="Current avatar" width="96" height="96" loading="lazy" decoding="async" />
-            <span class="avatar-preview--placeholder" v-else>{{ initial }}</span>
+            <img v-if="currentAvatarUrl" :src="currentAvatarUrl" alt="Current avatar" width="96" height="96" loading="lazy" decoding="async" >
+            <span v-else class="avatar-preview--placeholder">{{ initial }}</span>
           </div>
 
           <div class="avatar-actions">
@@ -134,9 +134,9 @@
                 accept="image/png"
                 class="avatar-file-input"
                 @change="handleAvatarSelected"
-              />
+              >
             </label>
-            <span class="form-hint" v-if="avatarFile">{{ avatarFile.name }}</span>
+            <span v-if="avatarFile" class="form-hint">{{ avatarFile.name }}</span>
             <button
               v-if="avatarFile"
               class="btn btn-outline"
@@ -156,7 +156,7 @@
             </button>
           </div>
         </div>
-        <span class="action-feedback" v-if="avatarMessage" :class="{ 'is-error': avatarError }" aria-live="polite">
+        <span v-if="avatarMessage" class="action-feedback" :class="{ 'is-error': avatarError }" aria-live="polite">
           {{ avatarMessage }}
         </span>
 
@@ -177,7 +177,7 @@
           until an administrator reactivates your account. Your data will be preserved.
         </p>
 
-        <div class="delete-confirm" v-if="showDeleteConfirm">
+        <div v-if="showDeleteConfirm" class="delete-confirm">
           <div class="form-group">
             <label class="form-label" for="delete-confirm-input">
               Type <strong>DELETE</strong> to confirm
@@ -191,7 +191,7 @@
               spellcheck="false"
               class="form-input"
               placeholder="DELETE..."
-            />
+            >
           </div>
           <div class="section-actions">
             <button class="btn btn-outline" @click="showDeleteConfirm = false">
@@ -212,7 +212,7 @@
           <AppIcon name="trash" />
           Delete Account
         </button>
-        <span class="action-feedback" v-if="deleteMessage" :class="{ 'is-error': deleteError }" aria-live="polite">
+        <span v-if="deleteMessage" class="action-feedback" :class="{ 'is-error': deleteError }" aria-live="polite">
           {{ deleteMessage }}
         </span>
       </section>

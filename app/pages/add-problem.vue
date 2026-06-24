@@ -35,7 +35,7 @@
                   list="subject-suggestions"
                   autocomplete="off"
                   @keydown.enter.prevent="addSubject"
-                />
+                >
                 <datalist id="subject-suggestions">
                   <option v-for="sub in availableSubjects" :key="sub" :value="sub" />
                 </datalist>
@@ -69,7 +69,7 @@
                 max="100"
                 step="0.1"
                 required
-              />
+              >
             </div>
           </div>
 
@@ -84,7 +84,7 @@
                 autocomplete="off"
                 placeholder="Add tag and press Enter…"
                 @keydown.enter.prevent="addTag"
-              />
+              >
               <button type="button" class="btn btn-outline btn-sm" @click="addTag">Add</button>
             </div>
             <div v-if="form.tags.length" class="tag-list">
@@ -111,25 +111,25 @@
           </div>
 
           <div v-if="form.type === 'single_choice' || form.type === 'multiple_choice'" class="form-group">
-            <label class="form-label" id="options-label">Options <span class="required">*</span></label>
+            <label id="options-label" class="form-label">Options <span class="required">*</span></label>
             <div role="group" aria-labelledby="options-label">
             <div v-for="(opt, index) in form.options" :key="index" class="option-row">
               <span class="option-label">{{ String.fromCharCode(65 + index) }}.</span>
-              <input v-model="form.options[index]" class="form-input" name="optionText" autocomplete="off" :placeholder="'Option ' + String.fromCharCode(65 + index)" required />
+              <input v-model="form.options[index]" class="form-input" name="optionText" autocomplete="off" :placeholder="'Option ' + String.fromCharCode(65 + index)" required >
             </div>
             </div>
           </div>
 
           <div v-if="form.type === 'true_false'" class="form-group">
-            <label class="form-label" id="tf-options-label">Options <span class="required">*</span></label>
+            <label id="tf-options-label" class="form-label">Options <span class="required">*</span></label>
             <div role="group" aria-labelledby="tf-options-label">
             <div class="option-row">
               <span class="option-label">A.</span>
-              <input :value="form.options[0]" class="form-input" disabled placeholder="True" />
+              <input :value="form.options[0]" class="form-input" disabled placeholder="True" >
             </div>
             <div class="option-row">
               <span class="option-label">B.</span>
-              <input :value="form.options[1]" class="form-input" disabled placeholder="False" />
+              <input :value="form.options[1]" class="form-input" disabled placeholder="False" >
             </div>
             </div>
           </div>
@@ -142,7 +142,7 @@
           />
 
           <div v-if="form.type === 'essay'" class="form-group">
-            <label class="form-label" id="essay-blank-label">Essay Blank Space</label>
+            <label id="essay-blank-label" class="form-label">Essay Blank Space</label>
             <div class="form-row" aria-labelledby="essay-blank-label" role="group">
               <div class="form-group compact-field">
                 <label class="form-label form-label--sub" for="essay-lines">Lines</label>
@@ -154,7 +154,7 @@
                   type="number"
                   min="1"
                   max="20"
-                />
+                >
               </div>
               <div class="form-group compact-field">
                 <label class="form-label form-label--sub" for="essay-lineheight">Line Height (px)</label>
@@ -166,7 +166,7 @@
                   type="number"
                   min="20"
                   max="48"
-                />
+                >
               </div>
             </div>
             <span class="form-hint">This controls the reserved writing area in the exported preview.</span>
@@ -192,11 +192,11 @@
               <div v-for="(opt, index) in form.options" :key="index" class="option-row">
                 <label class="checkbox-option">
                   <input
+                    v-model="form.answerMultiple"
                     type="checkbox"
                     :value="index"
-                    v-model="form.answerMultiple"
                     :disabled="!opt.trim()"
-                  />
+                  >
                   <span>{{ String.fromCharCode(65 + index) }}. {{ opt.trim() }}</span>
                 </label>
               </div>
@@ -210,7 +210,7 @@
 
           <div class="form-group">
             <label class="form-label" for="problem-source">Source / Reference</label>
-            <input id="problem-source" v-model="form.source" class="form-input" placeholder="e.g. Chapter 3, Exercise 5…" autocomplete="off" />
+            <input id="problem-source" v-model="form.source" class="form-input" placeholder="e.g. Chapter 3, Exercise 5…" autocomplete="off" >
           </div>
 
           <div class="form-actions">

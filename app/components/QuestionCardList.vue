@@ -8,7 +8,7 @@
     Loading questions…
   </div>
 
-  <TransitionGroup name="list" tag="div" class="q-list" v-if="questions.length">
+  <TransitionGroup v-if="questions.length" name="list" tag="div" class="q-list">
     <QuestionBankCard
       v-for="(q, index) in questions"
       :key="q.id"

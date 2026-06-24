@@ -7,26 +7,26 @@
 
       <div class="form-group">
         <label class="form-label" for="register-username">Username</label>
-        <input id="register-username" v-model="username" class="form-input" autocomplete="username" name="username" minlength="3" maxlength="64" required />
+        <input id="register-username" v-model="username" class="form-input" autocomplete="username" name="username" minlength="3" maxlength="64" required >
       </div>
 
       <div class="form-group">
         <label class="form-label" for="register-displayname">Display Name</label>
-        <input id="register-displayname" v-model="displayName" class="form-input" autocomplete="name" name="displayName" maxlength="120" required />
+        <input id="register-displayname" v-model="displayName" class="form-input" autocomplete="name" name="displayName" maxlength="120" required >
       </div>
 
       <div class="form-group">
         <label class="form-label" for="register-password">Password</label>
-        <input id="register-password" ref="registerPasswordInput" v-model="password" class="form-input" type="password" autocomplete="new-password" name="new-password" minlength="8" maxlength="128" required />
+        <input id="register-password" ref="registerPasswordInput" v-model="password" class="form-input" type="password" autocomplete="new-password" name="new-password" minlength="8" maxlength="128" required >
       </div>
 
       <div class="form-group">
         <label class="form-label" for="register-confirmpassword">Confirm Password</label>
-        <input id="register-confirmpassword" v-model="confirmPassword" class="form-input" type="password" autocomplete="new-password" name="confirm-password" minlength="8" maxlength="128" required />
+        <input id="register-confirmpassword" v-model="confirmPassword" class="form-input" type="password" autocomplete="new-password" name="confirm-password" minlength="8" maxlength="128" required >
       </div>
 
       <button class="btn btn-primary" type="submit" :disabled="isSubmitting">
-        <span v-if="isSubmitting" class="auth-spinner"></span>
+        <span v-if="isSubmitting" class="auth-spinner"/>
         <AppIcon v-else name="sparkles" />
         {{ isSubmitting ? 'Creating…' : 'Create Account' }}
       </button>

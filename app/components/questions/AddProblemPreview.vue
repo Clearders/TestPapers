@@ -27,7 +27,7 @@
 
         <div v-if="form.images?.length" class="preview-images">
           <figure v-for="(img, imgIdx) in form.images" :key="imgIdx" class="preview-image">
-            <img :src="img.url" :alt="img.caption || 'Question image'" width="220" height="150" loading="lazy" decoding="async" />
+            <img :src="img.url" :alt="img.caption || 'Question image'" width="220" height="150" loading="lazy" decoding="async" >
             <figcaption v-if="img.caption">{{ img.caption }}</figcaption>
           </figure>
         </div>
@@ -59,7 +59,7 @@
           <template v-if="isOptionQuestionType(form.type)">
             <strong>{{ Array.isArray(form.answer) ? form.answer.join(', ') : form.answer }}</strong>
           </template>
-          <template v-else v-for="(part, i) in parseLatexParts(typeof form.answer === 'string' ? form.answer : '')" :key="'a' + i">
+          <template v-for="(part, i) in parseLatexParts(typeof form.answer === 'string' ? form.answer : '')" v-else :key="'a' + i">
             <LatexRenderer v-if="part.isLatex" :formula="part.content" :block="part.block" />
             <span v-else>{{ part.content }}</span>
           </template>

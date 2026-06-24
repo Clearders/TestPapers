@@ -1,4 +1,5 @@
 import type { ApiPagination, PaginatedData } from '~/types/api'
+import type { Ref } from 'vue'
 import type { CorrectionCategory, CorrectionStatus, Question, QuestionCorrection, QuestionEntity, QuestionFormInput, QuestionQueryParams, QuestionRevision } from '~/types/question'
 import {
   MAX_IMAGE_UPLOAD_BYTES,
@@ -10,7 +11,6 @@ import { readFileAsBase64Payload } from '~/utils/fileData'
 
 export type { CorrectionCategory, CorrectionStatus, EssayBlankSpace, Question, QuestionCorrection, QuestionEntity, QuestionFormInput, QuestionImage, QuestionQueryParams, QuestionRevision } from '~/types/question'
 
-type RefState<T> = { value: T }
 type QuestionUpdatePayload = Partial<Omit<Question, 'id' | 'publicId' | 'createdAt' | 'updatedAt' | 'ownerId'>>
 
 const DEFAULT_QUESTION_QUERY = {
@@ -21,18 +21,18 @@ const DEFAULT_QUESTION_QUERY = {
   sortOrder: 'desc'
 }
 
-function upsertQuestion (state: RefState<Question[]>, question: Question) {
+function upsertQuestion (state: Ref<Question[]>, question: Question) {
   const existingIndex = state.value.findIndex(item => item.publicId === question.publicId)
   if (existingIndex !== -1) state.value.splice(existingIndex, 1)
   state.value.unshift(question)
 }
 
-function replaceQuestion (state: RefState<Question[]>, question: Question) {
+function replaceQuestion (state: Ref<Question[]>, question: Question) {
   const existingIndex = state.value.findIndex(item => item.publicId === question.publicId)
   if (existingIndex !== -1) state.value.splice(existingIndex, 1, question)
 }
 
-function removeQuestionByPublicId (state: RefState<Question[]>, publicId: string) {
+function removeQuestionByPublicId (state: Ref<Question[]>, publicId: string) {
   const existingIndex = state.value.findIndex(question => question.publicId === publicId)
   if (existingIndex !== -1) state.value.splice(existingIndex, 1)
 }
@@ -51,6 +51,7 @@ export function useQuestionBank () {
   const availableSubjects = useState<string[]>('meta-subjects', () => [])
   const availableTags = useState<string[]>('meta-tags', () => [])
   const isLoadingMeta = useState<boolean>('meta-loading', () => false)
+  const metaLoaded = useState<boolean>('meta-loaded', () => false)
   const { hasPermission } = useAuth()
   const { apiFetch, getApiBase } = useApi()
 
@@ -62,10 +63,10 @@ export function useQuestionBank () {
 
   async function loadQuestionPage (
     endpoint: string,
-    target: RefState<Question[]>,
-    pagination: RefState<ApiPagination>,
-    loading: RefState<boolean>,
-    sequence: RefState<number>,
+    target: Ref<Question[]>,
+    pagination: Ref<ApiPagination>,
+    loading: Ref<boolean>,
+    sequence: Ref<number>,
     params: QuestionQueryParams,
     errorMessage: string
   ) {
@@ -169,7 +170,7 @@ export function useQuestionBank () {
   }
 
   const loadMeta = async () => {
-    if (isLoadingMeta.value || (availableSubjects.value.length && availableTags.value.length)) return
+    if (isLoadingMeta.value || metaLoaded.value) return
     isLoadingMeta.value = true
     try {
       const [subjectsRes, tagsRes] = await Promise.all([
@@ -178,6 +179,7 @@ export function useQuestionBank () {
       ])
       availableSubjects.value = subjectsRes.data
       availableTags.value = tagsRes.data
+      metaLoaded.value = true
     } catch (e) {
       console.error('[QuestionBank] Failed to load meta data', e)
     } finally {

@@ -1,5 +1,5 @@
 <template>
-  <div class="user-dropdown" ref="dropdownRef">
+  <div ref="dropdownRef" class="user-dropdown">
     <button
       class="user-dropdown-trigger"
       type="button"
@@ -8,10 +8,10 @@
       aria-haspopup="true"
       @click.stop="toggle"
     >
-      <span class="user-avatar" v-if="user?.avatarUrl">
-        <img :src="user.avatarUrl" alt="" width="32" height="32" decoding="async" />
+      <span v-if="user?.avatarUrl" class="user-avatar">
+        <img :src="user.avatarUrl" alt="" width="32" height="32" decoding="async" >
       </span>
-      <span class="user-avatar user-avatar--placeholder" v-else>
+      <span v-else class="user-avatar user-avatar--placeholder">
         {{ initial }}
       </span>
       <span class="user-name">{{ user?.displayName || user?.username }}</span>
@@ -19,12 +19,12 @@
     </button>
 
     <Transition name="dropdown">
-      <div class="user-dropdown-panel" v-if="isOpen" @click.stop>
+      <div v-if="isOpen" class="user-dropdown-panel" @click.stop>
         <div class="dropdown-header">
-          <span class="user-avatar user-avatar--lg" v-if="user?.avatarUrl">
-            <img :src="user.avatarUrl" alt="" width="48" height="48" loading="lazy" decoding="async" />
+          <span v-if="user?.avatarUrl" class="user-avatar user-avatar--lg">
+            <img :src="user.avatarUrl" alt="" width="48" height="48" loading="lazy" decoding="async" >
           </span>
-          <span class="user-avatar user-avatar--lg user-avatar--placeholder" v-else>
+          <span v-else class="user-avatar user-avatar--lg user-avatar--placeholder">
             {{ initial }}
           </span>
           <div class="dropdown-user-info">
@@ -32,12 +32,12 @@
             <span class="dropdown-username">@{{ user?.username }}</span>
           </div>
         </div>
-        <div class="dropdown-divider"></div>
+        <div class="dropdown-divider"/>
         <NuxtLink to="/account" class="dropdown-item" @click="close">
           <AppIcon name="settings" class="dropdown-item-icon" />
           Account Settings
         </NuxtLink>
-        <div class="dropdown-divider"></div>
+        <div class="dropdown-divider"/>
         <button class="dropdown-item dropdown-item--danger" type="button" @click="handleLogout">
           <AppIcon name="logout" class="dropdown-item-icon" />
           Logout

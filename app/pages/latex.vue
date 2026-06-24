@@ -36,7 +36,7 @@
             <AppIcon name="x" />
             Clear
           </button>
-          <span class="template-divider"></span>
+          <span class="template-divider"/>
           <button
             v-for="tmpl in templates"
             :key="tmpl.label"
