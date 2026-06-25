@@ -154,7 +154,7 @@ async function handleDeleteQuestion (question: Question) {
 }
 
 [data-theme="dark"] .status-banner {
-  background: rgba(30, 41, 59, 0.6);
+  background: rgba(31, 27, 48, 0.6);
 }
 
 [data-theme="dark"] .status-banner--error {

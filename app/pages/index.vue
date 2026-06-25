@@ -343,10 +343,10 @@ useHead({
 .hero-actions .btn {
   animation: revealUp 0.48s var(--ease-out) both;
 }
-.hero-actions .btn:nth-child(1) { animation-delay: 0.18s; }
-.hero-actions .btn:nth-child(2) { animation-delay: 0.24s; }
-.hero-actions .btn:nth-child(3) { animation-delay: 0.3s; }
-.hero-actions .btn:nth-child(4) { animation-delay: 0.36s; }
+.hero-actions .btn:nth-child(1) { animation-delay: 0.12s; }
+.hero-actions .btn:nth-child(2) { animation-delay: 0.16s; }
+.hero-actions .btn:nth-child(3) { animation-delay: 0.2s; }
+.hero-actions .btn:nth-child(4) { animation-delay: 0.24s; }
 
 .btn-lg {
   min-height: 48px;
@@ -366,7 +366,7 @@ useHead({
   box-shadow: var(--shadow);
   overflow: hidden;
   transform-style: preserve-3d;
-  animation: boardEnter 0.78s var(--ease-out) 0.08s both, boardDrift 8.4s ease-in-out 1.1s infinite;
+  animation: boardEnter 0.78s var(--ease-out) 0.08s both;
 }
 
 .hero-board::before {
@@ -412,7 +412,7 @@ useHead({
 }
 
 .formula-card {
-  margin: 58px auto 18px;
+  margin: 36px auto 18px;
   width: min(100%, 340px);
   padding: 24px;
   border-radius: var(--radius-lg);
@@ -534,7 +534,7 @@ useHead({
 }
 
 .mini-panel svg {
-  color: rgba(255, 255, 255, 0.82);
+  color: rgba(255, 255, 255, 0.95);
   font-size: 1.35rem;
 }
 
@@ -546,7 +546,7 @@ useHead({
 }
 
 .mini-panel span {
-  color: rgba(255, 255, 255, 0.78);
+  color: rgba(255, 255, 255, 0.92);
   font-size: .78rem;
   line-height: 1.35;
 }
@@ -721,10 +721,6 @@ useHead({
 @keyframes boardEnter {
   from { opacity: 0; transform: translateX(24px) rotateX(3deg) scale(.985); }
   to { opacity: 1; transform: translateX(0) rotateX(0) scale(1); }
-}
-@keyframes boardDrift {
-  0%, 100% { transform: translateY(0) rotate(.001deg); }
-  50% { transform: translateY(-6px) rotate(.35deg); }
 }
 @keyframes gradientText {
   0%, 100% { background-position: 0% 50%; }

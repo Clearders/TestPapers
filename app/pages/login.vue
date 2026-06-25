@@ -146,11 +146,10 @@ async function submitLogin () {
 .register-prompt a {
   color: var(--color-primary);
   font-weight: 800;
-  transition: color .18s ease, text-shadow .18s ease;
+  transition: color .18s ease;
 }
 .register-prompt a:hover {
   color: var(--color-primary-d);
-  text-shadow: 0 8px 18px rgba(118, 87, 255, .18);
 }
 .auth-spinner {
   width: 15px;

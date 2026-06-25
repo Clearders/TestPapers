@@ -1,5 +1,5 @@
 <template>
-  <div class="q-card card" :style="{ animationDelay: `${index * 0.05}s` }">
+  <div class="q-card card" :style="{ animationDelay: `${Math.min(index, 8) * 0.05}s` }">
     <div class="q-card-header">
       <div class="q-meta">
         <span class="badge" :class="`badge-${question.difficulty}`">{{ question.difficulty }}</span>
@@ -60,30 +60,32 @@
         <AppIcon :name="isAdded ? 'x' : 'add'" />
         {{ isAdded ? 'Remove from Paper' : 'Add to Paper' }}
       </button>
-      <button
-        v-if="canEdit"
-        class="btn btn-outline btn-sm"
-        @click="$emit('edit', question)"
-      >
-        <AppIcon name="edit" />
-        Edit
-      </button>
-      <button
-        class="btn btn-outline btn-sm correction-report-btn"
-        @click="$emit('report', question)"
-      >
-        <AppIcon name="sparkles" />
-        Report Issue
-        <span v-if="openCorrectionCount" class="correction-badge">{{ openCorrectionCount }}</span>
-      </button>
-      <button
-        v-if="canDelete"
-        class="btn btn-danger btn-sm"
-        @click="$emit('delete', question)"
-      >
-        <AppIcon name="trash" />
-        Delete
-      </button>
+      <div class="q-footer-secondary">
+        <button
+          v-if="canEdit"
+          class="btn btn-outline btn-sm"
+          @click="$emit('edit', question)"
+        >
+          <AppIcon name="edit" />
+          Edit
+        </button>
+        <button
+          class="btn btn-outline btn-sm correction-report-btn"
+          @click="$emit('report', question)"
+        >
+          <AppIcon name="sparkles" />
+          Report Issue
+          <span v-if="openCorrectionCount" class="correction-badge">{{ openCorrectionCount }}</span>
+        </button>
+        <button
+          v-if="canDelete"
+          class="btn btn-danger btn-sm"
+          @click="$emit('delete', question)"
+        >
+          <AppIcon name="trash" />
+          Delete
+        </button>
+      </div>
     </div>
 
     <QuestionRevisionHistory v-if="canReview" :question-id="question.publicId" :can-delete="canDelete" />
@@ -276,16 +278,16 @@ function formatStatus (status: string) {
 .subject-pill {
   display: inline-block;
   padding: 2px 8px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-pill);
   font-size: .75rem;
   font-weight: 500;
-  background: rgba(79, 110, 247, 0.1);
+  background: rgba(118, 87, 255, 0.1);
   color: var(--color-primary);
   transition: transform .18s ease, background .18s ease;
 }
 .subject-pill:hover {
   transform: translateY(-1px);
-  background: rgba(79, 110, 247, 0.16);
+  background: rgba(118, 87, 255, 0.16);
 }
 .q-body {
   display: flex;
@@ -316,9 +318,6 @@ function formatStatus (status: string) {
 .q-option:hover {
   transform: translateX(3px);
 }
-.q-option:nth-child(2) { animation-delay: .03s; }
-.q-option:nth-child(3) { animation-delay: .06s; }
-.q-option:nth-child(4) { animation-delay: .09s; }
 .q-option-label {
   font-weight: 700;
   color: var(--color-primary);
@@ -335,6 +334,12 @@ function formatStatus (status: string) {
   gap: 10px;
   flex-wrap: wrap;
   margin-top: 2px;
+}
+.q-footer-secondary {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-left: auto;
 }
 .q-answer-wrapper {
   display: grid;
@@ -364,11 +369,11 @@ function formatStatus (status: string) {
 }
 .q-type-tag {
   display: inline-block;
-  font-size: .7rem;
+  font-size: .75rem;
   font-weight: 600;
   text-transform: uppercase;
-  color: var(--color-primary);
-  background: #eff3fe;
+  color: var(--color-primary-d);
+  background: color-mix(in srgb, var(--color-primary) 10%, var(--color-surface-solid));
   padding: 1px 6px;
   border-radius: var(--radius-pill);
   margin-right: 4px;
@@ -537,7 +542,7 @@ function formatStatus (status: string) {
   color: var(--color-muted);
 }
 .correction-item-status {
-  font-size: .7rem;
+  font-size: .75rem;
   font-weight: 600;
   padding: 1px 6px;
   border-radius: var(--radius-sm);

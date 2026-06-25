@@ -18,6 +18,7 @@
       <div class="form-group">
         <label class="form-label" for="register-password">Password</label>
         <input id="register-password" ref="registerPasswordInput" v-model="password" class="form-input" type="password" autocomplete="new-password" name="new-password" minlength="8" maxlength="128" required >
+        <span class="form-hint">At least 8 characters with letters and numbers.</span>
       </div>
 
       <div class="form-group">
@@ -115,7 +116,7 @@ async function submitRegister () {
   padding: 28px 0;
 }
 .auth-card {
-  width: min(100%, 480px);
+  width: min(100%, 460px);
   position: relative;
   overflow: hidden;
   animation: authEnter 0.58s cubic-bezier(0.16, 1, 0.3, 1) both;
@@ -163,11 +164,10 @@ async function submitRegister () {
 .login-prompt a {
   color: var(--color-primary);
   font-weight: 800;
-  transition: color .18s ease, text-shadow .18s ease;
+  transition: color .18s ease;
 }
 .login-prompt a:hover {
   color: var(--color-primary-d);
-  text-shadow: 0 8px 18px rgba(118, 87, 255, .18);
 }
 .auth-spinner {
   width: 15px;
