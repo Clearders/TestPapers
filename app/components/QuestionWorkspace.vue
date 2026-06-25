@@ -427,6 +427,17 @@ function closeCorrectionModal () {
 .page-title svg {
   color: var(--color-primary);
 }
+.permission-card {
+  max-width: 520px;
+}
+.permission-card h2 {
+  font-size: 1.05rem;
+  margin-bottom: 8px;
+}
+.permission-card p {
+  color: var(--color-muted);
+  margin-bottom: 16px;
+}
 
 @media (max-width: 900px) {
   .workspace-layout {

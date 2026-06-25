@@ -94,3 +94,35 @@ function onSwitchBankMode (mode: BankMode) {
   emit('switch-bank-mode', mode)
 }
 </script>
+
+<style scoped>
+.bank-panel {
+  min-width: 0;
+  animation: revealUp 0.56s var(--ease-out) 0.08s both;
+}
+.panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+  animation: revealUp 0.42s var(--ease-out) both;
+}
+.panel-head h2 {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.05rem;
+  font-weight: 850;
+}
+.panel-sub {
+  color: var(--color-muted);
+  font-size: .82rem;
+  margin-top: 4px;
+}
+.count-tag {
+  background: color-mix(in srgb, var(--color-primary) 10%, var(--color-surface-solid));
+  color: var(--color-primary-d);
+}
+</style>

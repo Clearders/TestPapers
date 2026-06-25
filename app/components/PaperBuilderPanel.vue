@@ -194,3 +194,236 @@ const paperQuestionLatexParts = computed(() => {
   return map
 })
 </script>
+
+<style scoped>
+.paper-panel {
+  min-width: 0;
+  animation: revealUp 0.56s var(--ease-out) 0.16s both;
+}
+.panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+  animation: revealUp 0.42s var(--ease-out) both;
+}
+.panel-head h2 {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.05rem;
+  font-weight: 850;
+}
+.panel-sub {
+  color: var(--color-muted);
+  font-size: .82rem;
+  margin-top: 4px;
+}
+.tag-count {
+  background: color-mix(in srgb, var(--color-primary) 10%, var(--color-surface-solid));
+  color: var(--color-primary-d);
+}
+.paper-meta-card {
+  margin-bottom: 16px;
+  background:
+    linear-gradient(135deg, rgba(118, 87, 255, 0.07), rgba(255, 138, 76, 0.04)),
+    var(--color-surface);
+}
+.paper-meta-card::after {
+  content: "";
+  position: absolute;
+  inset: auto -20% -54px 18%;
+  height: 118px;
+  background: linear-gradient(90deg, rgba(118, 87, 255, .08), rgba(14, 165, 233, .08), transparent);
+  transform: rotate(-7deg);
+  transition: transform .42s var(--ease-out), opacity .42s ease;
+  pointer-events: none;
+}
+.paper-meta-card:hover::after {
+  opacity: .95;
+  transform: translateX(8%) rotate(-4deg);
+}
+.paper-meta-row,
+.export-toggle {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.paper-meta-field {
+  flex: 1;
+  min-width: 150px;
+}
+.export-toggle {
+  align-items: center;
+  margin-top: 4px;
+  color: var(--color-text);
+  font-size: .9rem;
+}
+.export-toggle input {
+  margin: 0;
+}
+.paper-question-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  position: relative;
+}
+.paper-q-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  transition: transform .34s var(--ease-out), box-shadow .34s var(--ease-out), border-color .34s ease;
+}
+.paper-q-item::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: linear-gradient(180deg, var(--color-primary), var(--color-secondary));
+  transform-origin: top;
+  animation: sideBarGrow 0.42s var(--ease-out) both;
+}
+.paper-q-item:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--shadow);
+  border-color: var(--color-primary);
+}
+.paper-q-item > * {
+  position: relative;
+  z-index: 1;
+}
+.paper-q-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 4px;
+}
+.icon-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0;
+  font-size: .9rem;
+  color: var(--color-muted);
+  transition: background .22s ease, color .22s ease, transform .22s var(--ease-spring), border-color .22s ease, box-shadow .22s ease;
+}
+.icon-btn:hover:not(:disabled) {
+  background: var(--color-bg);
+  color: var(--color-text);
+  border-color: var(--color-primary);
+  transform: translateY(-2px) scale(1.04);
+  box-shadow: var(--shadow-soft);
+}
+.icon-btn:active:not(:disabled) {
+  transform: scale(.94);
+}
+.icon-btn:disabled {
+  opacity: .3;
+  cursor: not-allowed;
+}
+.paper-q-body {
+  flex: 1;
+  display: flex;
+  gap: 10px;
+  min-width: 0;
+}
+.paper-q-num {
+  min-width: 28px;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+.paper-q-content {
+  flex: 1;
+  min-width: 0;
+}
+.q-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.q-text-wrap {
+  font-size: .95rem;
+  line-height: 1.7;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.subject-pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  font-size: .75rem;
+  font-weight: 500;
+  background: rgba(118, 87, 255, 0.1);
+  color: var(--color-primary);
+  transition: transform .18s ease, background .18s ease;
+}
+.subject-pill:hover {
+  transform: translateY(-1px);
+  background: rgba(118, 87, 255, 0.16);
+}
+.remove-btn {
+  white-space: nowrap;
+}
+.empty-paper {
+  text-align: center;
+  color: var(--color-muted);
+}
+.paper-actions,
+.paper-meta-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.paper-actions--export {
+  margin-top: 20px;
+}
+.download-error {
+  margin-top: 14px;
+}
+:deep(.katex-display),
+:deep(.latex-block) {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+@media (max-width: 700px) {
+  .paper-q-item {
+    flex-direction: column;
+  }
+  .paper-q-controls {
+    flex-direction: row;
+    width: 100%;
+  }
+  .paper-q-body,
+  .remove-btn {
+    width: 100%;
+  }
+  .paper-q-num {
+    min-width: 24px;
+  }
+}
+@media (max-width: 560px) {
+  .paper-actions .btn {
+    width: 100%;
+  }
+  .paper-meta-field {
+    min-width: 100%;
+  }
+}
+@keyframes sideBarGrow {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+</style>
