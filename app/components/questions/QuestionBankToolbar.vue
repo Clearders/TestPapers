@@ -118,7 +118,7 @@ function onDifficultyChange(event: Event) {
 }
 .bank-mode-tabs .btn,
 .subject-tabs .btn {
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
 }
 .subject-tabs .btn {
   animation: chipIn .24s var(--ease-out) both;

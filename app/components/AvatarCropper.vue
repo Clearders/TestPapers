@@ -245,7 +245,7 @@ async function handleConfirm () {
   overscroll-behavior: contain;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 12px;
+  border-radius: var(--radius-xl);
   box-shadow: 0 24px 48px rgba(0, 0, 0, 0.18);
   display: flex;
   flex-direction: column;
@@ -274,7 +274,7 @@ async function handleConfirm () {
   background: transparent;
   font-size: 1.3rem;
   color: var(--color-muted);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   cursor: pointer;
 }
 
@@ -317,33 +317,10 @@ async function handleConfirm () {
   padding: 16px 20px;
 }
 
-.modal-enter-active,
-.modal-leave-active {
-  transition: opacity 0.25s ease;
-}
-
-.modal-enter-active .cropper-panel,
-.modal-leave-active .cropper-panel {
-  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.modal-enter-from,
-.modal-leave-to {
-  opacity: 0;
-}
-
-.modal-enter-from .cropper-panel {
-  transform: scale(0.95) translateY(8px);
-}
-
-.modal-leave-to .cropper-panel {
-  transform: scale(0.95) translateY(8px);
-}
-
 @media (max-width: 560px) {
   .cropper-panel {
     max-width: 100%;
-    border-radius: 12px 12px 0 0;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
     max-height: 85vh;
   }
 

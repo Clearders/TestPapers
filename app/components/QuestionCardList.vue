@@ -133,9 +133,9 @@ async function handleDeleteQuestion (question: Question) {
   font-size: .875rem;
 }
 .status-banner--error {
-  border-color: #fecaca;
-  background: #fef2f2;
-  color: #b91c1c;
+  border-color: var(--color-danger-border);
+  background: var(--color-danger-bg);
+  color: var(--color-danger-text);
 }
 
 .empty-state {
@@ -160,6 +160,6 @@ async function handleDeleteQuestion (question: Question) {
 [data-theme="dark"] .status-banner--error {
   background: rgba(248, 113, 113, 0.1);
   border-color: rgba(248, 113, 113, 0.25);
-  color: #fca5a5;
+  color: var(--color-danger-text);
 }
 </style>

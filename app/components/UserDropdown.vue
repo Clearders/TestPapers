@@ -96,7 +96,7 @@ onUnmounted(() => {
   gap: 8px;
   padding: 4px 11px 4px 4px;
   border: 1px solid var(--color-border);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--color-surface-raised);
   color: var(--color-text);
   font-size: .9rem;

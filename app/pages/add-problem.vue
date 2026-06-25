@@ -546,7 +546,7 @@ const cheatSheet = LATEX_QUICK_REFERENCE
   align-items: center;
   gap: 4px;
   padding: 2px 8px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   font-size: .75rem;
   font-weight: 500;
   background: rgba(79, 110, 247, 0.12);
@@ -589,7 +589,7 @@ const cheatSheet = LATEX_QUICK_REFERENCE
   border-radius: var(--radius);
   padding: 12px 16px;
   font-size: .9rem;
-  color: #15803d;
+  color: var(--color-success-text);
   margin-top: 8px;
 }
 .success-banner a {
@@ -598,9 +598,9 @@ const cheatSheet = LATEX_QUICK_REFERENCE
 }
 
 .success-banner--error {
-  background: #fef2f2;
-  border-color: #fecaca;
-  color: #b91c1c;
+  background: var(--color-danger-bg);
+  border-color: var(--color-danger-border);
+  color: var(--color-danger-text);
 }
 
 [data-theme="dark"] .success-banner {
@@ -612,7 +612,7 @@ const cheatSheet = LATEX_QUICK_REFERENCE
 [data-theme="dark"] .success-banner--error {
   background: rgba(248, 113, 113, 0.1);
   border-color: rgba(248, 113, 113, 0.25);
-  color: #fca5a5;
+  color: var(--color-danger-text);
 }
 .panel-head {
   display: flex;
@@ -691,7 +691,7 @@ const cheatSheet = LATEX_QUICK_REFERENCE
 code {
   background: var(--color-bg);
   padding: 1px 5px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   font-size: .82rem;
 }
 

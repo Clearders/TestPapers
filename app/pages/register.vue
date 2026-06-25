@@ -137,7 +137,7 @@ async function submitRegister () {
   width: 48px;
   height: 48px;
   margin-bottom: 18px;
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   color: #fff;
   background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
   box-shadow: 0 12px 26px rgba(118, 87, 255, 0.24);
@@ -174,23 +174,12 @@ async function submitRegister () {
   height: 15px;
   border: 2px solid rgba(255,255,255,.35);
   border-top-color: #fff;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   animation: spin .7s linear infinite;
-}
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-@keyframes authEnter {
-  from { opacity: 0; transform: translateY(24px) scale(.98); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 @keyframes authRibbon {
   0%, 100% { transform: translateX(0) rotate(12deg); }
   50% { transform: translateX(18px) rotate(9deg); }
-}
-@keyframes markFloat {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-5px); }
 }
 @media (max-width: 480px) {
   .auth-card .btn-primary {

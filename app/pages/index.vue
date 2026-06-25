@@ -303,7 +303,7 @@ useHead({
   background: rgba(118, 87, 255, 0.1);
   color: var(--color-primary);
   border: 1px solid rgba(118, 87, 255, 0.2);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-size: .84rem;
   font-weight: 800;
   position: relative;
@@ -357,7 +357,7 @@ useHead({
 .hero-board {
   position: relative;
   min-height: 500px;
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   padding: 22px;
   background:
     linear-gradient(150deg, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.42)),
@@ -392,7 +392,7 @@ useHead({
   align-items: center;
   gap: 10px;
   padding: 12px 14px;
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   font-weight: 800;
   animation: revealUp 0.46s var(--ease-out) 0.22s both;
 }
@@ -405,7 +405,7 @@ useHead({
 .board-dot {
   width: 10px;
   height: 10px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--color-warm);
   box-shadow: 0 0 0 6px rgba(255, 138, 76, 0.12);
   animation: dotPulse 1.9s ease-in-out infinite;
@@ -415,7 +415,7 @@ useHead({
   margin: 58px auto 18px;
   width: min(100%, 340px);
   padding: 24px;
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   transform: rotate(-2deg);
   transition: transform .38s var(--ease-out), box-shadow .38s var(--ease-out), border-color .38s ease;
   animation: formulaFloat 6.2s ease-in-out infinite, revealUp 0.54s var(--ease-out) 0.32s both;
@@ -583,7 +583,7 @@ useHead({
 
 .paper-stack span {
   height: 11px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: rgba(118, 87, 255, 0.2);
   transform-origin: left center;
   animation: stackLine 2.4s ease-in-out infinite;
@@ -615,7 +615,7 @@ useHead({
   gap: 14px;
   padding: 24px;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   color: var(--color-text);
   background: var(--color-surface);
   box-shadow: var(--shadow-soft);
@@ -674,7 +674,7 @@ useHead({
   place-items: center;
   width: 46px;
   height: 46px;
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   color: #fff;
   background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
   box-shadow: 0 12px 26px rgba(118, 87, 255, 0.22);

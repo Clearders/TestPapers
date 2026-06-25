@@ -583,7 +583,7 @@ function closeCorrectionModal () {
   height: 32px;
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   padding: 0;
   font-size: .9rem;
   color: var(--color-muted);
@@ -675,7 +675,7 @@ function closeCorrectionModal () {
 .subject-pill {
   display: inline-block;
   padding: 2px 8px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   font-size: .75rem;
   font-weight: 500;
   background: rgba(79, 110, 247, 0.1);

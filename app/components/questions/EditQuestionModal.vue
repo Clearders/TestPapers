@@ -205,7 +205,7 @@ async function handleSubmit () {
   overscroll-behavior: contain;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 12px;
+  border-radius: var(--radius-xl);
   box-shadow: 0 24px 48px rgba(0, 0, 0, 0.18);
   display: flex;
   flex-direction: column;
@@ -231,7 +231,7 @@ async function handleSubmit () {
   background: transparent;
   font-size: 1.3rem;
   color: var(--color-muted);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   cursor: pointer;
 }
 .modal-close:hover {
@@ -273,33 +273,15 @@ async function handleSubmit () {
   margin-top: 8px;
 }
 .status-banner--error {
-  background: #fef2f2;
-  border-color: #fecaca;
-  color: #b91c1c;
+  background: var(--color-danger-bg);
+  border-color: var(--color-danger-border);
+  color: var(--color-danger-text);
   margin-top: 12px;
-}
-.modal-enter-active,
-.modal-leave-active {
-  transition: opacity 0.25s ease;
-}
-.modal-enter-active .modal-panel,
-.modal-leave-active .modal-panel {
-  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.modal-enter-from,
-.modal-leave-to {
-  opacity: 0;
-}
-.modal-enter-from .modal-panel {
-  transform: scale(0.95) translateY(8px);
-}
-.modal-leave-to .modal-panel {
-  transform: scale(0.95) translateY(8px);
 }
 @media (max-width: 560px) {
   .modal-panel {
     max-width: 100%;
-    border-radius: 12px 12px 0 0;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
     max-height: 85vh;
   }
   .modal-overlay {
@@ -311,6 +293,6 @@ async function handleSubmit () {
 [data-theme="dark"] .status-banner--error {
   background: rgba(248, 113, 113, 0.1);
   border-color: rgba(248, 113, 113, 0.25);
-  color: #fca5a5;
+  color: var(--color-danger-text);
 }
 </style>

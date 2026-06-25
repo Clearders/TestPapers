@@ -198,7 +198,7 @@ defineProps<{
   max-height: 150px;
   object-fit: contain;
   border: 1px solid var(--color-border);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease;
 }
 .preview-image img:hover {
@@ -243,7 +243,7 @@ defineProps<{
 code {
   background: var(--color-bg);
   padding: 1px 5px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   font-size: .82rem;
 }
 @keyframes previewBar {

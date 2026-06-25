@@ -276,7 +276,7 @@ function formatStatus (status: string) {
 .subject-pill {
   display: inline-block;
   padding: 2px 8px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   font-size: .75rem;
   font-weight: 500;
   background: rgba(79, 110, 247, 0.1);
@@ -370,7 +370,7 @@ function formatStatus (status: string) {
   color: var(--color-primary);
   background: #eff3fe;
   padding: 1px 6px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   margin-right: 4px;
   vertical-align: middle;
   transition: transform .24s var(--ease-spring), background .24s ease;
@@ -429,7 +429,7 @@ function formatStatus (status: string) {
   justify-content: center;
   min-width: 16px;
   height: 16px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--color-danger);
   color: #fff;
   font-size: .65rem;
@@ -451,7 +451,7 @@ function formatStatus (status: string) {
   font-weight: 500;
   cursor: pointer;
   padding: 4px 8px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 .correction-toggle:hover {
   color: var(--color-text);
@@ -460,7 +460,7 @@ function formatStatus (status: string) {
 .correction-list {
   margin-top: 8px;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
   animation: revealUp .28s var(--ease-out) both;
 }
@@ -506,7 +506,7 @@ function formatStatus (status: string) {
   background: transparent;
   color: var(--color-muted);
   font-size: .85rem;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   transition: color 0.2s ease, background 0.2s ease;
 }
@@ -518,15 +518,15 @@ function formatStatus (status: string) {
   font-size: .75rem;
   font-weight: 600;
   padding: 1px 8px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 .corr-cat--wrong_answer {
   background: rgba(239, 68, 68, 0.1);
-  color: #b91c1c;
+  color: var(--color-danger-text);
 }
 .corr-cat--unclear {
   background: rgba(234, 179, 8, 0.1);
-  color: #a16207;
+  color: var(--color-warning);
 }
 .corr-cat--typo {
   background: rgba(59, 130, 246, 0.1);
@@ -534,26 +534,26 @@ function formatStatus (status: string) {
 }
 .corr-cat--other {
   background: rgba(107, 114, 128, 0.1);
-  color: #4b5563;
+  color: var(--color-muted);
 }
 .correction-item-status {
   font-size: .7rem;
   font-weight: 600;
   padding: 1px 6px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   text-transform: uppercase;
 }
 .corr-status--open {
   background: rgba(239, 68, 68, 0.1);
-  color: #b91c1c;
+  color: var(--color-danger-text);
 }
 .corr-status--accepted {
   background: rgba(34, 197, 94, 0.1);
-  color: #15803d;
+  color: var(--color-success-text);
 }
 .corr-status--rejected {
   background: rgba(107, 114, 128, 0.1);
-  color: #4b5563;
+  color: var(--color-muted);
 }
 .correction-item-msg {
   font-size: .82rem;

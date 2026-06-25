@@ -225,10 +225,10 @@ const exportSections = computed(() => {
   margin-bottom: 16px;
 }
 .export-preview-note--success {
-  color: #166534;
+  color: var(--color-success-text);
   background: #dcfce7;
   border: 1px solid #bbf7d0;
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   padding: 10px 12px;
 }
 .export-mode-actions,
@@ -290,9 +290,9 @@ const exportSections = computed(() => {
 .export-answer {
   margin-top: 12px;
   padding: 10px 12px;
-  background: #f8fafc;
+  background: var(--color-neutral-bg);
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   animation: revealUp .24s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 .export-image-thumb {
@@ -300,7 +300,7 @@ const exportSections = computed(() => {
   max-height: 120px;
   object-fit: contain;
   border: 1px solid var(--color-border);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease;
 }
 .export-image-thumb:hover {

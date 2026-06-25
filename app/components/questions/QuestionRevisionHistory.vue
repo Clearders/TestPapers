@@ -154,7 +154,7 @@ function formatFieldValue (value: unknown) {
   font-weight: 500;
   cursor: pointer;
   padding: 4px 8px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 .revision-toggle:hover {
   color: var(--color-text);
@@ -166,7 +166,7 @@ function formatFieldValue (value: unknown) {
   justify-content: center;
   min-width: 18px;
   height: 18px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--color-primary);
   color: #fff;
   font-size: .7rem;
@@ -176,7 +176,7 @@ function formatFieldValue (value: unknown) {
 .revision-list {
   margin-top: 8px;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
 }
 .revision-loading,
@@ -248,7 +248,7 @@ function formatFieldValue (value: unknown) {
   background: transparent;
   color: var(--color-muted);
   font-size: .9rem;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   transition: color 0.2s ease, background 0.2s ease;
 }

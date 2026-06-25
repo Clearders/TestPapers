@@ -224,7 +224,7 @@ onUnmounted(() => {
   min-height: 32px;
   padding: 1px 7px;
   border: 1px solid var(--color-border);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   background: var(--color-surface);
   cursor: pointer;
   transition: border-color 0.15s ease, transform 0.15s ease;
@@ -390,7 +390,7 @@ onUnmounted(() => {
 code {
   background: var(--color-bg);
   padding: 2px 7px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   font-size: .82rem;
   white-space: nowrap;
   transition: background .18s ease, color .18s ease;
@@ -409,9 +409,9 @@ code {
 }
 
 .status-banner--error {
-  background: #fef2f2;
-  border-color: #fecaca;
-  color: #b91c1c;
+  background: var(--color-danger-bg);
+  border-color: var(--color-danger-border);
+  color: var(--color-danger-text);
   border: 1px solid;
   border-radius: var(--radius);
   padding: 10px 12px;
@@ -433,7 +433,7 @@ code {
 [data-theme="dark"] .status-banner--error {
   background: rgba(248, 113, 113, 0.1);
   border-color: rgba(248, 113, 113, 0.25);
-  color: #fca5a5;
+  color: var(--color-danger-text);
 }
 
 @media (max-width: 820px) {

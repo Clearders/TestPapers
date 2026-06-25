@@ -441,9 +441,9 @@ function formatDistribution (distribution: Record<string, number>) {
   color: var(--color-text);
   line-height: 1.2;
 }
-.gen-fitness--high .gen-fitness-value { color: #15803d; }
-.gen-fitness--mid .gen-fitness-value { color: #a16207; }
-.gen-fitness--low .gen-fitness-value { color: #b91c1c; }
+.gen-fitness--high .gen-fitness-value { color: var(--color-success-text); }
+.gen-fitness--mid .gen-fitness-value { color: var(--color-warning); }
+.gen-fitness--low .gen-fitness-value { color: var(--color-danger-text); }
 .gen-fitness-label {
   font-size: .65rem;
   font-weight: 500;
@@ -491,7 +491,7 @@ function formatDistribution (distribution: Record<string, number>) {
   align-items: center;
   background: var(--color-border);
   padding: 3px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   gap: 2px;
   overflow-x: auto;
 }
@@ -499,7 +499,7 @@ function formatDistribution (distribution: Record<string, number>) {
   flex: 1;
   background: transparent;
   border: none;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   padding: 5px 10px;
   font-size: .82rem;
   font-weight: 500;
@@ -526,7 +526,7 @@ function formatDistribution (distribution: Record<string, number>) {
 }
 .gen-pill-input {
   width: 64px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   border: none;
   text-align: center;
   padding: 5px;
@@ -617,7 +617,7 @@ function formatDistribution (distribution: Record<string, number>) {
   align-items: center;
   gap: 6px;
   background: var(--color-border);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   padding: 2px 2px 2px 12px;
   animation: genChipIn .24s var(--ease-out) both;
 }
@@ -631,7 +631,7 @@ function formatDistribution (distribution: Record<string, number>) {
 
 .gen-type-count-input {
   width: 48px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   border: none;
   text-align: center;
   padding: 4px 6px;
@@ -657,7 +657,7 @@ function formatDistribution (distribution: Record<string, number>) {
   width: 100%;
   height: 6px;
   border-radius: 3px;
-  background: linear-gradient(to right, #22c55e, #eab308, #ef4444);
+  background: linear-gradient(to right, var(--color-success), #eab308, #ef4444);
   appearance: none;
   cursor: pointer;
 }
@@ -696,7 +696,7 @@ function formatDistribution (distribution: Record<string, number>) {
   display: inline-flex;
   align-items: center;
   padding: 3px 10px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   border: 1px solid var(--color-border);
   background: var(--color-surface);
   font-size: .78rem;
@@ -722,7 +722,7 @@ function formatDistribution (distribution: Record<string, number>) {
 .gen-chip--preferred {
   border-color: var(--color-accent);
   background: rgba(34, 197, 94, 0.08);
-  color: #15803d;
+  color: var(--color-success-text);
   font-weight: 600;
 }
 
@@ -744,7 +744,7 @@ function formatDistribution (distribution: Record<string, number>) {
   display: inline-flex;
   align-items: center;
   padding: 3px 10px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   border: 1px solid var(--color-border);
   background: var(--color-surface);
   font-size: .78rem;
@@ -784,7 +784,7 @@ function formatDistribution (distribution: Record<string, number>) {
   align-items: center;
   gap: 5px;
   padding: 4px 10px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-size: .78rem;
   font-weight: 500;
   animation: genChipIn .24s var(--ease-out) both;
@@ -796,7 +796,7 @@ function formatDistribution (distribution: Record<string, number>) {
 }
 .gen-spill--preferred {
   background: rgba(34, 197, 94, 0.12);
-  color: #15803d;
+  color: var(--color-success-text);
   border: 1px solid rgba(34, 197, 94, 0.25);
 }
 .gen-spill--both {
@@ -987,9 +987,9 @@ function formatDistribution (distribution: Record<string, number>) {
   font-size: .875rem;
 }
 .status-banner--error {
-  border-color: #fecaca;
-  background: #fef2f2;
-  color: #b91c1c;
+  border-color: var(--color-danger-border);
+  background: var(--color-danger-bg);
+  color: var(--color-danger-text);
 }
 @media (max-width: 560px) {
   .gen-tag-pool {
@@ -1017,7 +1017,7 @@ function formatDistribution (distribution: Record<string, number>) {
 [data-theme="dark"] .status-banner--error {
   background: rgba(248, 113, 113, 0.1);
   border-color: rgba(248, 113, 113, 0.25);
-  color: #fca5a5;
+  color: var(--color-danger-text);
 }
 
 @media (prefers-reduced-motion: reduce) {
