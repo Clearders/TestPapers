@@ -15,7 +15,7 @@
             <AppIcon name="add" />
             Create a Problem
           </NuxtLink>
-          <NuxtLink v-if="hasPermission('questions:read')" to="/questions" class="btn btn-outline btn-lg">
+          <NuxtLink to="/questions" class="btn btn-outline btn-lg">
             <AppIcon name="book" />
             Open Workspace
           </NuxtLink>

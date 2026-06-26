@@ -5,10 +5,6 @@
 <script setup lang="ts">
 import { defineAsyncComponent } from 'vue'
 
-definePageMeta({
-  requiresAuth: true,
-  permissions: ['questions:read']
-})
 
 useSeoMeta({
   title: 'Workspace',

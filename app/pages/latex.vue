@@ -20,11 +20,14 @@
         </div>
 
         <textarea
+          ref="inputEl"
           v-model="rawInput"
           class="latex-input"
           placeholder="e.g. \int_0^\infty e^{-x^2}\,dx = \frac{\sqrt{\pi}}{2}\u2026"
           spellcheck="false"
+          wrap="soft"
           aria-label="LaTeX input"
+          @pointerdown="startPreviewResizeTracking"
         />
 
         <div class="input-row">
@@ -54,7 +57,7 @@
       </div>
 
       <div class="preview-side">
-        <div class="preview-stage" :class="{ 'is-stale': dirty }">
+        <div class="preview-stage" :class="{ 'is-stale': dirty }" :style="{ height: previewHeight }">
           <LatexRenderer v-if="debouncedInput" :formula="debouncedInput" :block="true" />
           <span v-else class="preview-placeholder">Start typing to preview\u2026</span>
         </div>
@@ -98,7 +101,11 @@ const rawInput = ref('\\int_0^\\infty e^{-x^2}\\,dx = \\frac{\\sqrt{\\pi}}{2}')
 const debouncedInput = ref(rawInput.value)
 const renderError = ref('')
 const dirty = ref(false)
+const inputEl = shallowRef<HTMLTextAreaElement | null>(null)
+const previewHeight = ref('285px')
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
+let resizeObserver: ResizeObserver | null = null
+let resizeTrackingFrame: number | null = null
 
 function scheduleRender(val: string) {
   dirty.value = val !== debouncedInput.value
@@ -141,7 +148,7 @@ const templates = [
 ]
 
 function insertSymbol(str: string) {
-  const textarea = document.querySelector('.latex-input') as HTMLTextAreaElement | null
+  const textarea = inputEl.value
   if (!textarea) return
   const start = textarea.selectionStart
   const end = textarea.selectionEnd
@@ -166,8 +173,48 @@ async function copyPreview () {
   }
 }
 
+function syncPreviewHeight () {
+  const textarea = inputEl.value
+  if (!textarea) return
+  const minHeight = window.matchMedia('(max-width: 820px)').matches ? 200 : 285
+  previewHeight.value = `${Math.max(textarea.getBoundingClientRect().height, minHeight)}px`
+}
+
+function stopPreviewResizeTracking () {
+  if (resizeTrackingFrame !== null) {
+    cancelAnimationFrame(resizeTrackingFrame)
+    resizeTrackingFrame = null
+  }
+  window.removeEventListener('pointerup', stopPreviewResizeTracking)
+  window.removeEventListener('blur', stopPreviewResizeTracking)
+}
+
+function trackPreviewResize () {
+  syncPreviewHeight()
+  resizeTrackingFrame = requestAnimationFrame(trackPreviewResize)
+}
+
+function startPreviewResizeTracking () {
+  stopPreviewResizeTracking()
+  window.addEventListener('pointerup', stopPreviewResizeTracking, { once: true })
+  window.addEventListener('blur', stopPreviewResizeTracking, { once: true })
+  resizeTrackingFrame = requestAnimationFrame(trackPreviewResize)
+}
+
+onMounted(() => {
+  syncPreviewHeight()
+  if (typeof ResizeObserver !== 'undefined' && inputEl.value) {
+    resizeObserver = new ResizeObserver(syncPreviewHeight)
+    resizeObserver.observe(inputEl.value)
+  }
+  window.addEventListener('resize', syncPreviewHeight)
+})
+
 onUnmounted(() => {
   if (debounceTimer) clearTimeout(debounceTimer)
+  stopPreviewResizeTracking()
+  resizeObserver?.disconnect()
+  window.removeEventListener('resize', syncPreviewHeight)
 })
 </script>
 
@@ -190,9 +237,10 @@ onUnmounted(() => {
 
 .latex-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.49fr);
   gap: 32px;
   align-items: start;
+  width: min(1468px, calc(100vw - var(--site-gutter)));
 }
 
 .input-side {
@@ -242,8 +290,9 @@ onUnmounted(() => {
 }
 
 .latex-input {
+  box-sizing: border-box;
   width: 100%;
-  min-height: 220px;
+  min-height: 285px;
   padding: 14px 16px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
@@ -301,17 +350,19 @@ onUnmounted(() => {
 }
 
 .preview-stage {
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 320px;
+  min-height: 285px;
   padding: 40px 32px;
   border-radius: var(--radius);
   background:
     linear-gradient(135deg, rgba(118, 87, 255, 0.08), rgba(14, 165, 233, 0.04)),
     var(--preview-bg);
   border: 1px solid var(--color-border);
-  overflow-x: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
   transition: opacity 0.2s ease, transform .22s ease, box-shadow .22s ease, border-color .22s ease;
   animation: previewGlow 4.8s ease-in-out infinite;
 }
@@ -327,13 +378,41 @@ onUnmounted(() => {
 
 .preview-stage :deep(.katex-display) {
   margin: 0;
+  max-width: 100%;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .preview-stage :deep(.katex) {
+  max-width: 100%;
   font-size: 1.5rem;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.preview-stage :deep(.latex-block) {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  white-space: normal;
+}
+
+.preview-stage :deep(.katex-html) {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.preview-stage :deep(.katex-html > .base) {
+  display: inline;
+  white-space: normal;
 }
 
 .preview-placeholder {
+  margin-inline: auto;
+  align-self: center;
   color: var(--color-muted);
   font-size: 1rem;
   user-select: none;
@@ -440,6 +519,7 @@ code {
   .latex-layout {
     grid-template-columns: 1fr;
     gap: 20px;
+    width: 100%;
   }
 
   .preview-side {
@@ -457,7 +537,7 @@ code {
   }
 
   .latex-input {
-    min-height: 160px;
+    min-height: 200px;
   }
 }
 

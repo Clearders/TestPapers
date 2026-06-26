@@ -34,7 +34,7 @@
             <AppIcon name="home" />
             <span>Home</span>
           </NuxtLink>
-          <NuxtLink v-if="isAuthenticated" to="/questions" class="nav-link">
+          <NuxtLink to="/questions" class="nav-link">
             <AppIcon name="book" />
             <span>Workspace</span>
           </NuxtLink>

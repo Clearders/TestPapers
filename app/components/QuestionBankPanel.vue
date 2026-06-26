@@ -12,10 +12,16 @@
       v-model:search="searchModel"
       v-model:filter-subject="filterSubjectModel"
       v-model:filter-difficulty="filterDifficultyModel"
+      v-model:filter-type="filterTypeModel"
+      v-model:filter-tag="filterTagModel"
+      v-model:filter-has-latex="filterHasLatexModel"
       :bank-mode="bankMode"
       :subjects="availableSubjects"
+      :tags="availableTags"
       :can-create-questions="canCreateQuestions"
       @switch-bank-mode="onSwitchBankMode"
+      @open-import="emit('open-import')"
+      @reset-filters="emit('reset-filters')"
     />
 
     <QuestionCardList
@@ -31,6 +37,7 @@
       :can-edit-question="canEditQuestion"
       :can-create-questions="canCreateQuestions"
       @toggle-question="(q) => emit('toggle-question', q)"
+      @view-detail="(q) => emit('view-detail', q)"
       @edit="(q) => emit('edit', q)"
       @report="(q) => emit('report', q)"
       @delete="(q) => emit('delete', q)"
@@ -42,15 +49,19 @@
 
 <script setup lang="ts">
 import type { ApiPagination } from '~/types/api'
-import type { Question, QuestionDifficulty } from '~/types/question'
+import type { Question, QuestionDifficulty, QuestionType } from '~/types/question'
 import type { BankMode } from '~/domain/papers'
 
 const props = defineProps<{
   search: string
   filterSubject: string
   filterDifficulty: QuestionDifficulty | ''
+  filterType: QuestionType | ''
+  filterTag: string
+  filterHasLatex: '' | 'true' | 'false'
   bankMode: BankMode
   availableSubjects: string[]
+  availableTags: string[]
   canCreateQuestions: boolean
   currentQuestions: Question[]
   activePagination: ApiPagination
@@ -68,13 +79,19 @@ const emit = defineEmits<{
   'update:search': [value: string]
   'update:filterSubject': [value: string]
   'update:filterDifficulty': [value: QuestionDifficulty | '']
+  'update:filterType': [value: QuestionType | '']
+  'update:filterTag': [value: string]
+  'update:filterHasLatex': [value: '' | 'true' | 'false']
   'switch-bank-mode': [mode: BankMode]
   'toggle-question': [question: Question]
+  'view-detail': [question: Question]
   'edit': [question: Question]
   'report': [question: Question]
   'delete': [question: Question]
   'page-change': [page: number]
   'toggle-answer': [id: number]
+  'open-import': []
+  'reset-filters': []
 }>();
 
 const searchModel = computed({
@@ -88,6 +105,18 @@ const filterSubjectModel = computed({
 const filterDifficultyModel = computed({
   get: () => props.filterDifficulty,
   set: (v: QuestionDifficulty | '') => emit('update:filterDifficulty', v)
+})
+const filterTypeModel = computed({
+  get: () => props.filterType,
+  set: (v: QuestionType | '') => emit('update:filterType', v)
+})
+const filterTagModel = computed({
+  get: () => props.filterTag,
+  set: (v: string) => emit('update:filterTag', v)
+})
+const filterHasLatexModel = computed({
+  get: () => props.filterHasLatex,
+  set: (v: '' | 'true' | 'false') => emit('update:filterHasLatex', v)
 })
 
 function onSwitchBankMode (mode: BankMode) {

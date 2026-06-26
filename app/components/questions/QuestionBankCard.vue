@@ -52,6 +52,10 @@
         <AppIcon name="eye" />
         {{ isShown ? 'Hide Answer' : 'Show Answer' }}
       </button>
+      <button class="btn btn-outline btn-sm" @click="$emit('view-detail', question)">
+        <AppIcon name="eye" />
+        View Details
+      </button>
       <button
         class="btn btn-sm"
         :class="isAdded ? 'btn-danger' : 'btn-primary'"
@@ -164,6 +168,7 @@ const props = defineProps<{
 defineEmits<{
   'toggle-answer': [id: number]
   'toggle-question': [question: Question]
+  'view-detail': [question: Question]
   edit: [question: Question]
   report: [question: Question]
   delete: [question: Question]

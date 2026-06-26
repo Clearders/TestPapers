@@ -25,6 +25,19 @@ const testUser = {
   updatedAt: '2026-01-01T00:00:00.000Z'
 }
 
+
+const limitedUser = {
+  ...testUser,
+  id: 9002,
+  publicId: 'usr-smoke-limited',
+  username: 'smoke.limited',
+  displayName: 'Smoke Limited',
+  role: 'viewer',
+  permissions: [],
+}
+
+let authMode = 'full'
+let protectedRequests = []
 const sampleQuestions = [{
   id: 101,
   publicId: 'q-smoke-101',
@@ -60,11 +73,20 @@ function apiEnvelope(data) {
   return { success: true, data, error: null, meta: { requestId: 'workspace-smoke', timestamp: new Date().toISOString() } }
 }
 
+function currentAuthUser() {
+  if (authMode === 'anonymous') return null
+  return authMode === 'limited' ? limitedUser : testUser
+}
+
 function apiResponseFor(url) {
   const parsed = new URL(url)
   const path = parsed.pathname.replace(/^\/api\/v1/, '')
-  if (path === '/auth/refresh') return apiEnvelope({ user: testUser, expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString() })
-  if (path === '/auth/me') return apiEnvelope(testUser)
+  const currentUser = currentAuthUser()
+  if (path === '/auth/refresh') return apiEnvelope(currentUser ? { user: currentUser, expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString() } : null)
+  if (path === '/auth/me') return apiEnvelope(currentUser)
+  if (authMode !== 'full' && (path === '/questions' || path === '/questions/mine' || path === '/meta/subjects' || path === '/meta/tags')) {
+    protectedRequests.push(path)
+  }
   if (path === '/questions' || path === '/questions/mine') {
     return apiEnvelope({
       items: sampleQuestions,
@@ -380,7 +402,41 @@ async function clickByText(cdp, selector, text) {
   if (!clicked) throw new Error(`Could not click ${selector} containing "${text}"`)
 }
 
-async function runSmoke(cdp) {
+function workspaceDraftKey(userId) {
+  return userId ? `testpapers.workspaceDraft.v1.${userId}` : 'testpapers.workspaceDraft.v1.guest'
+}
+
+function sampleWorkspaceDraft() {
+  return {
+    version: 1,
+    paper: {
+      title: 'Workspace Access Draft',
+      subject: 'Mathematics',
+      duration: 60,
+      totalMarks: 100,
+      questions: sampleQuestions
+    },
+    generationForm: {
+      difficultyCoefficient: 0.5,
+      questionTypes: ['single_choice'],
+      typeCounts: { single_choice: 1 },
+      subjects: [],
+      requiredTagsStr: '',
+      requiredTags: [],
+      preferredTagsStr: '',
+      preferredTags: [],
+      customTagInput: ''
+    },
+    exportMode: 'paper',
+    layoutDensity: 'auto',
+    includeAnswersInExport: false,
+    savedPaperId: null,
+    savedPaperSignature: '',
+    generationDiagnostics: null
+  }
+}
+
+async function installApiMocks(cdp) {
   await cdp.send('Page.enable')
   await cdp.send('Runtime.enable')
   await cdp.send('Fetch.enable', { patterns: [{ urlPattern: `${BASE_URL}/api/v1/*` }] })
@@ -393,9 +449,67 @@ async function runSmoke(cdp) {
       body
     })
   })
+}
+
+async function seedWorkspaceDraft(cdp, key) {
+  const draft = sampleWorkspaceDraft()
+  await evaluate(cdp, jsExpression(`
+    localStorage.setItem(${JSON.stringify(key)}, ${JSON.stringify(JSON.stringify(draft))})
+    return true
+  `))
+  await cdp.send('Page.reload', { ignoreCache: true })
+}
+
+async function runAccessSmoke(cdp, mode, expectedPrompt, draftKey, label) {
+  authMode = mode
+  protectedRequests = []
+  await installApiMocks(cdp)
+  await cdp.send('Page.navigate', { url: `${BASE_URL}/questions?smoke=${mode}` })
+  await waitFor(cdp, `document.querySelector('#paper-title') && document.body.innerText.includes('Paper Editor')`, `${label} Workspace shell`)
+  await seedWorkspaceDraft(cdp, draftKey)
+  await waitFor(cdp, `document.querySelector('#paper-title')?.value === 'Workspace Access Draft' && document.body.innerText.includes('Q1')`, `${label} restored draft`)
+  await evaluate(cdp, jsExpression(`
+    const valueSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set
+    const title = document.querySelector('#paper-title')
+    valueSetter.call(title, 'Workspace Access Draft')
+    title.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: 'Workspace Access Draft' }))
+    const subject = document.querySelector('#paper-subject')
+    valueSetter.call(subject, 'Mathematics')
+    subject.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: 'Mathematics' }))
+  `))
+  await evaluate(cdp, jsExpression(`
+    const exportButton = [...document.querySelectorAll('button')].find(el => el.innerText && el.innerText.includes('Export Paper'))
+    if (!exportButton) return false
+    exportButton.disabled = false
+    return true
+  `))
+  await clickByText(cdp, 'button', 'Export Paper')
+  const exportState = await evaluate(cdp, jsExpression(`
+    const exportButton = [...document.querySelectorAll('button')].find(el => el.innerText && el.innerText.includes('Export Paper'))
+    return {
+      exportButtonDisabled: exportButton ? exportButton.disabled : null,
+      hasExpectedPrompt: document.body.innerText.includes(${JSON.stringify(expectedPrompt)}),
+      hasPreview: document.body.innerText.includes('Questions follow the order from the paper builder.'),
+      bodyText: document.body.innerText.slice(0, 1200)
+    }
+  `))
+  if (!exportState.hasExpectedPrompt) {
+    throw new Error(`${label} export prompt missing: ${JSON.stringify(exportState)}`)
+  }
+  await clickByText(cdp, 'button', 'Question Bank')
+  await waitFor(cdp, `document.body.innerText.includes(${JSON.stringify(mode === 'anonymous' ? 'Create an account to use the question bank' : 'Question bank access required')})`, `${label} access card`)
+  if (protectedRequests.length) throw new Error(`${label} made protected requests: ${protectedRequests.join(', ')}`)
+  await assertVisiblePage(cdp, `${label} Workspace`)
+  log(`${label} access smoke passed`)
+}
+
+async function runSmoke(cdp) {
+  authMode = 'full'
+  protectedRequests = []
+  await installApiMocks(cdp)
 
   await cdp.send('Page.navigate', { url: `${BASE_URL}/questions` })
-  await waitFor(cdp, `document.querySelector('#paper-title') && document.body.innerText.includes('Smoke draft restoration question')`, 'Workspace question bank')
+  await waitFor(cdp, `document.querySelector('#paper-title') && document.body.innerText.includes('Paper Editor')`, 'Workspace editor')
   await assertVisiblePage(cdp, 'Workspace')
 
   await evaluate(cdp, jsExpression(`
@@ -406,7 +520,23 @@ async function runSmoke(cdp) {
     subject.value = 'Mathematics'
     subject.dispatchEvent(new Event('input', { bubbles: true }))
   `))
+  await clickByText(cdp, 'button', 'Question Bank')
+  await waitFor(cdp, `location.search.includes('section=bank') && !document.querySelector('#paper-title')`, 'Workspace bank tab')
+  try {
+    await waitFor(cdp, `document.body.innerText.includes('Smoke draft restoration question')`, 'Workspace question bank')
+  } catch (error) {
+    const bankState = await evaluate(cdp, jsExpression(`
+      return {
+        path: location.pathname,
+        search: location.search,
+        hasPaperTitle: Boolean(document.querySelector('#paper-title')),
+        text: document.body.innerText.slice(0, 1600)
+      }
+    `))
+    throw new Error(`Workspace question bank did not load: ${JSON.stringify(bankState)}; ${error.message}`, { cause: error })
+  }
   await clickByText(cdp, 'button', 'Add to Paper')
+  await clickByText(cdp, 'button', 'Paper Editor')
   await waitFor(cdp, `document.body.innerText.includes('Q1') && document.querySelector('#paper-title')?.value === 'Workspace Smoke Draft'`, 'draft paper build')
   await delay(500)
 
@@ -443,6 +573,15 @@ try {
   await waitForUrl(BASE_URL)
   startBrowser()
   await waitForUrl(`http://${HOST}:${DEBUG_PORT}/json/version`)
+
+  cdp = await createPageClient()
+  await runAccessSmoke(cdp, 'anonymous', 'Create an account to export papers', workspaceDraftKey(null), 'Anonymous')
+  cdp.close()
+
+  cdp = await createPageClient()
+  await runAccessSmoke(cdp, 'limited', 'Export permission required', workspaceDraftKey(limitedUser.id), 'Limited-permission')
+  cdp.close()
+
   cdp = await createPageClient()
   await runSmoke(cdp)
   log('Workspace flow smoke passed')

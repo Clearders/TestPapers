@@ -211,7 +211,7 @@ export function normalizePaperQuestion (question: ApiPaperQuestion): PaperQuesti
 }
 
 export function getWorkspaceDraftKey (userId?: number | null) {
-  return userId ? `${WORKSPACE_DRAFT_PREFIX}.${userId}` : ''
+  return userId ? `${WORKSPACE_DRAFT_PREFIX}.${userId}` : `${WORKSPACE_DRAFT_PREFIX}.guest`
 }
 
 export function buildWorkspaceDraft (input: BuildWorkspaceDraftInput): WorkspaceDraft {

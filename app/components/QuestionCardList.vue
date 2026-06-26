@@ -23,6 +23,7 @@
       :can-delete="canDeleteQuestion(q)"
       @toggle-answer="toggleAnswer"
       @toggle-question="$emit('toggle-question', q)"
+      @view-detail="$emit('view-detail', q)"
       @edit="$emit('edit', q)"
       @report="$emit('report', q)"
       @delete="handleDeleteQuestion(q)"
@@ -71,6 +72,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   'toggle-answer': [id: number]
   'toggle-question': [q: Question]
+  'view-detail': [q: Question]
   edit: [q: Question]
   report: [q: Question]
   delete: [q: Question]

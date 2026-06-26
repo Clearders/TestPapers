@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "build": "node scripts/run-nuxi.mjs build",
-    "check": "node scripts/check-auth-ssr-state.mjs && node scripts/run-nuxi.mjs build",
+    "check": "node scripts/check-auth-ssr-state.mjs && node scripts/check-csp-hardening.mjs && node scripts/run-nuxi.mjs build",
+    "check:csp-hardening": "node scripts/check-csp-hardening.mjs",
     "check:realtime-backoff": "node scripts/check-realtime-backoff.mjs",
     "check:auth-ssr-state": "node scripts/check-auth-ssr-state.mjs",
     "dev": "node scripts/run-nuxi.mjs dev",
@@ -21,6 +22,7 @@
     "cropperjs": "^2.1.1",
     "katex": "^0.16.21",
     "nuxt": "^4.4.8",
+    "nuxt-security": "2.5.1",
     "vue": "^3.5.32",
     "vue-router": "^4.5.1"
   },

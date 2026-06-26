@@ -11,12 +11,19 @@ import {
 } from '~/domain/papers'
 import { apiErrorMessage } from '~/utils/apiError'
 
+export type ExportAccessPrompt = {
+  kind: 'account' | 'admin'
+  title: string
+  message: string
+} | null
+
 export interface UsePaperExportParams {
   paper: PaperState
   exportMode: Ref<ExportMode>
   layoutDensity: Ref<LayoutDensity>
   includeAnswersInExport: Ref<boolean>
   canReadAnswers: ComputedRef<boolean>
+  isAuthenticated: ComputedRef<boolean>
   savedPaperId: Ref<string | null>
   savedPaperSignature: Ref<string>
   currentPaperSignature: () => string
@@ -32,6 +39,7 @@ export function usePaperExport (params: UsePaperExportParams) {
     layoutDensity,
     includeAnswersInExport,
     canReadAnswers,
+    isAuthenticated,
     savedPaperId,
     savedPaperSignature,
     currentPaperSignature,
@@ -42,15 +50,54 @@ export function usePaperExport (params: UsePaperExportParams) {
 
   const exported = ref(false)
   const isDownloadingDocx = ref(false)
+  const isSavingPaper = ref(false)
   const downloadError = ref('')
+  const saveError = ref('')
+  const saveSuccess = ref(false)
   const downloadedLayoutDensity = ref<LayoutDensity | null>(null)
+  const exportAccessPrompt = ref<ExportAccessPrompt>(null)
 
   const canWritePapers = computed(() => hasPermission('papers:write'))
   const canDownloadDocx = computed(() => {
     if (!paper.questions.length || !paper.title.trim() || !paper.subject.trim() || isDownloadingDocx.value) return false
-    if (!hasPermission('papers:read')) return false
-    return hasPermission('papers:write') || (savedPaperId.value !== null && savedPaperSignature.value === currentPaperSignature())
+    return true
   })
+
+  function showAccountPrompt () {
+    exportAccessPrompt.value = {
+      kind: 'account',
+      title: 'Create an account to export papers',
+      message: 'Paper export is available after you create an account. Existing users can log in instead.'
+    }
+  }
+
+  function showAdminPrompt () {
+    exportAccessPrompt.value = {
+      kind: 'admin',
+      title: 'Export permission required',
+      message: 'Your account does not have permission to export exam papers. Contact the administrator for access.'
+    }
+  }
+
+  function dismissExportAccessPrompt () {
+    exportAccessPrompt.value = null
+  }
+
+  function hasExportPermission (requiresWrite: boolean) {
+    if (!isAuthenticated.value) {
+      showAccountPrompt()
+      return false
+    }
+    if (!hasPermission('papers:read') || (requiresWrite && !hasPermission('papers:write'))) {
+      showAdminPrompt()
+      return false
+    }
+    return true
+  }
+
+  function hasReusableSavedPaper () {
+    return savedPaperId.value !== null && savedPaperSignature.value === currentPaperSignature()
+  }
 
   function rememberSavedPaper (paperId: string) {
     savedPaperId.value = paperId
@@ -63,6 +110,7 @@ export function usePaperExport (params: UsePaperExportParams) {
   }
 
   function exportPaper () {
+    if (!hasExportPermission(false)) return
     exported.value = true
   }
 
@@ -95,6 +143,7 @@ export function usePaperExport (params: UsePaperExportParams) {
 
   async function downloadDocx () {
     if (isDownloadingDocx.value) return
+    if (!hasExportPermission(!hasReusableSavedPaper())) return
 
     downloadError.value = ''
     isDownloadingDocx.value = true
@@ -135,6 +184,23 @@ export function usePaperExport (params: UsePaperExportParams) {
     }
   }
 
+  async function savePaper () {
+    if (isSavingPaper.value) return
+    if (!hasExportPermission(true)) return
+
+    saveError.value = ''
+    saveSuccess.value = false
+    isSavingPaper.value = true
+    try {
+      await ensureDownloadablePaper()
+      saveSuccess.value = true
+    } catch (error) {
+      saveError.value = apiErrorMessage(error, 'Failed to save paper.')
+    } finally {
+      isSavingPaper.value = false
+    }
+  }
+
   function resetExportState () {
     exported.value = false
     exportMode.value = 'paper'
@@ -142,6 +208,8 @@ export function usePaperExport (params: UsePaperExportParams) {
     downloadedLayoutDensity.value = null
     forgetSavedPaper()
     downloadError.value = ''
+    saveError.value = ''
+    saveSuccess.value = false
   }
 
   function applyGenerationResult (response: { data: GeneratedPaperResponse }) {
@@ -153,19 +221,27 @@ export function usePaperExport (params: UsePaperExportParams) {
     rememberSavedPaper(response.data.paper.publicId)
     exported.value = false
     downloadError.value = ''
+    saveError.value = ''
+    saveSuccess.value = false
   }
 
   return {
     exported,
+    exportAccessPrompt,
     isDownloadingDocx,
+    isSavingPaper,
     downloadError,
+    saveError,
+    saveSuccess,
     downloadedLayoutDensity,
     canWritePapers,
     canDownloadDocx,
     rememberSavedPaper,
     forgetSavedPaper,
+    dismissExportAccessPrompt,
     exportPaper,
     ensureDownloadablePaper,
+    savePaper,
     downloadDocx,
     resetExportState,
     applyGenerationResult

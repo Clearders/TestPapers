@@ -16,12 +16,11 @@ const apiRouteRules = publicApiBase.startsWith('/')
       }
     }
   : {}
-const connectSources = ["'self'", 'ws:', 'wss:']
+const connectSources = ["'self'"]
 for (const endpoint of [publicApiBase, publicDirectApiBase, env.NUXT_PUBLIC_WS_BASE || '']) {
   if (/^(https?|wss?):\/\//.test(endpoint)) connectSources.push(new URL(endpoint).origin)
 }
-const securityHeaders = {
-  'content-security-policy': `default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob:; connect-src ${[...new Set(connectSources)].join(' ')}; frame-ancestors 'none'; base-uri 'self'; form-action 'self'`,
+const commonHeaders = {
   'referrer-policy': 'same-origin',
   'x-content-type-options': 'nosniff',
   'x-frame-options': 'DENY'
@@ -32,7 +31,50 @@ export default defineNuxtConfig({
   buildDir: env.NUXT_BUILD_DIR || undefined,
   devtools: { enabled: env.NODE_ENV !== 'production' },
 
-  modules: ['@nuxt/eslint'],
+  modules: ['@nuxt/eslint', 'nuxt-security'],
+
+  security: {
+    enabled: true,
+    nonce: true,
+    requestSizeLimiter: false,
+    rateLimiter: false,
+    xssValidator: false,
+    corsHandler: false,
+    allowedMethodsRestricter: false,
+    removeLoggers: false,
+    sri: true,
+    ssg: false,
+    headers: {
+      contentSecurityPolicy: {
+        'default-src': ["'self'"],
+        'script-src': ["'self'", "'strict-dynamic'", "'nonce-{{nonce}}'"],
+        'script-src-attr': ["'none'"],
+        'style-src': ["'self'", "'unsafe-inline'"],
+        'font-src': ["'self'", 'data:'],
+        'img-src': ["'self'", 'data:', 'blob:'],
+        'connect-src': [...new Set(connectSources)],
+        'frame-ancestors': ["'none'"],
+        'base-uri': ["'self'"],
+        'form-action': ["'self'"],
+        'object-src': ["'none'"],
+        'worker-src': ["'self'"],
+        'upgrade-insecure-requests': false
+      },
+      referrerPolicy: 'same-origin',
+      strictTransportSecurity: false,
+      xContentTypeOptions: 'nosniff',
+      xFrameOptions: 'DENY',
+      crossOriginEmbedderPolicy: false,
+      crossOriginOpenerPolicy: false,
+      crossOriginResourcePolicy: false,
+      originAgentCluster: false,
+      xDNSPrefetchControl: false,
+      xDownloadOptions: false,
+      xPermittedCrossDomainPolicies: false,
+      xXSSProtection: false,
+      permissionsPolicy: false
+    }
+  },
 
   css: ['~/assets/css/main.css'],
 
@@ -50,28 +92,28 @@ export default defineNuxtConfig({
   },
 
   routeRules: {
-    '/**': { headers: securityHeaders },
+    '/**': { headers: commonHeaders },
     '/_nuxt/**': {
       headers: {
-        ...securityHeaders,
+        ...commonHeaders,
         'cache-control': 'public, max-age=31536000, immutable'
       }
     },
     '/favicon.ico': {
       headers: {
-        ...securityHeaders,
+        ...commonHeaders,
         'cache-control': 'public, max-age=604800'
       }
     },
     '/robots.txt': {
       headers: {
-        ...securityHeaders,
+        ...commonHeaders,
         'cache-control': 'public, max-age=3600'
       }
     },
     '/sitemap.xml': {
       headers: {
-        ...securityHeaders,
+        ...commonHeaders,
         'cache-control': 'public, max-age=3600'
       }
     },

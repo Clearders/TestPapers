@@ -25,6 +25,13 @@ NITRO_PORT=3000
 
 The frontend defaults already use `/api/v1` for browser requests. Set `NUXT_API_BASE` when the Nuxt server needs to validate sessions during SSR or route middleware.
 
+Nuxt emits the frontend Content Security Policy through `nuxt-security` with
+per-request SSR script nonces. In the same-origin Nginx layout, `connect-src`
+is limited to `'self'`. If you intentionally use a separate browser-visible API
+or WebSocket host, set the corresponding `NUXT_PUBLIC_*` variable to the exact
+`https://...` or `wss://...` origin; do not add scheme-wide `ws:` or `wss:`
+allowances.
+
 For HTTPS deployments, configure the backend cookie settings as well:
 
 ```bash

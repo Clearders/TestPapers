@@ -84,6 +84,10 @@
     </Transition>
 
     <div class="paper-actions paper-actions--export">
+      <button class="btn btn-outline" :disabled="!canSavePaper" @click="emit('save-paper')">
+        <AppIcon name="check" />
+        {{ isSavingPaper ? 'Saving...' : 'Save Paper' }}
+      </button>
       <button class="btn btn-success" :disabled="!paper.questions.length || !paper.title.trim()" @click="emit('export-paper')">
         <AppIcon name="paper" />
         Export Paper
@@ -101,8 +105,15 @@
     <div v-if="downloadError" class="status-banner status-banner--error download-error" aria-live="polite">
       {{ downloadError }}
     </div>
+    <div v-if="saveError" class="status-banner status-banner--error download-error" aria-live="polite">
+      {{ saveError }}
+    </div>
+    <div v-if="saveSuccess" class="status-banner status-banner--success download-error" aria-live="polite">
+      Paper saved.
+    </div>
 
     <PaperExportPanel
+      v-if="showInlineExportPreview !== false"
       v-model:export-mode="exportModeModel"
       v-model:layout-density="layoutDensityModel"
       v-model:include-answers-in-export="includeAnswersModel"
@@ -115,10 +126,39 @@
       :can-read-answers="canReadAnswers"
       :downloaded-layout-density="downloadedLayoutDensity"
     />
+    <Transition name="modal">
+      <div v-if="exportAccessPrompt" class="modal-overlay export-access-overlay" @click.self="emit('dismiss-export-access-prompt')">
+        <div class="modal-panel export-access-panel" role="dialog" aria-modal="true" :aria-label="exportAccessPrompt.title">
+          <div class="modal-head">
+            <h2>{{ exportAccessPrompt.title }}</h2>
+            <button class="modal-close" type="button" aria-label="Close" @click="emit('dismiss-export-access-prompt')">&times;</button>
+          </div>
+          <div class="modal-body export-access-body">
+            <p>{{ exportAccessPrompt.message }}</p>
+            <div class="export-access-actions">
+              <template v-if="exportAccessPrompt.kind === 'account'">
+                <NuxtLink to="/register" class="btn btn-primary" @click="emit('dismiss-export-access-prompt')">
+                  <AppIcon name="account" />
+                  Create Account
+                </NuxtLink>
+                <NuxtLink to="/login" class="btn btn-outline" @click="emit('dismiss-export-access-prompt')">
+                  <AppIcon name="login" />
+                  Login
+                </NuxtLink>
+              </template>
+              <button v-else type="button" class="btn btn-primary" @click="emit('dismiss-export-access-prompt')">
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Transition>
   </div>
 </template>
 
 <script setup lang="ts">
+import type { ExportAccessPrompt } from '~/composables/usePaperExport'
 import type { ExportMode, GenerationDiagnostics, LayoutDensity } from '~/types/generation'
 import type { GenerationFormState, PaperState } from '~/domain/papers'
 import { formatScoreWeight } from '~/utils/format'
@@ -141,8 +181,13 @@ const props = defineProps<{
   exported: boolean
   isDownloadingDocx: boolean
   downloadError: string
+  isSavingPaper?: boolean
+  saveError?: string
+  saveSuccess?: boolean
   downloadedLayoutDensity: LayoutDensity | null
   canDownloadDocx: boolean
+  exportAccessPrompt: ExportAccessPrompt
+  showInlineExportPreview?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -158,9 +203,11 @@ const emit = defineEmits<{
   'move-up': [index: number]
   'move-down': [index: number]
   'remove-question': [id: number]
+  'save-paper': []
   'export-paper': []
   'download-docx': []
   'clear-paper': []
+  'dismiss-export-access-prompt': []
 }>();
 
 const paperTitleModel = computed({
@@ -186,6 +233,11 @@ const layoutDensityModel = computed({
 const includeAnswersModel = computed({
   get: () => props.includeAnswersInExport,
   set: (v: boolean) => emit('update:includeAnswersInExport', v)
+})
+
+const canSavePaper = computed(() => {
+  if (props.isSavingPaper) return false
+  return Boolean(props.paper.questions.length && props.paper.title.trim() && props.paper.subject.trim())
 })
 
 const paperQuestionLatexParts = computed(() => {
@@ -392,11 +444,75 @@ const paperQuestionLatexParts = computed(() => {
 .download-error {
   margin-top: 14px;
 }
+.status-banner--success {
+  border-color: var(--color-success-border);
+  background: var(--color-success-bg);
+  color: var(--color-success-text);
+}
 :deep(.katex-display),
 :deep(.latex-block) {
   max-width: 100%;
   overflow-x: auto;
   overflow-y: hidden;
+}
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 130;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(15, 12, 28, 0.46);
+  backdrop-filter: blur(8px);
+}
+.modal-panel {
+  width: min(460px, 100%);
+  max-height: calc(100vh - 40px);
+  overflow: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-raised);
+  box-shadow: var(--shadow);
+}
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 20px 12px;
+  border-bottom: 1px solid var(--color-border);
+}
+.modal-head h2 {
+  font-size: 1.08rem;
+}
+.modal-close {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-solid);
+  color: var(--color-muted);
+  font-size: 1.2rem;
+}
+.modal-close:hover {
+  color: var(--color-text);
+  border-color: var(--color-primary);
+}
+.modal-body {
+  padding: 18px 20px 20px;
+}
+.export-access-body p {
+  color: var(--color-muted);
+  line-height: 1.6;
+  margin-bottom: 16px;
+}
+.export-access-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 @media (max-width: 700px) {
   .paper-q-item {
