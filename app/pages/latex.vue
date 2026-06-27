@@ -5,7 +5,7 @@
 
     <div class="latex-layout">
       <div class="input-side">
-        <div class="symbol-strip">
+        <div ref="symbolStripEl" class="symbol-strip">
           <button
             v-for="sym in symbols"
             :key="sym.label"
@@ -56,7 +56,7 @@
         </div>
       </div>
 
-      <div class="preview-side">
+      <div class="preview-side" :style="{ marginTop: previewOffset }">
         <div class="preview-stage" :class="{ 'is-stale': dirty }" :style="{ height: previewHeight }">
           <LatexRenderer v-if="debouncedInput" :formula="debouncedInput" :block="true" />
           <span v-else class="preview-placeholder">Start typing to preview\u2026</span>
@@ -102,7 +102,9 @@ const debouncedInput = ref(rawInput.value)
 const renderError = ref('')
 const dirty = ref(false)
 const inputEl = shallowRef<HTMLTextAreaElement | null>(null)
+const symbolStripEl = shallowRef<HTMLElement | null>(null)
 const previewHeight = ref('285px')
+const previewOffset = ref('0px')
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
 let resizeObserver: ResizeObserver | null = null
 let resizeTrackingFrame: number | null = null
@@ -180,6 +182,22 @@ function syncPreviewHeight () {
   previewHeight.value = `${Math.max(textarea.getBoundingClientRect().height, minHeight)}px`
 }
 
+function syncPreviewOffset () {
+  const symbolStrip = symbolStripEl.value
+  if (!symbolStrip || window.matchMedia('(max-width: 820px)').matches) {
+    previewOffset.value = '0px'
+    return
+  }
+  const inputSide = symbolStrip.closest('.input-side')
+  const gap = inputSide ? Number.parseFloat(getComputedStyle(inputSide).rowGap) || 0 : 0
+  previewOffset.value = `${symbolStrip.getBoundingClientRect().height + gap}px`
+}
+
+function syncPreviewLayout () {
+  syncPreviewHeight()
+  syncPreviewOffset()
+}
+
 function stopPreviewResizeTracking () {
   if (resizeTrackingFrame !== null) {
     cancelAnimationFrame(resizeTrackingFrame)
@@ -190,7 +208,7 @@ function stopPreviewResizeTracking () {
 }
 
 function trackPreviewResize () {
-  syncPreviewHeight()
+  syncPreviewLayout()
   resizeTrackingFrame = requestAnimationFrame(trackPreviewResize)
 }
 
@@ -202,19 +220,20 @@ function startPreviewResizeTracking () {
 }
 
 onMounted(() => {
-  syncPreviewHeight()
-  if (typeof ResizeObserver !== 'undefined' && inputEl.value) {
-    resizeObserver = new ResizeObserver(syncPreviewHeight)
-    resizeObserver.observe(inputEl.value)
+  syncPreviewLayout()
+  if (typeof ResizeObserver !== 'undefined') {
+    resizeObserver = new ResizeObserver(syncPreviewLayout)
+    if (inputEl.value) resizeObserver.observe(inputEl.value)
+    if (symbolStripEl.value) resizeObserver.observe(symbolStripEl.value)
   }
-  window.addEventListener('resize', syncPreviewHeight)
+  window.addEventListener('resize', syncPreviewLayout)
 })
 
 onUnmounted(() => {
   if (debounceTimer) clearTimeout(debounceTimer)
   stopPreviewResizeTracking()
   resizeObserver?.disconnect()
-  window.removeEventListener('resize', syncPreviewHeight)
+  window.removeEventListener('resize', syncPreviewLayout)
 })
 </script>
 
