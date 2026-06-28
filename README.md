@@ -1,104 +1,128 @@
 # TestPapers Frontend
 
-> **版本**: 0.1.0 (Nuxt 4.4 / Vue 3.5)
-> **依赖**: `package.json`
-> **最后更新**: 2026-06-21
+> Version: 0.1.0 (Nuxt 4.4 / Vue 3.5)  
+> Dependency source: `package.json`  
+> Last updated: 2026-06-28
 
-Nuxt 4 frontend for creating, managing, generating, and exporting test papers with real-time LaTeX rendering.
+Nuxt 4 frontend for creating, managing, generating, previewing, and exporting test papers. It integrates with the FastAPI backend through cookie-based authentication, CSRF-protected mutations, realtime WebSocket updates, LaTeX rendering, and DOCX export controls.
 
 ## Tech Stack
 
 | Technology | Version | Purpose |
-|---|---|---|
-| Nuxt | ^4.4.8 | Vue 3 framework with SSR/SSG support |
-| Vue | ^3.5.32 | UI framework |
-| KaTeX | ^0.16.21 | Real-time LaTeX math formula rendering |
-| Cropper.js | ^2.1.1 | Avatar image cropping |
-| TypeScript | ^5.7.0 | Type safety throughout the codebase |
-| PM2 | — | Production process manager |
+| --- | --- | --- |
+| Nuxt | `^4.4.8` | Vue framework with SSR/SSG support |
+| Vue | `^3.5.32` | UI framework |
+| Vue Router | `^4.5.1` | Routing |
+| Nuxt Security | `2.5.1` | Security headers and CSP support |
+| KaTeX | `^0.16.21` | Realtime LaTeX math rendering |
+| Cropper.js | `^2.1.1` | Avatar image cropping |
+| TypeScript | `^5.7.0` | Type safety |
+| ESLint | `^10.5.0` | Linting |
+| PM2 | external | Production process manager |
 
 ## Project Structure
 
 ```text
 TestPapers/
   app/
-    app.vue                     # Root component
+    app.vue
+    assets/css/main.css
     components/
-      AppIcon.vue               # SVG application icon
-      AvatarCropper.vue         # Avatar image cropping (cropperjs)
-      LatexRenderer.vue         # KaTeX-based LaTeX rendering component
-      PaperExportPanel.vue      # DOCX export format and layout controls
-      PaperGenerationForm.vue   # Genetic algorithm paper generation form
-      QuestionCardList.vue      # Question card list display
-      QuestionWorkspace.vue     # Main question bank workspace + paper assembly
-      UserDropdown.vue          # Authenticated user menu (profile, theme, logout)
+      AppIcon.vue
+      AvatarCropper.vue
+      LatexRenderer.vue
+      PaperBuilderPanel.vue
+      PaperExportPanel.vue
+      PaperGenerationForm.vue
+      PaperLivePreview.vue
+      QuestionBankPanel.vue
+      QuestionCardList.vue
+      QuestionWorkspace.vue
+      UserDropdown.vue
       questions/
-        AddProblemPreview.vue   # Question creation preview
-        EditQuestionModal.vue   # Question editing modal
-        PaginationControls.vue  # Reusable pagination component
-        QuestionBankCard.vue    # Individual question card display
-        QuestionBankToolbar.vue # Filter, sort, and search toolbar
-        QuestionCorrectionModal.vue  # Correction submission and review
-        QuestionImageUploader.vue    # PNG image upload with preview
-        QuestionRevisionHistory.vue  # Revision history viewer
+        AddProblemPreview.vue
+        EditQuestionModal.vue
+        PaginationControls.vue
+        QuestionBankCard.vue
+        QuestionBankToolbar.vue
+        QuestionCorrectionModal.vue
+        QuestionDetailModal.vue
+        QuestionImageUploader.vue
+        QuestionImportModal.vue
+        QuestionRevisionHistory.vue
     composables/
-      useApi.ts                 # API client with auto token refresh, CSRF, and retry logic
-      useAuth.ts                # Authentication state management (login, register, profile, avatar, account)
-      useAuthForm.ts            # Shared login/register form validation
-      useLatexParts.ts          # LaTeX content splitting and rendering utilities
-      useQuestionBank.ts        # Question CRUD, search, corrections, revisions
-      useRealtime.ts            # WebSocket connection lifecycle (heartbeat + auto reconnect)
-      useTheme.ts               # Light/dark theme toggle
+      useApi.ts
+      useAuth.ts
+      useAuthForm.ts
+      useLatexParts.ts
+      usePaperExport.ts
+      useQuestionBank.ts
+      useRealtime.ts
+      useTheme.ts
+      useWorkspaceDraft.ts
     domain/
-      questions/                # Question constants, guards, and normalization
-    layouts/
-      default.vue               # Default page layout with nav and auth awareness
-    middleware/                  # Route middleware (auth guard, locale compat)
+      papers/
+      questions/
+    layouts/default.vue
+    middleware/
+      00.locale-compat.global.ts
+      auth.global.ts
     pages/
-      index.vue                 # Home / landing page
-      login.vue                 # User login
-      register.vue              # User registration
-      account.vue               # Profile editing, password change, avatar, account deletion
-      questions.vue             # Question browser and workspace
-      add-problem.vue           # Create new question
-      latex.vue                 # LaTeX editor
-      users.vue                 # User management (admin only)
-    plugins/                    # Nuxt plugins (auth session restore, locale compat)
-    types/                      # Shared TypeScript API/domain types
-      api.ts                    # ApiEnvelope, ApiPagination, PaginatedData
-      auth.ts                   # AuthUser, AuthSession, payloads
-      question.ts               # Question, QuestionEntity, corrections, revisions
-      generation.ts             # Paper generation request/result types
-      route-meta.d.ts           # Route metadata type augmentation
-    utils/                      # Cross-domain utility helpers
-      apiEndpoint.ts            # API base URL configuration and WebSocket URL builder
-      fileData.ts               # Base64 file encoding for uploads
-      format.ts                 # Date/number formatting utilities
-      realtimeBackoff.ts        # Exponential backoff for WebSocket reconnection
-  server/
-    middleware/                  # Server-side locale compat middleware
-  shared/                       # Shared runtime helpers (legacy locale)
+      account.vue
+      add-problem.vue
+      index.vue
+      latex.vue
+      login.vue
+      questions.vue
+      register.vue
+      users.vue
+    plugins/
+      auth-session.client.ts
+      locale-compat.client.ts
+    types/
+      api.ts
+      auth.ts
+      generation.ts
+      index.ts
+      question.ts
+      route-meta.d.ts
+    utils/
+      apiEndpoint.ts
+      apiError.ts
+      authStateKeys.ts
+      fileData.ts
+      format.ts
+      realtimeBackoff.ts
   docs/
-    api-spec.md                 # Full API specification (v8)
-    nginx-deployment.md         # Nginx deployment guide
+    api-spec.md
+    nginx-deployment.md
+  public/
   scripts/
-    run-nuxi.mjs                # Nuxt CLI wrapper
-    check-realtime-backoff.mjs  # Realtime backoff logic check
-  nuxt.config.ts                # Nuxt configuration (CSP headers, route rules, SEO meta)
-  package.json
-  tsconfig.json
+  server/middleware/
+  shared/
 ```
 
 ## Local Commands
 
 ```bash
-npm run dev         # Start development server
-npm run build       # Build for production
-npm run generate    # Static site generation
-npm run preview     # Preview production build
+npm install
+npm run dev
+npm run build
+npm run preview
+npm run lint
+npm run check
 ```
 
-The project wraps Nuxt through `scripts/run-nuxi.mjs`, so the same scripts work even when `node_modules/.bin` is not directly available on `PATH`.
+The Nuxt commands run through `scripts/run-nuxi.mjs`, so they work even when `node_modules/.bin` is not directly on `PATH`.
+
+Additional checks:
+
+```bash
+npm run check:auth-ssr-state
+npm run check:csp-hardening
+npm run check:realtime-backoff
+npm run smoke:workspace
+```
 
 ## Runtime Configuration
 
@@ -110,113 +134,111 @@ NUXT_SERVER_API_BASE=http://127.0.0.1:8000/api/v1
 NUXT_PUBLIC_WS_BASE=
 ```
 
-For production, prefer the same-origin Nginx layout: leave `NUXT_PUBLIC_API_BASE=/api/v1`, set `NUXT_API_BASE`/`NUXT_SERVER_API_BASE` to the private backend URL, and configure Nginx to forward `/api/v1/*` and `/api/v1/ws` to FastAPI.
+For production, prefer the same-origin Nginx layout:
 
-DOCX downloads use `NUXT_PUBLIC_API_BASE` by default. Set `NUXT_PUBLIC_DIRECT_API_BASE` only when browsers should call a public backend origin directly and CORS/cookies are configured for that origin.
+- Keep `NUXT_PUBLIC_API_BASE=/api/v1`.
+- Set `NUXT_API_BASE` and `NUXT_SERVER_API_BASE` to the private backend URL.
+- Proxy `/api/v1/*` and `/api/v1/ws` from Nginx to FastAPI.
+- Set `NUXT_PUBLIC_DIRECT_API_BASE` only when browsers should call a public backend origin directly and CORS/Cookies are configured for that origin.
 
 ## Feature Areas
 
 ### Authentication
-- Login, registration, session restore, and logout
-- HttpOnly Cookie-based session management — no JavaScript token storage
-- Auto token refresh on `401` via `useApi.ts` (with exponential backoff retry)
-- Proactive session refresh scheduled before token expiry
-- CSRF protection — `X-CSRF-Token` header automatically added for mutation requests
-- Role-based permissions: admin, teacher, viewer
+
+- Login, registration, session restore, refresh, and logout.
+- HttpOnly `testpapers_session` Cookie; no JavaScript token storage.
+- CSRF protection with `testpapers_csrf` Cookie and `X-CSRF-Token` header for mutation requests.
+- Automatic refresh on `401` through `POST /api/v1/auth/refresh`.
+- Role-aware UI for `admin`, `teacher`, and `viewer`.
 
 ### User Profile
-- Edit username (max once per 30 days) and display name
-- Change password with current password verification
-- Upload avatar via Base64 PNG (max 500KB) with crop tool
-- Delete account (soft delete)
+
+- Edit username and display name.
+- Username changes are limited by the backend to once every 30 days.
+- Change password after current password verification.
+- Upload cropped PNG avatar.
+- Delete account through backend soft deletion.
 
 ### Question Bank
-- Full-text search across question text, subjects, answer, tags, options, and source
-- Multi-condition filtering: subjects (multi-select), difficulty, type, tags, LaTeX presence, owner
-- Six question types: single choice, multiple choice, true/false, blank, short answer, essay
-- Paginated browsing with configurable sort (newest, updated, difficulty, type)
-- Personal question bank (`/mine`) for viewing own questions
-- LaTeX formula rendering in real-time via KaTeX
-- Image upload (Base64 PNG, max 30MB) for question illustrations
-- Multi-subject assignment per question
 
-### Question Revisions and Corrections
-- Automatic revision history on every question update
-- Revision records with field-level change summaries
-- Correction submission by any authenticated user (wrong_answer, unclear, typo, other)
-- Correction status management (accept/reject) by question owner or admin
-- Delete individual revisions and corrections
+- Full-text search across question fields.
+- Filters for subjects, difficulty, type, tags, LaTeX usage, owner, and personal question bank.
+- Supported types: single choice, multiple choice, true/false, blank, short answer, and essay.
+- Realtime LaTeX formula rendering with KaTeX.
+- PNG question image upload and preview.
+- Revision history and correction workflow.
 
 ### Paper Workspace
-- Manual paper creation with question selection, ordering, and mark assignment
-- Owner-based access control for paper write operations
-- **Genetic algorithm auto paper generation** with:
-  - Multi-type targets (multiple question types with individual counts)
-  - Multi-subject candidate filtering
-  - Difficulty coefficient tuning (0–1)
-  - Required and preferred tag filtering
-  - Own questions only mode
-- Detailed generation diagnostics display (fitness, type/difficulty distribution, adjustments)
-- DOCX download with:
-  - LaTeX rendering via OMML (Word-compatible math)
-  - Question illustrations (PNG images) embedded inline
-  - Configurable layout density: auto / normal / compact / dense
-- Export mode selection: paper order or categorized by question type
-- Export preview with answer visibility control
 
-### User Management
-- Admin-only user CRUD lifecycle
-- Role assignment (admin / teacher / viewer)
-- Account activation/deactivation
+- Manual paper assembly with selected questions, ordering, and marks.
+- Genetic algorithm paper generation with multi-type targets, multi-subject filtering, difficulty coefficient, required/preferred tags, and own-questions-only mode.
+- Live paper preview and export preview.
+- DOCX download with question images, Word-compatible math, answer visibility controls, question ordering mode, and layout density controls.
 
 ### Realtime Updates
-- WebSocket connection managed by `useRealtime.ts`
-- Authentication via HttpOnly Cookie or Bearer token; tokens are not accepted in URLs
-- Heartbeat ping/pong (25s interval)
-- Exponential backoff reconnection with auto session refresh
-- Receives broadcast events for question and paper changes
-- Events: `question.created`, `question.updated`, `question.deleted`, `paper.created`, `paper.updated`, etc.
+
+- WebSocket connection managed by `useRealtime.ts`.
+- Auth via HttpOnly Cookie or Bearer token; tokens are not accepted in URLs.
+- Heartbeat ping/pong and exponential backoff reconnection.
+- Broadcast events include question and paper create/update/delete/order changes.
 
 ### Theme
-- Light/dark theme toggle persisted to Cookie (avoids FOUC on page load)
-- System preference detection on first visit via inline script in `<head>`
-- Theme-aware color scheme applied to `<meta name="theme-color">`
+
+- Light/dark theme toggle persisted to Cookie.
+- System preference detection before app mount to avoid theme flash.
+- Theme-aware `<meta name="theme-color">`.
 
 ## API Integration
 
-The `useApi.ts` composable provides the API client layer. Key behaviors:
+`app/composables/useApi.ts` is the central API client. It:
 
-- Automatically forwards HttpOnly `testpapers_session` Cookie with `credentials: 'include'`
-- On `401`, automatically calls `POST /api/v1/auth/refresh` and retries the original request
-- On `401 INVALID_TOKEN` or failed refresh, clears auth state and redirects to login
-- Adds `X-CSRF-Token` header from the `testpapers_csrf` Cookie for POST/PATCH/PUT/DELETE requests
-- SSR support: forwards client cookies via `useRequestHeaders(['cookie'])`
-- Blob download support using native `fetch` API
-- Configurable timeout (default 15s)
-- GET requests retry once on network/server errors (408/429/500/502/503/504)
+- Sends browser credentials with `credentials: 'include'`.
+- Forwards SSR request Cookies with `useRequestHeaders(['cookie'])`.
+- Adds `X-CSRF-Token` for `POST`, `PATCH`, `PUT`, and `DELETE`.
+- Refreshes the session and retries once after recoverable `401` responses.
+- Clears auth state on invalid tokens or failed refresh.
+- Supports blob downloads with native `fetch`.
+- Applies request timeout handling and limited GET retries for transient failures.
 
-The `useAuth.ts` composable wraps `useApi` and provides:
-- Session lifecycle: `login`, `register`, `logout`, `loadSession`, `refreshSession`
-- Profile management: `updateProfile`, `changePassword`, `uploadAvatar`, `deleteAccount`
-- Permission checking: `hasPermission(permission)`
-- User state: reactive `user`, `isAuthenticated`, `isAuthReady`
+`app/composables/useAuth.ts` wraps session and profile flows:
 
-The `useRealtime.ts` composable manages WebSocket connections:
-- Automatic connect/disconnect on auth state changes
-- Heartbeat with 25s interval
-- Exponential backoff reconnection with session refresh before each attempt
-- Event subscription: `on(event, handler)` with cleanup function return
+- `login`, `register`, `logout`, `loadSession`, `refreshSession`.
+- `updateProfile`, `changePassword`, `uploadAvatar`, `deleteAccount`.
+- Reactive `user`, `isAuthenticated`, and `isAuthReady`.
+- `hasPermission(permission)` for UI permission checks.
 
-For the complete API reference, see [docs/api-spec.md](docs/api-spec.md).
+`app/composables/useRealtime.ts` manages:
+
+- Connect/disconnect based on auth state.
+- Heartbeat and reconnect lifecycle.
+- Event subscription through `on(event, handler)`.
+
+For the full backend contract, see [docs/api-spec.md](docs/api-spec.md).
+
+## Backend Contract Summary
+
+All application APIs are under `/api/v1`. Important backend surfaces:
+
+| Module | Prefix | Description |
+| --- | --- | --- |
+| Auth | `/api/v1/auth` | Login, register, refresh, logout, current user, profile, password, avatar, account deletion |
+| Users | `/api/v1/users` | Admin-only user management |
+| Questions | `/api/v1/questions` | Search, CRUD, personal bank, revisions, corrections |
+| Papers | `/api/v1/papers` | Manual paper creation, generation, question ordering, export preview, DOCX download |
+| Images | `/api/v1/images` | PNG question image upload |
+| Meta | `/api/v1/meta` | Subject and tag metadata |
+| Tasks | `/api/v1/tasks` | Celery task dispatch and polling |
+| Realtime | `/api/v1/ws` | Authenticated WebSocket events |
+| Health | `/api/v1/health` | PostgreSQL and Redis health checks |
 
 ## Production Deployment
 
-See [docs/nginx-deployment.md](docs/nginx-deployment.md) for the recommended Nginx reverse-proxy setup. Key points:
+See [docs/nginx-deployment.md](docs/nginx-deployment.md) for the frontend reverse-proxy setup and [../DEPLOYMENT-debian-production.md](../DEPLOYMENT-debian-production.md) for the full Debian deployment guide.
 
-- The Nuxt server does **not** proxy API requests in production on its own
-- Place Nginx in front of both frontend (port 3000) and backend (port 8000)
-- Set `NUXT_PUBLIC_API_BASE=/api/v1` for same-origin requests through Nginx
-- Set explicit backend `CORS_ORIGINS` and `TRUSTED_HOSTS`; production startup rejects missing values and `*`
-- Set `AUTH_COOKIE_SECURE=true` for HTTPS deployments
+Key production requirements:
 
-For a complete production deployment guide covering both frontend and backend, see [DEPLOYMENT-debian-production.md](../DEPLOYMENT-debian-production.md) in the project root.
+- Put Nginx in front of both Nuxt and FastAPI.
+- Forward `/api/v1/*` and `/api/v1/ws` to the backend.
+- Keep frontend API calls same-origin where possible.
+- Configure backend `CORS_ORIGINS` and `TRUSTED_HOSTS`; production rejects missing values and `*`.
+- Set `AUTH_COOKIE_SECURE=true` for HTTPS deployments.
