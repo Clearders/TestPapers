@@ -403,6 +403,26 @@ async function clickByText(cdp, selector, text) {
   if (!clicked) throw new Error(`Could not click ${selector} containing "${text}"`)
 }
 
+async function clickByTextUntil(cdp, selector, text, predicate, label, timeoutMs = TIMEOUT_MS) {
+  const started = Date.now()
+  let lastState = null
+  while (Date.now() - started < timeoutMs) {
+    const state = await evaluate(cdp, jsExpression(`
+      const target = [...document.querySelectorAll(${JSON.stringify(selector)})]
+        .find(el => el.innerText && el.innerText.includes(${JSON.stringify(text)}) && el.getClientRects().length && !el.disabled)
+      if (target) target.click()
+      return {
+        clicked: Boolean(target),
+        matched: Boolean(${predicate})
+      }
+    `))
+    lastState = state
+    if (state.matched) return
+    await delay(250)
+  }
+  throw new Error(`Could not activate ${label}: ${JSON.stringify(lastState)}`)
+}
+
 async function clickByAriaLabel(cdp, selector, label) {
   const clicked = await evaluate(cdp, jsExpression(`
     const target = [...document.querySelectorAll(${JSON.stringify(selector)})]
@@ -470,6 +490,26 @@ async function seedWorkspaceDraft(cdp, key) {
     return true
   `))
   await cdp.send('Page.reload', { ignoreCache: true })
+}
+
+async function setWorkspaceMetadata(cdp, titleValue, subjectValue) {
+  await evaluate(cdp, jsExpression(`
+    const valueSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set
+    const setInput = (selector, value) => {
+      const input = document.querySelector(selector)
+      if (!input) return false
+      valueSetter.call(input, value)
+      input.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: value }))
+      input.dispatchEvent(new Event('change', { bubbles: true }))
+      return true
+    }
+    return setInput('#paper-title', ${JSON.stringify(titleValue)}) && setInput('#paper-subject', ${JSON.stringify(subjectValue)})
+  `))
+  await waitFor(
+    cdp,
+    `document.querySelector('#paper-title')?.value === ${JSON.stringify(titleValue)} && document.querySelector('#paper-subject')?.value === ${JSON.stringify(subjectValue)}`,
+    'Workspace metadata entry'
+  )
 }
 
 async function runAccessSmoke(cdp, mode, expectedPrompt, draftKey, label) {
@@ -542,17 +582,15 @@ async function runSmoke(cdp) {
   await waitFor(cdp, `document.querySelector('#paper-title') && document.body.innerText.includes('Paper Editor')`, 'Workspace editor')
   await assertVisiblePage(cdp, 'Workspace')
 
-  await evaluate(cdp, jsExpression(`
-    const title = document.querySelector('#paper-title')
-    title.value = 'Workspace Smoke Draft'
-    title.dispatchEvent(new Event('input', { bubbles: true }))
-    const subject = document.querySelector('#paper-subject')
-    subject.value = 'Mathematics'
-    subject.dispatchEvent(new Event('input', { bubbles: true }))
-  `))
-  await clickByText(cdp, 'button', 'Open Bank')
+  await setWorkspaceMetadata(cdp, 'Workspace Smoke Draft', 'Mathematics')
   try {
-    await waitFor(cdp, `location.search.includes('section=bank') && !document.querySelector('#paper-title')`, 'Workspace bank tab')
+    await clickByTextUntil(
+      cdp,
+      'button',
+      'Open Bank',
+      `location.search.includes('section=bank') && !document.querySelector('#paper-title')`,
+      'Workspace bank tab'
+    )
   } catch (error) {
     const tabState = await evaluate(cdp, jsExpression(`
       return {
@@ -578,9 +616,37 @@ async function runSmoke(cdp) {
     `))
     throw new Error(`Workspace question bank did not load: ${JSON.stringify(bankState)}; ${error.message}`, { cause: error })
   }
-  await clickByText(cdp, 'button', 'Add to Paper')
-  await clickByText(cdp, 'button', 'Paper Editor')
-  await waitFor(cdp, `document.body.innerText.includes('Q1') && document.querySelector('#paper-title')?.value === 'Workspace Smoke Draft'`, 'draft paper build')
+  await clickByTextUntil(
+    cdp,
+    'button',
+    'Add to Paper',
+    `document.body.innerText.includes('Remove from Paper')`,
+    'question added to paper'
+  )
+  try {
+    await clickByTextUntil(
+      cdp,
+      'button',
+      'Paper Editor',
+      `document.body.innerText.includes('Q1') && document.querySelector('#paper-title')`,
+      'draft paper build'
+    )
+  } catch (error) {
+    const draftState = await evaluate(cdp, jsExpression(`
+      return {
+        path: location.pathname,
+        search: location.search,
+        titleValue: document.querySelector('#paper-title')?.value ?? null,
+        subjectValue: document.querySelector('#paper-subject')?.value ?? null,
+        hasQ1: document.body.innerText.includes('Q1'),
+        selectedText: [...document.querySelectorAll('.workspace-stats .tag')].map(item => item.innerText),
+        buttons: [...document.querySelectorAll('button')].map(button => button.innerText).slice(0, 30),
+        text: document.body.innerText.slice(0, 1600)
+      }
+    `))
+    throw new Error(`Draft paper build did not activate: ${JSON.stringify(draftState)}; ${error.message}`, { cause: error })
+  }
+  await setWorkspaceMetadata(cdp, 'Workspace Smoke Draft', 'Mathematics')
   await evaluate(cdp, jsExpression(`
     const draftName = document.querySelector('#exam-draft-name')
     draftName.value = 'Smoke Named Draft'
@@ -618,16 +684,36 @@ async function runSmoke(cdp) {
   await waitFor(cdp, `document.querySelector('#paper-title')?.value === 'Workspace Smoke Draft' && document.body.innerText.includes('Q1')`, 'restored Workspace draft')
   await assertVisiblePage(cdp, 'Workspace after refresh')
 
-  await clickByText(cdp, 'a', 'Home')
-  await waitFor(cdp, `location.pathname === '/' && document.body.innerText.includes('Craft Perfect')`, 'Home route')
+  await clickByTextUntil(
+    cdp,
+    'a.logo',
+    'TestPapers',
+    `location.pathname === '/' && document.body.innerText.includes('Craft Perfect')`,
+    'Home route'
+  )
   await assertVisiblePage(cdp, 'Home')
 
-  await clickByText(cdp, 'a', 'LaTeX Preview')
-  await waitFor(cdp, `location.pathname === '/latex' && document.querySelector('.latex-input')`, 'LaTeX route')
+  await clickByTextUntil(
+    cdp,
+    'a',
+    'LaTeX Preview',
+    `location.pathname === '/latex' && document.querySelector('.latex-input')`,
+    'LaTeX route'
+  )
   await assertVisiblePage(cdp, 'LaTeX')
 
-  await clickByText(cdp, 'a', 'Workspace')
-  await waitFor(cdp, `location.pathname === '/questions' && document.querySelector('#paper-title')`, 'Workspace return')
+  await evaluate(cdp, jsExpression(`
+    const toggle = document.querySelector('button[aria-label="Toggle navigation"]')
+    if (toggle && toggle.getClientRects().length && toggle.getAttribute('aria-expanded') !== 'true') toggle.click()
+    return true
+  `))
+  await clickByTextUntil(
+    cdp,
+    'a',
+    'Workspace',
+    `location.pathname === '/questions' && document.querySelector('#paper-title')`,
+    'Workspace return'
+  )
   await assertVisiblePage(cdp, 'Workspace return')
 }
 

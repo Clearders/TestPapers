@@ -53,7 +53,7 @@ export function useQuestionBank () {
   const isLoadingMeta = useState<boolean>('meta-loading', () => false)
   const metaLoaded = useState<boolean>('meta-loaded', () => false)
   const { hasPermission } = useAuth()
-  const { apiFetch, getApiBase } = useApi()
+  const { apiFetch } = useApi()
 
   if (import.meta.client) {
     isLoading.value = false
@@ -165,8 +165,7 @@ export function useQuestionBank () {
       }
     })
 
-    if (response.data.url.startsWith('data:')) return response.data.url
-    return new URL(response.data.url, new URL(getApiBase(), window.location.origin)).toString()
+    return response.data.url
   }
 
   const loadMeta = async () => {
