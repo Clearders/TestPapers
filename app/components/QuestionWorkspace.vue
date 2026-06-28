@@ -60,6 +60,65 @@
           </div>
         </div>
 
+        <div class="exam-draft-card card">
+          <div class="exam-draft-head">
+            <div>
+              <h2><AppIcon name="paper" /> Exam Drafts</h2>
+              <p>{{ examDraftSummaryText }}</p>
+            </div>
+            <span v-if="activeExamDraftName" class="tag">Editing {{ activeExamDraftName }}</span>
+          </div>
+
+          <div class="exam-draft-controls">
+            <div class="form-group draft-name-field">
+              <label class="form-label" for="exam-draft-name">Draft Name</label>
+              <input
+                id="exam-draft-name"
+                v-model="examDraftName"
+                class="form-input"
+                name="examDraftName"
+                placeholder="e.g. Algebra final draft"
+              >
+            </div>
+            <button type="button" class="btn btn-primary draft-action" :disabled="!hasCurrentDraftContent" @click="saveCurrentExamDraft">
+              <AppIcon name="check" />
+              Save Draft
+            </button>
+          </div>
+
+          <div v-if="examDrafts.length" class="exam-draft-controls exam-draft-controls--library">
+            <div class="form-group draft-select-field">
+              <label class="form-label" for="exam-draft-select">Saved Drafts</label>
+              <select id="exam-draft-select" v-model="selectedExamDraftId" class="form-input" name="examDraftSelect">
+                <option value="">Select a draft</option>
+                <option v-for="draft in examDrafts" :key="draft.id" :value="draft.id">
+                  {{ draft.name }} | {{ draft.questionCount }} q | {{ draft.totalMarks }} marks
+                </option>
+              </select>
+            </div>
+            <button type="button" class="btn btn-outline draft-action" :disabled="!selectedExamDraftId" @click="loadSelectedExamDraft">
+              <AppIcon name="download" />
+              Load
+            </button>
+            <button type="button" class="btn btn-danger draft-action" :disabled="!selectedExamDraftId" @click="deleteSelectedExamDraft">
+              <AppIcon name="trash" />
+              Delete
+            </button>
+          </div>
+
+          <div v-if="selectedExamDraft" class="exam-draft-meta">
+            <span>{{ selectedExamDraft.title || 'Untitled paper' }}</span>
+            <span>{{ selectedExamDraft.subject || 'No subject' }}</span>
+            <span>Updated {{ formatDraftTimestamp(selectedExamDraft.updatedAt) }}</span>
+          </div>
+          <div v-if="examDraftSavedAt" class="status-banner status-banner--success exam-draft-status" aria-live="polite">
+            Draft saved {{ formatDraftTimestamp(examDraftSavedAt) }}.
+          </div>
+          <div v-if="examDraftError" class="status-banner status-banner--error exam-draft-status" aria-live="polite">
+            {{ examDraftError }}
+          </div>
+        </div>
+
         <div class="editor-layout">
           <PaperBuilderPanel
             v-model:export-mode="exportMode"
@@ -110,6 +169,7 @@
             :downloaded-layout-density="downloadedLayoutDensity"
             :fullscreen="previewFullscreen"
             @toggle-fullscreen="previewFullscreen = !previewFullscreen"
+            @print-paper="printPaper"
           />
         </div>
       </div>
@@ -287,6 +347,8 @@ const generationDiagnostics = ref<GenerationDiagnostics | null>(null)
 const isActive = ref(true)
 const previewFullscreen = ref(false)
 const importModalOpen = ref(false)
+const examDraftName = ref('')
+const selectedExamDraftId = ref('')
 let searchLoadTimer: ReturnType<typeof setTimeout> | null = null
 
 const paper = reactive(createDefaultPaper())
@@ -327,14 +389,31 @@ const paperQuestionIds = computed(() => {
   for (const q of paper.questions) ids.add(q.id)
   return ids
 })
+const hasCurrentDraftContent = computed(() => Boolean(
+  paper.title.trim() ||
+  paper.subject.trim() ||
+  paper.questions.length ||
+  generationForm.subjects.length ||
+  generationForm.requiredTags.length ||
+  generationForm.preferredTags.length
+))
 
 const savedPaperId = ref<string | null>(null)
 const savedPaperSignature = ref('')
 
 const {
   suppressDraftSave,
+  examDrafts,
+  activeExamDraftId,
+  examDraftError,
+  examDraftSavedAt,
   currentPaperSignature,
   restoreWorkspaceDraft,
+  loadExamDraftSummaries,
+  saveExamDraft,
+  loadExamDraft,
+  deleteExamDraft,
+  clearActiveExamDraft,
   clearWorkspaceDraft,
   scheduleWorkspaceDraftSave,
   clearDraftSaveTimer
@@ -351,6 +430,13 @@ const {
   user
 })
 
+const activeExamDraftName = computed(() => examDrafts.value.find(draft => draft.id === activeExamDraftId.value)?.name || '')
+const selectedExamDraft = computed(() => examDrafts.value.find(draft => draft.id === selectedExamDraftId.value) || null)
+const examDraftSummaryText = computed(() => {
+  if (!examDrafts.value.length) return 'No saved exam drafts yet.'
+  return `${examDrafts.value.length} saved draft${examDrafts.value.length === 1 ? '' : 's'} on this device.`
+})
+
 const {
   exported,
   exportAccessPrompt,
@@ -364,6 +450,7 @@ const {
   canDownloadDocx,
   dismissExportAccessPrompt,
   exportPaper,
+  printPaper,
   savePaper,
   downloadDocx,
   resetExportState,
@@ -388,6 +475,7 @@ watch(
   ([ready, allowed]) => {
     if (!import.meta.client || !ready) return
     restoreWorkspaceDraft()
+    loadExamDraftSummaries()
     if (allowed) {
       void loadCurrentPage(1)
       void loadMeta()
@@ -409,6 +497,12 @@ watch([search, filterSubject, filterDifficulty, filterType, filterTag, filterHas
 
 watch([bankMode, activeSection], () => {
   if (import.meta.client) syncQuery()
+})
+
+watch(examDrafts, (drafts) => {
+  if (selectedExamDraftId.value && !drafts.some(draft => draft.id === selectedExamDraftId.value)) {
+    selectedExamDraftId.value = ''
+  }
 })
 
 onBeforeUnmount(() => {
@@ -529,7 +623,7 @@ function clearPaper () {
 }
 
 function newPaper () {
-  const hasDraft = paper.questions.length || paper.title.trim() || paper.subject.trim()
+  const hasDraft = hasCurrentDraftContent.value
   if (hasDraft && !window.confirm('Start a new paper and clear the current draft?')) return
   suppressDraftSave.value = true
   const nextPaper = createDefaultPaper()
@@ -540,6 +634,9 @@ function newPaper () {
   paper.questions.splice(0, paper.questions.length)
   Object.assign(generationForm, createDefaultGenerationForm())
   generationDiagnostics.value = null
+  examDraftName.value = ''
+  selectedExamDraftId.value = ''
+  clearActiveExamDraft()
   resetExportState()
   clearWorkspaceDraft()
   void nextTick(() => {
@@ -559,6 +656,50 @@ watch(
   [() => currentPaperSignature(), () => JSON.stringify(generationForm), exportMode, layoutDensity, includeAnswersInExport, savedPaperId, savedPaperSignature, generationDiagnostics],
   scheduleWorkspaceDraftSave
 )
+
+function defaultExamDraftName () {
+  return paper.title.trim() || `Exam draft ${examDrafts.value.length + 1}`
+}
+
+function saveCurrentExamDraft () {
+  const summary = saveExamDraft(examDraftName.value || defaultExamDraftName())
+  if (!summary) return
+  examDraftName.value = summary.name
+  selectedExamDraftId.value = summary.id
+}
+
+function loadSelectedExamDraft () {
+  const draft = selectedExamDraft.value
+  if (!draft) return
+  if (hasCurrentDraftContent.value && !window.confirm(`Load "${draft.name}" and replace the current paper?`)) return
+  if (!loadExamDraft(draft.id)) return
+  examDraftName.value = draft.name
+  selectedExamDraftId.value = draft.id
+  exported.value = false
+  downloadedLayoutDensity.value = null
+}
+
+function deleteSelectedExamDraft () {
+  const draft = selectedExamDraft.value
+  if (!draft) return
+  if (!window.confirm(`Delete "${draft.name}"? This cannot be undone.`)) return
+  const wasActive = activeExamDraftId.value === draft.id
+  deleteExamDraft(draft.id)
+  if (selectedExamDraftId.value === draft.id) selectedExamDraftId.value = ''
+  if (wasActive) examDraftName.value = ''
+}
+
+function formatDraftTimestamp (value: string) {
+  if (!value) return 'just now'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return 'just now'
+  return date.toLocaleString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
 
 async function generatePaper () {
   generationError.value = ''
@@ -734,6 +875,81 @@ function onQuestionsImported () {
   line-height: 1.5;
 }
 
+.exam-draft-card {
+  margin-bottom: 18px;
+  background:
+    linear-gradient(135deg, rgba(0, 184, 148, 0.08), rgba(255, 138, 76, 0.04)),
+    var(--color-surface);
+}
+
+.exam-draft-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.exam-draft-head h2 {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.02rem;
+  font-weight: 850;
+}
+
+.exam-draft-head p {
+  margin-top: 4px;
+  color: var(--color-muted);
+  font-size: .84rem;
+}
+
+.exam-draft-controls {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  min-width: 0;
+}
+
+.exam-draft-controls + .exam-draft-controls {
+  margin-top: 12px;
+}
+
+.exam-draft-controls .form-group {
+  margin-bottom: 0;
+}
+
+.draft-name-field,
+.draft-select-field {
+  flex: 1;
+  min-width: 220px;
+}
+
+.draft-action {
+  min-height: 40px;
+  white-space: nowrap;
+}
+
+.exam-draft-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin-top: 12px;
+  color: var(--color-muted);
+  font-size: .82rem;
+}
+
+.exam-draft-meta span + span::before {
+  content: "/";
+  margin-right: 14px;
+  color: color-mix(in srgb, var(--color-muted) 54%, transparent);
+}
+
+.exam-draft-status {
+  margin-top: 12px;
+}
+
 .editor-actions,
 .workspace-access-actions {
   display: flex;
@@ -794,7 +1010,11 @@ function onQuestionsImported () {
   .workspace-tabs,
   .workspace-tab,
   .editor-actions,
-  .editor-actions .btn {
+  .editor-actions .btn,
+  .exam-draft-controls,
+  .exam-draft-controls .btn,
+  .draft-name-field,
+  .draft-select-field {
     width: 100%;
   }
 
@@ -818,6 +1038,16 @@ function onQuestionsImported () {
   .editor-toolbar {
     flex-direction: column;
   }
+
+  .exam-draft-controls {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .exam-draft-meta span + span::before {
+    content: "";
+    margin-right: 0;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -830,6 +1060,7 @@ function onQuestionsImported () {
   .workspace-heading,
   .workspace-tabs,
   .editor-toolbar,
+  .exam-draft-card,
   :deep(.paper-panel) {
     display: none !important;
   }

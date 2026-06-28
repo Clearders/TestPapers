@@ -6,7 +6,7 @@
         <p>{{ previewSummary }}</p>
       </div>
       <div class="live-preview-actions">
-        <button class="icon-btn" type="button" aria-label="Print paper" title="Print paper" @click="printPreview">
+        <button class="icon-btn" type="button" aria-label="Print paper" title="Print paper" @click="$emit('print-paper')">
           <AppIcon name="printer" />
         </button>
         <button
@@ -62,6 +62,7 @@ const emit = defineEmits<{
   'update:layoutDensity': [value: LayoutDensity]
   'update:includeAnswersInExport': [value: boolean]
   'toggle-fullscreen': []
+  'print-paper': []
 }>()
 
 const exportModeModel = computed({
@@ -85,10 +86,6 @@ const previewSummary = computed(() => {
   return `${questionCount} question${questionCount === 1 ? '' : 's'} | ${marks} marks`
 })
 
-function printPreview () {
-  if (!import.meta.client) return
-  window.print()
-}
 </script>
 
 <style scoped>

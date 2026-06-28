@@ -341,9 +341,10 @@ function decodeFrame(buffer) {
 }
 
 async function createPageClient() {
-  await requestJson(`http://${HOST}:${DEBUG_PORT}/json/new?${encodeURIComponent(`${BASE_URL}/questions`)}`, 'PUT')
+  const newPage = await requestJson(`http://${HOST}:${DEBUG_PORT}/json/new?${encodeURIComponent(`${BASE_URL}/questions`)}`, 'PUT')
+  if (newPage.webSocketDebuggerUrl) return await CdpClient.connect(newPage.webSocketDebuggerUrl)
   const pages = await requestJson(`http://${HOST}:${DEBUG_PORT}/json/list`)
-  const page = pages.find(item => item.type === 'page' && item.url.includes('/questions')) || pages.find(item => item.type === 'page')
+  const page = pages.find(item => item.id === newPage.id) || pages.find(item => item.type === 'page' && item.url.includes('/questions')) || pages.find(item => item.type === 'page')
   if (!page) throw new Error('Could not create browser tab')
   return await CdpClient.connect(page.webSocketDebuggerUrl)
 }
@@ -394,12 +395,23 @@ async function assertVisiblePage(cdp, label) {
 async function clickByText(cdp, selector, text) {
   const clicked = await evaluate(cdp, jsExpression(`
     const target = [...document.querySelectorAll(${JSON.stringify(selector)})]
-      .find(el => el.innerText && el.innerText.includes(${JSON.stringify(text)}))
+      .find(el => el.innerText && el.innerText.includes(${JSON.stringify(text)}) && el.getClientRects().length && !el.disabled)
     if (!target) return false
     target.click()
     return true
   `))
   if (!clicked) throw new Error(`Could not click ${selector} containing "${text}"`)
+}
+
+async function clickByAriaLabel(cdp, selector, label) {
+  const clicked = await evaluate(cdp, jsExpression(`
+    const target = [...document.querySelectorAll(${JSON.stringify(selector)})]
+      .find(el => el.getAttribute('aria-label') === ${JSON.stringify(label)} && el.getClientRects().length && !el.disabled)
+    if (!target) return false
+    target.click()
+    return true
+  `))
+  if (!clicked) throw new Error(`Could not click ${selector} with aria-label "${label}"`)
 }
 
 function workspaceDraftKey(userId) {
@@ -478,6 +490,24 @@ async function runAccessSmoke(cdp, mode, expectedPrompt, draftKey, label) {
     subject.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: 'Mathematics' }))
   `))
   await evaluate(cdp, jsExpression(`
+    window.__workspacePrintCount = 0
+    window.print = () => { window.__workspacePrintCount += 1 }
+    return true
+  `))
+  await clickByAriaLabel(cdp, 'button', 'Print paper')
+  const printState = await evaluate(cdp, jsExpression(`
+    return {
+      printCount: window.__workspacePrintCount,
+      hasExpectedPrompt: document.body.innerText.includes(${JSON.stringify(expectedPrompt)}),
+      bodyText: document.body.innerText.slice(0, 1200)
+    }
+  `))
+  if (printState.printCount !== 0 || !printState.hasExpectedPrompt) {
+    throw new Error(`${label} print access bypassed export rules: ${JSON.stringify(printState)}`)
+  }
+  await clickByAriaLabel(cdp, 'button', 'Close')
+  await waitFor(cdp, `!document.body.innerText.includes(${JSON.stringify(expectedPrompt)})`, `${label} print access prompt dismissed`)
+  await evaluate(cdp, jsExpression(`
     const exportButton = [...document.querySelectorAll('button')].find(el => el.innerText && el.innerText.includes('Export Paper'))
     if (!exportButton) return false
     exportButton.disabled = false
@@ -496,7 +526,7 @@ async function runAccessSmoke(cdp, mode, expectedPrompt, draftKey, label) {
   if (!exportState.hasExpectedPrompt) {
     throw new Error(`${label} export prompt missing: ${JSON.stringify(exportState)}`)
   }
-  await clickByText(cdp, 'button', 'Question Bank')
+  await clickByText(cdp, 'button', 'Open Bank')
   await waitFor(cdp, `document.body.innerText.includes(${JSON.stringify(mode === 'anonymous' ? 'Create an account to use the question bank' : 'Question bank access required')})`, `${label} access card`)
   if (protectedRequests.length) throw new Error(`${label} made protected requests: ${protectedRequests.join(', ')}`)
   await assertVisiblePage(cdp, `${label} Workspace`)
@@ -520,8 +550,21 @@ async function runSmoke(cdp) {
     subject.value = 'Mathematics'
     subject.dispatchEvent(new Event('input', { bubbles: true }))
   `))
-  await clickByText(cdp, 'button', 'Question Bank')
-  await waitFor(cdp, `location.search.includes('section=bank') && !document.querySelector('#paper-title')`, 'Workspace bank tab')
+  await clickByText(cdp, 'button', 'Open Bank')
+  try {
+    await waitFor(cdp, `location.search.includes('section=bank') && !document.querySelector('#paper-title')`, 'Workspace bank tab')
+  } catch (error) {
+    const tabState = await evaluate(cdp, jsExpression(`
+      return {
+        path: location.pathname,
+        search: location.search,
+        hasPaperTitle: Boolean(document.querySelector('#paper-title')),
+        buttons: [...document.querySelectorAll('button')].map(button => button.innerText).slice(0, 20),
+        text: document.body.innerText.slice(0, 1600)
+      }
+    `))
+    throw new Error(`Workspace bank tab did not activate: ${JSON.stringify(tabState)}; ${error.message}`, { cause: error })
+  }
   try {
     await waitFor(cdp, `document.body.innerText.includes('Smoke draft restoration question')`, 'Workspace question bank')
   } catch (error) {
@@ -538,6 +581,36 @@ async function runSmoke(cdp) {
   await clickByText(cdp, 'button', 'Add to Paper')
   await clickByText(cdp, 'button', 'Paper Editor')
   await waitFor(cdp, `document.body.innerText.includes('Q1') && document.querySelector('#paper-title')?.value === 'Workspace Smoke Draft'`, 'draft paper build')
+  await evaluate(cdp, jsExpression(`
+    const draftName = document.querySelector('#exam-draft-name')
+    draftName.value = 'Smoke Named Draft'
+    draftName.dispatchEvent(new Event('input', { bubbles: true }))
+  `))
+  await clickByText(cdp, 'button', 'Save Draft')
+  await waitFor(cdp, `document.body.innerText.includes('Draft saved') && [...document.querySelectorAll('#exam-draft-select option')].some(option => option.textContent.includes('Smoke Named Draft'))`, 'named draft saved')
+  await evaluate(cdp, jsExpression(`
+    window.confirm = () => true
+    return true
+  `))
+  await clickByText(cdp, 'button', 'New Paper')
+  await waitFor(cdp, `document.querySelector('#paper-title')?.value === '' && !document.body.innerText.includes('Q1')`, 'new paper cleared editor')
+  await evaluate(cdp, jsExpression(`
+    const select = document.querySelector('#exam-draft-select')
+    const option = [...select.options].find(item => item.textContent.includes('Smoke Named Draft'))
+    if (!option) return false
+    select.value = option.value
+    select.dispatchEvent(new Event('change', { bubbles: true }))
+    return true
+  `))
+  await clickByText(cdp, 'button', 'Load')
+  await waitFor(cdp, `document.querySelector('#paper-title')?.value === 'Workspace Smoke Draft' && document.body.innerText.includes('Q1') && document.body.innerText.includes('Editing Smoke Named Draft')`, 'named draft loaded')
+  await evaluate(cdp, jsExpression(`
+    window.__workspacePrintCount = 0
+    window.print = () => { window.__workspacePrintCount += 1 }
+    return true
+  `))
+  await clickByAriaLabel(cdp, 'button', 'Print paper')
+  await waitFor(cdp, `window.__workspacePrintCount === 1`, 'authorized preview print')
   await delay(500)
 
   await cdp.send('Page.reload', { ignoreCache: true })

@@ -114,6 +114,12 @@ export function usePaperExport (params: UsePaperExportParams) {
     exported.value = true
   }
 
+  function printPaper () {
+    if (!import.meta.client) return
+    if (!hasExportPermission(false)) return
+    window.print()
+  }
+
   async function ensureDownloadablePaper () {
     const signature = currentPaperSignature()
     if (savedPaperId.value !== null && savedPaperSignature.value === signature) {
@@ -240,6 +246,7 @@ export function usePaperExport (params: UsePaperExportParams) {
     forgetSavedPaper,
     dismissExportAccessPrompt,
     exportPaper,
+    printPaper,
     ensureDownloadablePaper,
     savePaper,
     downloadDocx,

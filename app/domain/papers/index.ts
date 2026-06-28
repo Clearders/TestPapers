@@ -87,6 +87,16 @@ export interface WorkspaceDraft {
   generationDiagnostics: GenerationDiagnostics | null
 }
 
+export interface ExamDraftSummary {
+  id: string
+  name: string
+  title: string
+  subject: string
+  questionCount: number
+  totalMarks: number
+  updatedAt: string
+}
+
 export type BuildWorkspaceDraftInput = Omit<WorkspaceDraft, 'version'>
 
 export const DEFAULT_PAPER = {
@@ -95,6 +105,8 @@ export const DEFAULT_PAPER = {
 } as const
 
 export const WORKSPACE_DRAFT_PREFIX = 'testpapers.workspaceDraft.v1'
+export const EXAM_DRAFT_INDEX_PREFIX = 'testpapers.examDrafts.v1'
+export const EXAM_DRAFT_ITEM_PREFIX = 'testpapers.examDraft.v1'
 export const DOCX_CONTENT_TYPE = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
 
 const QUESTION_TYPE_SET = new Set<QuestionType>(QUESTION_TYPE_ORDER)
@@ -214,6 +226,15 @@ export function getWorkspaceDraftKey (userId?: number | null) {
   return userId ? `${WORKSPACE_DRAFT_PREFIX}.${userId}` : `${WORKSPACE_DRAFT_PREFIX}.guest`
 }
 
+export function getExamDraftIndexKey (userId?: number | null) {
+  return userId ? `${EXAM_DRAFT_INDEX_PREFIX}.${userId}` : `${EXAM_DRAFT_INDEX_PREFIX}.guest`
+}
+
+export function getExamDraftItemKey (id: string, userId?: number | null) {
+  const owner = userId ? String(userId) : 'guest'
+  return `${EXAM_DRAFT_ITEM_PREFIX}.${owner}.${id}`
+}
+
 export function buildWorkspaceDraft (input: BuildWorkspaceDraftInput): WorkspaceDraft {
   return {
     version: 1,
@@ -225,6 +246,18 @@ export function buildWorkspaceDraft (input: BuildWorkspaceDraftInput): Workspace
     savedPaperId: input.savedPaperId,
     savedPaperSignature: input.savedPaperSignature,
     generationDiagnostics: input.generationDiagnostics ? cloneData(input.generationDiagnostics) : null
+  }
+}
+
+export function buildExamDraftSummary (id: string, name: string, draft: WorkspaceDraft, updatedAt: string): ExamDraftSummary {
+  return {
+    id,
+    name: name.trim() || draft.paper.title.trim() || 'Untitled draft',
+    title: draft.paper.title,
+    subject: draft.paper.subject,
+    questionCount: draft.paper.questions.length,
+    totalMarks: draft.paper.totalMarks,
+    updatedAt
   }
 }
 
@@ -250,6 +283,21 @@ export function validateWorkspaceDraft (value: unknown): WorkspaceDraft | null {
     savedPaperId: typeof value.savedPaperId === 'string' && value.savedPaperId.trim() ? value.savedPaperId : null,
     savedPaperSignature: typeof value.savedPaperSignature === 'string' ? value.savedPaperSignature : '',
     generationDiagnostics: isRecord(value.generationDiagnostics) ? value.generationDiagnostics as unknown as GenerationDiagnostics : null
+  }
+}
+
+export function validateExamDraftSummary (value: unknown): ExamDraftSummary | null {
+  if (!isRecord(value)) return null
+  if (typeof value.id !== 'string' || !value.id.trim()) return null
+
+  return {
+    id: value.id,
+    name: typeof value.name === 'string' && value.name.trim() ? value.name : 'Untitled draft',
+    title: typeof value.title === 'string' ? value.title : '',
+    subject: typeof value.subject === 'string' ? value.subject : '',
+    questionCount: toPositiveInteger(value.questionCount, 0, 0),
+    totalMarks: toPositiveInteger(value.totalMarks, DEFAULT_PAPER.totalMarks),
+    updatedAt: typeof value.updatedAt === 'string' ? value.updatedAt : ''
   }
 }
 
