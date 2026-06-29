@@ -4,9 +4,11 @@ import type { ExportMode, LayoutDensity } from '~/types/generation'
 import type { GeneratedPaperResponse, PaperEntityResponse, PaperState } from '~/domain/papers'
 import {
   DOCX_CONTENT_TYPE,
+  buildPaperDraftDownloadPayload,
   buildPaperMetadataPayload,
   buildPaperPayload,
   filenameFromDisposition,
+  hasTemporaryQuestionEdits,
   layoutDensityFromHeader,
   normalizePaperQuestion
 } from '~/domain/papers'
@@ -169,15 +171,29 @@ export function usePaperExport (params: UsePaperExportParams) {
     })
   }
 
+  async function requestDraftDocxDownload () {
+    return await apiFetchRaw('/papers/draft-download', {
+      method: 'POST',
+      body: buildPaperDraftDownloadPayload(
+        paper,
+        exportMode.value,
+        layoutDensity.value,
+        includeAnswersInExport.value && canReadAnswers.value
+      )
+    })
+  }
+
   async function downloadDocx () {
     if (isDownloadingDocx.value) return
-    if (!hasExportPermission(!hasReusableSavedPaper())) return
+    const useDraftDownload = hasTemporaryQuestionEdits(paper)
+    if (!hasExportPermission(useDraftDownload ? false : !hasReusableSavedPaper())) return
 
     downloadError.value = ''
     isDownloadingDocx.value = true
     try {
-      const paperId = await ensureDownloadablePaper()
-      const response = await requestDocxDownload(paperId)
+      const response = useDraftDownload
+        ? await requestDraftDocxDownload()
+        : await requestDocxDownload(await ensureDownloadablePaper())
       if (!response.ok) {
         throw new Error(await response.text() || 'Failed to download DOCX.')
       }

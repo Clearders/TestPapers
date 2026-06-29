@@ -1,5 +1,5 @@
 import type { ExportMode, GenerationDiagnostics, GenerationFormState, LayoutDensity } from '~/types/generation'
-import type { Question, QuestionDifficulty, QuestionEntity, QuestionImage, QuestionType } from '~/types/question'
+import type { EssayBlankSpace, Question, QuestionDifficulty, QuestionEntity, QuestionImage, QuestionType } from '~/types/question'
 import { toRaw } from 'vue'
 import {
   DEFAULT_ESSAY_BLANK_SPACE,
@@ -13,7 +13,12 @@ import {
 
 export type { GenerationFormState } from '~/types/generation'
 export type BankMode = 'all' | 'mine'
-export type PaperQuestion = Question & { marks?: number; orderNo?: number }
+export type PaperQuestion = Question & {
+  marks?: number
+  orderNo?: number
+  isTemporaryEdit?: boolean
+  originalQuestion?: Question
+}
 export type ApiPaperQuestion = Partial<QuestionEntity> & { id: number; marks?: number | null; orderNo?: number | null }
 
 export interface PaperState {
@@ -51,6 +56,31 @@ export interface PaperGeneratePayload {
   subjects: string[]
   requiredTags?: string[]
   preferredTags?: string[]
+}
+
+export interface PaperDraftQuestionPayload {
+  questionPublicId: string
+  orderNo: number
+  marks?: number
+  type: QuestionType
+  subjects: string[]
+  difficulty: QuestionDifficulty
+  tags: string[]
+  text: string
+  options?: string[]
+  answer: string | string[]
+  hasLatex: boolean
+  source?: string
+  essayBlankSpace?: EssayBlankSpace
+  images?: QuestionImage[]
+  scoreWeight: number
+}
+
+export interface PaperDraftDownloadPayload extends PaperMetadataPayload {
+  questions: PaperDraftQuestionPayload[]
+  questionOrder: ExportMode
+  includeAnswer: boolean
+  layoutDensity: LayoutDensity
 }
 
 export interface GeneratedPaperResponse {
@@ -190,8 +220,46 @@ export function buildPaperPayload (paper: PaperState): PaperCreatePayload {
   }
 }
 
+export function buildPaperDraftDownloadPayload (
+  paper: PaperState,
+  questionOrder: ExportMode,
+  layoutDensity: LayoutDensity,
+  includeAnswer: boolean
+): PaperDraftDownloadPayload {
+  return {
+    ...buildPaperMetadataPayload(paper),
+    questionOrder,
+    includeAnswer,
+    layoutDensity,
+    questions: paper.questions.map((question, index) => {
+      const marks = optionalPositiveInteger(question.marks)
+      return {
+        questionPublicId: question.publicId,
+        orderNo: index + 1,
+        ...(marks ? { marks } : {}),
+        type: question.type,
+        subjects: [...question.subjects],
+        difficulty: question.difficulty,
+        tags: [...question.tags],
+        text: question.text,
+        ...(question.options?.length ? { options: [...question.options] } : {}),
+        answer: Array.isArray(question.answer) ? [...question.answer] : question.answer,
+        hasLatex: question.hasLatex,
+        ...(question.source ? { source: question.source } : {}),
+        ...(question.essayBlankSpace ? { essayBlankSpace: { ...question.essayBlankSpace } } : {}),
+        ...(question.images?.length ? { images: cloneData(question.images) } : {}),
+        scoreWeight: question.scoreWeight
+      }
+    })
+  }
+}
+
 export function getPaperSignature (paper: PaperState) {
   return JSON.stringify(buildPaperPayload(paper))
+}
+
+export function hasTemporaryQuestionEdits (paper: PaperState) {
+  return paper.questions.some(question => question.isTemporaryEdit)
 }
 
 export function buildPaperGeneratePayload (paper: PaperState, generationForm: GenerationFormState, bankMode: BankMode): PaperGeneratePayload | null {
@@ -363,8 +431,9 @@ function validateDraftQuestion (value: unknown): PaperQuestion | null {
     : value.type === 'essay'
       ? { ...DEFAULT_ESSAY_BLANK_SPACE }
       : undefined
+  const originalQuestion = isRecord(value.originalQuestion) ? validateDraftQuestion(value.originalQuestion) : null
 
-  return {
+  const paperQuestion: PaperQuestion = {
     id,
     publicId: value.publicId,
     type: value.type,
@@ -383,6 +452,9 @@ function validateDraftQuestion (value: unknown): PaperQuestion | null {
     ...(orderNo ? { orderNo } : {}),
     ...(typeof value.ownerId === 'number' || value.ownerId === null ? { ownerId: value.ownerId } : {})
   }
+  if (value.isTemporaryEdit === true) paperQuestion.isTemporaryEdit = true
+  if (originalQuestion) paperQuestion.originalQuestion = originalQuestion
+  return paperQuestion
 }
 
 function validateGenerationFormDraft (value: unknown): GenerationFormState {

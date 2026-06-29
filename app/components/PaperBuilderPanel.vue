@@ -63,6 +63,10 @@
                 <span class="tag">weight {{ formatScoreWeight(q.scoreWeight) }}</span>
                 <span v-if="q.marks" class="tag">{{ q.marks }} mark{{ q.marks !== 1 ? 's' : '' }}</span>
                 <span v-for="tag in q.tags" :key="tag" class="tag">{{ tag }}</span>
+                <span v-if="q.isTemporaryEdit" class="tag temp-edit-tag">
+                  <AppIcon name="edit" />
+                  draft edit
+                </span>
               </div>
               <div class="q-text-wrap">
                 <template v-for="(part, i) in paperQuestionLatexParts.get(q.id) || []" :key="i">
@@ -72,10 +76,20 @@
               </div>
             </div>
           </div>
-          <button class="btn btn-danger btn-sm remove-btn" @click="emit('remove-question', q.id)">
-            <AppIcon name="trash" />
-            Remove
-          </button>
+          <div class="paper-q-actions">
+            <button class="btn btn-outline btn-sm" @click="emit('edit-temporary-question', q)">
+              <AppIcon name="edit" />
+              Edit Draft
+            </button>
+            <button v-if="q.isTemporaryEdit" class="btn btn-outline btn-sm" @click="emit('reset-temporary-question', q.id)">
+              <AppIcon name="x" />
+              Reset
+            </button>
+            <button class="btn btn-danger btn-sm remove-btn" @click="emit('remove-question', q.id)">
+              <AppIcon name="trash" />
+              Remove
+            </button>
+          </div>
         </div>
       </TransitionGroup>
       <div v-else class="empty-paper card">
@@ -160,7 +174,7 @@
 <script setup lang="ts">
 import type { ExportAccessPrompt } from '~/composables/usePaperExport'
 import type { ExportMode, GenerationDiagnostics, LayoutDensity } from '~/types/generation'
-import type { GenerationFormState, PaperState } from '~/domain/papers'
+import type { GenerationFormState, PaperQuestion, PaperState } from '~/domain/papers'
 import { formatScoreWeight } from '~/utils/format'
 import { parseLatexParts } from '~/composables/useLatexParts'
 
@@ -203,6 +217,8 @@ const emit = defineEmits<{
   'move-up': [index: number]
   'move-down': [index: number]
   'remove-question': [id: number]
+  'edit-temporary-question': [question: PaperQuestion]
+  'reset-temporary-question': [id: number]
   'save-paper': []
   'export-paper': []
   'download-docx': []
@@ -425,8 +441,22 @@ const paperQuestionLatexParts = computed(() => {
   transform: translateY(-1px);
   background: rgba(118, 87, 255, 0.16);
 }
+.paper-q-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
 .remove-btn {
   white-space: nowrap;
+}
+.temp-edit-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-color: rgba(14, 165, 233, 0.28);
+  background: rgba(14, 165, 233, 0.08);
+  color: var(--color-primary-d);
 }
 .empty-paper {
   text-align: center;
@@ -523,8 +553,15 @@ const paperQuestionLatexParts = computed(() => {
     width: 100%;
   }
   .paper-q-body,
+  .paper-q-actions,
   .remove-btn {
     width: 100%;
+  }
+  .paper-q-actions {
+    justify-content: stretch;
+  }
+  .paper-q-actions .btn {
+    flex: 1 1 100%;
   }
   .paper-q-num {
     min-width: 24px;

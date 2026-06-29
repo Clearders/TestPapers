@@ -153,6 +153,8 @@
             @move-up="moveUp"
             @move-down="moveDown"
             @remove-question="removeQuestion"
+            @edit-temporary-question="openTemporaryQuestionEdit"
+            @reset-temporary-question="resetTemporaryQuestionEdit"
             @save-paper="savePaper"
             @export-paper="exportPaper"
             @download-docx="downloadDocx"
@@ -259,13 +261,23 @@
       @close="importModalOpen = false"
       @imported="onQuestionsImported"
     />
+
+    <TemporaryQuestionEditModal
+      v-if="temporaryEditingQuestion"
+      :key="temporaryEditingQuestion.id"
+      :question="temporaryEditingQuestion"
+      :visible="!!temporaryEditingQuestion"
+      @close="temporaryEditingQuestion = null"
+      @save="applyTemporaryQuestionEdit"
+      @reset="resetTemporaryQuestionEdit"
+    />
   </section>
 </template>
 
 <script setup lang="ts">
 import type { Question, QuestionDifficulty, QuestionType } from '~/types/question'
 import type { ExportMode, GenerationDiagnostics, LayoutDensity } from '~/types/generation'
-import type { BankMode, GeneratedPaperResponse } from '~/domain/papers'
+import type { BankMode, GeneratedPaperResponse, PaperQuestion } from '~/domain/papers'
 import {
   buildPaperGeneratePayload,
   clonePaperQuestion,
@@ -283,6 +295,7 @@ const EditQuestionModal = defineAsyncComponent(() => import('~/components/questi
 const QuestionCorrectionModal = defineAsyncComponent(() => import('~/components/questions/QuestionCorrectionModal.vue'))
 const QuestionDetailModal = defineAsyncComponent(() => import('~/components/questions/QuestionDetailModal.vue'))
 const QuestionImportModal = defineAsyncComponent(() => import('~/components/questions/QuestionImportModal.vue'))
+const TemporaryQuestionEditModal = defineAsyncComponent(() => import('~/components/TemporaryQuestionEditModal.vue'))
 
 const {
   canCreateQuestions,
@@ -357,6 +370,7 @@ const generationForm = reactive(createDefaultGenerationForm())
 const editingQuestion = ref<Question | null>(null)
 const reportingQuestion = ref<Question | null>(null)
 const detailQuestion = ref<Question | null>(null)
+const temporaryEditingQuestion = ref<PaperQuestion | null>(null)
 
 const canReadQuestions = computed(() => hasPermission('questions:read'))
 const workspaceAccessTitle = computed(() => isAuthenticated.value ? 'Question bank access required' : 'Create an account to use the question bank')
@@ -611,6 +625,31 @@ function moveDown (idx: number) {
   paper.questions.splice(idx + 1, 0, removed)
 }
 
+function openTemporaryQuestionEdit (question: PaperQuestion) {
+  temporaryEditingQuestion.value = question
+}
+
+function applyTemporaryQuestionEdit (question: PaperQuestion) {
+  const idx = paper.questions.findIndex(item => item.id === question.id)
+  if (idx === -1) return
+  paper.questions.splice(idx, 1, question)
+  temporaryEditingQuestion.value = null
+  downloadedLayoutDensity.value = null
+}
+
+function resetTemporaryQuestionEdit (id: number) {
+  const idx = paper.questions.findIndex(item => item.id === id)
+  if (idx === -1) return
+  const current = paper.questions[idx]
+  if (!current?.originalQuestion) return
+  const restored = clonePaperQuestion(current.originalQuestion)
+  restored.marks = current.marks
+  restored.orderNo = current.orderNo
+  paper.questions.splice(idx, 1, restored)
+  if (temporaryEditingQuestion.value?.id === id) temporaryEditingQuestion.value = null
+  downloadedLayoutDensity.value = null
+}
+
 function clearPaper () {
   if (!window.confirm('Clear all questions from the paper? This cannot be undone.')) return
   suppressDraftSave.value = true
@@ -653,7 +692,7 @@ watch(() => currentPaperSignature(), () => {
 })
 
 watch(
-  [() => currentPaperSignature(), () => JSON.stringify(generationForm), exportMode, layoutDensity, includeAnswersInExport, savedPaperId, savedPaperSignature, generationDiagnostics],
+  [() => currentPaperSignature(), () => JSON.stringify(paper.questions), () => JSON.stringify(generationForm), exportMode, layoutDensity, includeAnswersInExport, savedPaperId, savedPaperSignature, generationDiagnostics],
   scheduleWorkspaceDraftSave
 )
 

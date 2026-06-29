@@ -301,7 +301,7 @@ Question order body:
 | `questionOrder` | `paper` / `categorized` | `paper` |
 | `layoutDensity` | `auto` / `normal` / `compact` / `dense` | `auto` |
 
-`GET /api/v1/papers/{paper_public_id}/download` requires `papers:read` and downloads a DOCX.
+`GET /api/v1/papers/{paper_public_id}/download` requires `papers:read` and downloads a DOCX for a saved paper.
 
 | Query parameter | Type | Default |
 | --- | --- | --- |
@@ -311,6 +311,25 @@ Question order body:
 | `layoutDensity` | `auto` / `normal` / `compact` / `dense` | `auto` |
 
 Response headers include `Content-Disposition`, `X-Export-Format`, and `X-Layout-Density`.
+
+`POST /api/v1/papers/draft-download` requires `papers:read` and downloads a DOCX from an unsaved paper draft without creating or updating a paper. It is used for temporary question edits that should affect preview/export but not the question bank.
+
+Draft download body:
+
+| Field | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `title` | string | yes | Non-empty |
+| `subject` | string | yes | Non-empty |
+| `duration` | integer | yes | Greater than `0` |
+| `totalMarks` | integer | yes | Greater than `0` |
+| `questions` | `PaperDraftQuestion[]` | yes | Full draft question snapshots; at least one |
+| `includeAnswer` | boolean | no | Default `true`; still requires `answers:read` |
+| `questionOrder` | `paper` / `categorized` | no | Default `paper` |
+| `layoutDensity` | `auto` / `normal` / `compact` / `dense` | no | Default `auto` |
+
+`PaperDraftQuestion` includes `questionPublicId`, `orderNo`, optional `marks`, and the editable question fields used by export: `type`, `subjects`, `difficulty`, `tags`, `text`, `options`, `answer`, `hasLatex`, `source`, `essayBlankSpace`, `images`, and `scoreWeight`.
+
+Response headers include `Content-Disposition`, `X-Export-Format`, `X-Layout-Density`, and `X-Draft-Export: true`.
 
 ## Metadata and Images
 
@@ -527,6 +546,7 @@ interface ImageUploadResponse {
 | `PUT` | `/api/v1/papers/{paper_public_id}/questions/order` | `papers:write` | Reorder questions |
 | `POST` | `/api/v1/papers/{paper_public_id}/export-preview` | `papers:read` | Export preview |
 | `GET` | `/api/v1/papers/{paper_public_id}/download` | `papers:read` | Download DOCX |
+| `POST` | `/api/v1/papers/draft-download` | `papers:read` | Download DOCX from an unsaved draft |
 | `POST` | `/api/v1/tasks/ping` | `questions:read` | Worker check |
 | `GET` | `/api/v1/tasks/{task_id}` | `questions:read` | Task status |
 | `POST` | `/api/v1/tasks/export-paper/{paper_public_id}` | `papers:read` | Async export |
