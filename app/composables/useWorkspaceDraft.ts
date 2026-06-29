@@ -90,9 +90,8 @@ export function useWorkspaceDraft (params: UseWorkspaceDraftParams) {
     includeAnswersInExport.value = draft.includeAnswersInExport && canReadAnswers.value
     generationDiagnostics.value = draft.generationDiagnostics
 
-    const signatureMatches = Boolean(draft.savedPaperId && draft.savedPaperSignature && draft.savedPaperSignature === currentPaperSignature())
-    savedPaperId.value = signatureMatches ? draft.savedPaperId : null
-    savedPaperSignature.value = signatureMatches ? draft.savedPaperSignature : ''
+    savedPaperId.value = draft.savedPaperId
+    savedPaperSignature.value = draft.savedPaperId ? draft.savedPaperSignature : ''
   }
 
   function restoreWorkspaceDraft () {

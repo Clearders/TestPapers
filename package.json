@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "build": "node scripts/run-nuxi.mjs build",
-    "check": "node scripts/check-auth-ssr-state.mjs && node scripts/check-csp-hardening.mjs && node scripts/run-nuxi.mjs build",
+    "check": "node scripts/check-auth-ssr-state.mjs && node scripts/check-csp-hardening.mjs && node scripts/check-paper-persistence-flow.mjs && node scripts/run-nuxi.mjs build",
     "check:csp-hardening": "node scripts/check-csp-hardening.mjs",
     "check:realtime-backoff": "node scripts/check-realtime-backoff.mjs",
     "check:auth-ssr-state": "node scripts/check-auth-ssr-state.mjs",

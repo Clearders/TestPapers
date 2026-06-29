@@ -4,12 +4,13 @@ import type { ExportMode, LayoutDensity } from '~/types/generation'
 import type { GeneratedPaperResponse, PaperEntityResponse, PaperState } from '~/domain/papers'
 import {
   DOCX_CONTENT_TYPE,
+  buildPaperMetadataPayload,
   buildPaperPayload,
   filenameFromDisposition,
   layoutDensityFromHeader,
   normalizePaperQuestion
 } from '~/domain/papers'
-import { apiErrorMessage } from '~/utils/apiError'
+import { apiErrorMessage, getStatusCode } from '~/utils/apiError'
 
 export type ExportAccessPrompt = {
   kind: 'account' | 'admin'
@@ -124,6 +125,27 @@ export function usePaperExport (params: UsePaperExportParams) {
     const signature = currentPaperSignature()
     if (savedPaperId.value !== null && savedPaperSignature.value === signature) {
       return savedPaperId.value
+    }
+
+    if (savedPaperId.value !== null) {
+      try {
+        await apiFetch<PaperEntityResponse>(`/papers/${savedPaperId.value}`, {
+          method: 'PATCH',
+          body: buildPaperMetadataPayload(paper)
+        })
+      } catch (error) {
+        if (getStatusCode(error) !== 404) throw error
+        forgetSavedPaper()
+      }
+
+      if (savedPaperId.value !== null) {
+        await apiFetch(`/papers/${savedPaperId.value}/questions`, {
+          method: 'PUT',
+          body: buildPaperPayload(paper).questions
+        })
+        savedPaperSignature.value = signature
+        return savedPaperId.value
+      }
     }
 
     const response = await apiFetch<PaperEntityResponse>('/papers', {
