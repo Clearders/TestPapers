@@ -1,6 +1,10 @@
 <template>
-  <div v-if="questionError" class="status-banner status-banner--error">
+  <div v-if="questionError" class="status-banner status-banner--error" role="alert" aria-live="polite">
     {{ questionError }}
+  </div>
+
+  <div v-if="deleteError" class="status-banner status-banner--error" role="alert" aria-live="polite">
+    {{ deleteError }}
   </div>
 
   <div v-if="loading" class="status-banner" aria-live="polite">
@@ -54,6 +58,7 @@ import type { ApiPagination } from '~/types/api'
 import { QUESTION_TYPE_LABELS } from '~/domain/questions'
 import QuestionBankCard from '~/components/questions/QuestionBankCard.vue'
 import PaginationControls from '~/components/questions/PaginationControls.vue'
+import { apiErrorMessage } from '~/utils/apiError'
 
 const props = defineProps<{
   questions: Question[]
@@ -80,6 +85,7 @@ const emit = defineEmits<{
 }>()
 
 const { deleteQuestion } = useQuestionBank()
+const deleteError = ref('')
 
 function isShown (id: number) {
   return props.shownIds.has(id)
@@ -103,13 +109,12 @@ function goToPage (page: number) {
 
 async function handleDeleteQuestion (question: Question) {
   if (!window.confirm(`Delete question #${question.id}? This will also remove all revision history and corrections. This cannot be undone.`)) return
+  deleteError.value = ''
   try {
     await deleteQuestion(question.publicId)
     emit('delete', question)
   } catch (err) {
-    console.error('[QuestionCardList] Failed to delete question:', err)
-    if (!window.confirm('Failed to delete. Remove from local list anyway?')) return
-    emit('delete', question)
+    deleteError.value = apiErrorMessage(err, 'Failed to delete question.')
   }
 }
 </script>
