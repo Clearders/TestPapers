@@ -47,6 +47,7 @@
                 </span>
               </div>
               <span class="form-hint">Press Enter or click Add after each subject.</span>
+              <span v-if="metaError" class="form-hint form-hint--error" role="status" aria-live="polite">{{ metaError }}</span>
             </div>
             <div class="form-group" style="flex:1">
               <label class="form-label" for="problem-difficulty">Difficulty <span class="required">*</span></label>
@@ -224,11 +225,11 @@
             </button>
           </div>
 
-          <div v-if="submitError" class="success-banner success-banner--error" role="alert" aria-live="polite">
+          <div v-if="submitError" class="status-banner status-banner--error form-status" role="alert" aria-live="polite">
             {{ submitError }}
           </div>
 
-          <div v-if="submitted" class="success-banner" role="status" aria-live="polite">
+          <div v-if="submitted" class="status-banner status-banner--success form-status" role="status" aria-live="polite">
             Problem saved successfully. <NuxtLink to="/questions">Open the workspace</NuxtLink>
           </div>
         </form>
@@ -269,7 +270,7 @@ useSeoMeta({
   robots: 'noindex, nofollow'
 })
 
-const { addQuestion, uploadImage, availableSubjects, loadMeta } = useQuestionBank()
+const { addQuestion, uploadImage, availableSubjects, loadMeta, metaError } = useQuestionBank()
 const { hasPermission } = useAuth()
 
 const tagInput = ref('')
@@ -583,36 +584,8 @@ const cheatSheet = LATEX_QUICK_REFERENCE
   width: 24px;
   font-weight: 700;
 }
-.success-banner {
-  background: rgba(0, 184, 148, 0.1);
-  border: 1px solid rgba(0, 184, 148, 0.22);
-  border-radius: var(--radius);
-  padding: 12px 16px;
-  font-size: .9rem;
-  color: var(--color-success-text);
+.form-status {
   margin-top: 8px;
-}
-.success-banner a {
-  color: var(--color-primary);
-  text-decoration: underline;
-}
-
-.success-banner--error {
-  background: var(--color-danger-bg);
-  border-color: var(--color-danger-border);
-  color: var(--color-danger-text);
-}
-
-[data-theme="dark"] .success-banner {
-  background: rgba(74, 222, 128, 0.08);
-  border-color: rgba(74, 222, 128, 0.2);
-  color: #86efac;
-}
-
-[data-theme="dark"] .success-banner--error {
-  background: rgba(248, 113, 113, 0.1);
-  border-color: rgba(248, 113, 113, 0.25);
-  color: var(--color-danger-text);
 }
 .panel-head {
   display: flex;

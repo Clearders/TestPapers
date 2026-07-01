@@ -18,6 +18,7 @@
         :generation-form="generationForm"
         :available-subjects="availableSubjects"
         :is-loading-meta="isLoadingMeta"
+        :meta-error="metaError"
         @update:generation-form="emit('update:generationForm', $event)"
       />
 
@@ -40,6 +41,7 @@
         :generation-form="generationForm"
         :available-tags="availableTags"
         :is-loading-meta="isLoadingMeta"
+        :meta-error="metaError"
         @update:generation-form="emit('update:generationForm', $event)"
       />
     </div>
@@ -111,6 +113,7 @@ const props = defineProps<{
   availableSubjects: string[]
   availableTags: string[]
   isLoadingMeta: boolean
+  metaError: string
   totalMarks: number
   paperTitle: string
 }>()
@@ -388,20 +391,6 @@ function formatDistribution (distribution: Record<string, number>) {
   opacity: 0;
   transform: translateY(-4px);
 }
-.status-banner {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  background: #f8fafc;
-  color: var(--color-muted);
-  padding: 10px 12px;
-  margin-bottom: 14px;
-  font-size: .875rem;
-}
-.status-banner--error {
-  border-color: var(--color-danger-border);
-  background: var(--color-danger-bg);
-  color: var(--color-danger-text);
-}
 @media (max-width: 560px) {
   .gen-stats {
     grid-template-columns: repeat(2, 1fr);
@@ -415,16 +404,6 @@ function formatDistribution (distribution: Record<string, number>) {
   .gen-action .btn {
     width: 100%;
   }
-}
-
-[data-theme="dark"] .status-banner {
-  background: rgba(30, 41, 59, 0.6);
-}
-
-[data-theme="dark"] .status-banner--error {
-  background: rgba(248, 113, 113, 0.1);
-  border-color: rgba(248, 113, 113, 0.25);
-  color: var(--color-danger-text);
 }
 
 @media (prefers-reduced-motion: reduce) {

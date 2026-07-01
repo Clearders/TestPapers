@@ -108,7 +108,7 @@
               </span>
             </div>
 
-            <div v-if="errorMsg" class="status-banner status-banner--error" aria-live="polite">
+            <div v-if="errorMsg" class="status-banner status-banner--error modal-status" aria-live="polite">
               {{ errorMsg }}
             </div>
 
@@ -419,11 +419,8 @@ function handleSubmit () {
   gap: 6px;
   max-width: 100%;
 }
-.status-banner--error {
+.modal-status {
   margin-bottom: 12px;
-  border-color: var(--color-danger-border);
-  background: var(--color-danger-bg);
-  color: var(--color-danger-text);
 }
 .form-actions {
   display: flex;

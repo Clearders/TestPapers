@@ -127,24 +127,6 @@ async function handleDeleteQuestion (question: Question) {
   position: relative;
 }
 
-.status-banner {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  background: #f8fafc;
-  color: var(--color-muted);
-  padding: 10px 12px;
-  margin-bottom: 14px;
-  font-size: .875rem;
-}
-.status-banner--error {
-  border-color: var(--color-danger-border);
-  background: var(--color-danger-bg);
-  color: var(--color-danger-text);
-}
-
 .empty-state {
   text-align: center;
   color: var(--color-muted);
@@ -160,13 +142,4 @@ async function handleDeleteQuestion (question: Question) {
   color: var(--color-primary);
 }
 
-[data-theme="dark"] .status-banner {
-  background: rgba(31, 27, 48, 0.6);
-}
-
-[data-theme="dark"] .status-banner--error {
-  background: rgba(248, 113, 113, 0.1);
-  border-color: rgba(248, 113, 113, 0.25);
-  color: var(--color-danger-text);
-}
 </style>

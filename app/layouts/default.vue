@@ -74,6 +74,11 @@
       </div>
     </header>
 
+    <div v-if="showRealtimeBanner" class="status-banner status-banner--warning realtime-banner" role="status" aria-live="polite">
+      <AppIcon name="settings" />
+      <span>{{ realtimeError }}</span>
+    </div>
+
     <main id="main-content" class="site-main">
       <NuxtErrorBoundary>
         <slot />
@@ -101,10 +106,12 @@
 import UserDropdown from '~/components/UserDropdown.vue'
 
 const { hasPermission, isAuthenticated } = useAuth()
+const { lastError: realtimeError } = useRealtime()
 const { isDark, toggleTheme } = useTheme()
 const route = useRoute()
 const isNavOpen = ref(false)
 const currentYear = new Date().getFullYear()
+const showRealtimeBanner = computed(() => isAuthenticated.value && Boolean(realtimeError.value))
 
 const requestURL = useRequestURL()
 const canonicalUrl = computed(() => requestURL.origin + route.path)
@@ -150,3 +157,10 @@ function onMagneticPointerLeave (event: PointerEvent) {
 
 watch(() => route.fullPath, closeNav)
 </script>
+
+<style scoped>
+.realtime-banner {
+  width: min(var(--site-max-w), calc(100% - var(--site-gutter) - var(--site-gutter)));
+  margin: 12px auto 0;
+}
+</style>

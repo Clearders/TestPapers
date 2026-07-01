@@ -506,16 +506,6 @@ code {
   50% { box-shadow: 0 14px 34px rgba(118, 87, 255, 0.12); }
 }
 
-.status-banner--error {
-  background: var(--color-danger-bg);
-  border-color: var(--color-danger-border);
-  color: var(--color-danger-text);
-  border: 1px solid;
-  border-radius: var(--radius);
-  padding: 10px 12px;
-  font-size: .875rem;
-}
-
 [data-theme="dark"] .preview-stage :deep(.katex) {
   color: var(--color-text);
 }
@@ -526,12 +516,6 @@ code {
 
 [data-theme="dark"] .reference-table :deep(.katex) {
   color: var(--color-text);
-}
-
-[data-theme="dark"] .status-banner--error {
-  background: rgba(248, 113, 113, 0.1);
-  border-color: rgba(248, 113, 113, 0.25);
-  color: var(--color-danger-text);
 }
 
 @media (max-width: 820px) {

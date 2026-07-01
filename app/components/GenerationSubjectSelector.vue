@@ -14,6 +14,7 @@
     <div v-else-if="isLoadingMeta" class="gen-subject-loading" aria-live="polite">
       Loading subjects...
     </div>
+    <p v-else-if="metaError" class="form-hint form-hint--error" role="status" aria-live="polite">{{ metaError }}</p>
     <p v-else class="form-hint">No subjects available. Create questions with subjects first.</p>
   </div>
 </template>
@@ -25,6 +26,7 @@ const props = defineProps<{
   generationForm: GenerationFormState
   availableSubjects: string[]
   isLoadingMeta: boolean
+  metaError: string
 }>()
 
 const emit = defineEmits<{

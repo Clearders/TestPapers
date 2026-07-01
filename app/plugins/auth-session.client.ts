@@ -54,32 +54,6 @@ export default defineNuxtPlugin(() => {
     else reloadQuestionBank()
   })
 
-  realtime.on('paper.created', (payload: unknown) => {
-    if (isRealtimePayload(payload) && payload.paper) {
-      console.info('[Session] Paper created by another user:', payload.paper.publicId)
-    }
-  })
-  realtime.on('paper.updated', (payload: unknown) => {
-    if (isRealtimePayload(payload) && payload.paper) {
-      console.info('[Session] Paper updated by another user:', payload.paper.publicId)
-    }
-  })
-  realtime.on('paper.questions.added', (payload: unknown) => {
-    if (isRealtimePayload(payload) && payload.paper?.publicId) {
-      console.info('[Session] Questions added to paper:', payload.paper.publicId)
-    }
-  })
-  realtime.on('paper.question.removed', (payload: unknown) => {
-    if (isRealtimePayload(payload) && payload.paper?.publicId) {
-      console.info('[Session] Question removed from paper:', payload.paper.publicId)
-    }
-  })
-  realtime.on('paper.questions.reordered', (payload: unknown) => {
-    if (isRealtimePayload(payload) && payload.paper?.publicId) {
-      console.info('[Session] Paper questions reordered:', payload.paper.publicId)
-    }
-  })
-
   const connectRealtime = () => {
     if (auth.isAuthenticated.value) realtime.connect()
   }

@@ -320,20 +320,6 @@ function downloadTemplate () {
   animation: spin .7s linear infinite;
 }
 
-.status-banner {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  padding: 10px 12px;
-  margin-bottom: 14px;
-  color: var(--color-muted);
-}
-
-.status-banner--error {
-  border-color: var(--color-danger-border);
-  background: var(--color-danger-bg);
-  color: var(--color-danger-text);
-}
-
 @keyframes spin {
   to { transform: rotate(360deg); }
 }

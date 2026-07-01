@@ -2,6 +2,7 @@ import { buildRealtimeUrl } from '~/utils/apiEndpoint'
 import { createRealtimeReconnectBackoff } from '~/utils/realtimeBackoff'
 
 type RealtimeHandler = (payload: unknown) => void
+type RealtimeStatus = 'idle' | 'connecting' | 'open' | 'reconnecting'
 
 let socket: WebSocket | null = null
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null
@@ -30,10 +31,15 @@ function clearTimers () {
 
 export function useRealtime () {
   const { isAuthenticated, refreshSession } = useAuth()
+  const status = useState<RealtimeStatus>('realtime-status', () => 'idle')
+  const lastError = useState<string>('realtime-error', () => '')
+  const isConnected = computed(() => status.value === 'open')
 
   function disconnect () {
     clearTimers()
     reconnectBackoff.reset()
+    status.value = 'idle'
+    lastError.value = ''
     if (socket) {
       socket.onopen = null
       socket.onclose = null
@@ -46,9 +52,14 @@ export function useRealtime () {
 
   async function scheduleReconnect () {
     if (!isAuthenticated.value || reconnectTimer) return
+    status.value = 'reconnecting'
 
     const refreshed = await refreshSession()
-    if (!refreshed) return
+    if (!refreshed) {
+      status.value = 'idle'
+      lastError.value = 'Live updates paused because your session could not be refreshed.'
+      return
+    }
 
     const delay = reconnectBackoff.nextDelay()
     reconnectTimer = setTimeout(() => {
@@ -58,16 +69,31 @@ export function useRealtime () {
   }
 
   function connect () {
-    if (import.meta.server || !isAuthenticated.value || socket?.readyState === WebSocket.OPEN || socket?.readyState === WebSocket.CONNECTING) return
+    if (import.meta.server) return
+    if (!isAuthenticated.value) {
+      status.value = 'idle'
+      lastError.value = ''
+      return
+    }
+    if (socket?.readyState === WebSocket.OPEN || socket?.readyState === WebSocket.CONNECTING) return
 
+    status.value = 'connecting'
+    lastError.value = ''
     socket = new WebSocket(getRealtimeUrl())
 
     socket.onopen = () => {
+      status.value = 'open'
+      lastError.value = ''
       reconnectBackoff.markConnected()
       if (heartbeatTimer) clearInterval(heartbeatTimer)
       heartbeatTimer = setInterval(() => {
         if (socket?.readyState === WebSocket.OPEN) {
-          socket.send(JSON.stringify({ event: 'ping' }))
+          try {
+            socket.send(JSON.stringify({ event: 'ping' }))
+          } catch {
+            lastError.value = 'Live updates are temporarily unavailable. Reconnecting...'
+            socket.close()
+          }
         }
       }, 25_000)
     }
@@ -78,18 +104,26 @@ export function useRealtime () {
         if (!message.event) return
         emit(message.event, message.payload)
       } catch {
-        console.warn('[Realtime] Failed to parse message', event.data)
+        // Ignore malformed realtime frames without breaking the connection.
       }
     }
 
-    socket.onerror = (event) => {
-      console.error('[Realtime] WebSocket error', event)
+    socket.onerror = () => {
+      status.value = 'reconnecting'
+      lastError.value = 'Live updates are temporarily unavailable. Reconnecting...'
     }
 
     socket.onclose = () => {
       clearTimers()
       socket = null
-      void scheduleReconnect()
+      if (isAuthenticated.value) {
+        status.value = 'reconnecting'
+        if (!lastError.value) lastError.value = 'Live updates paused. Reconnecting...'
+        void scheduleReconnect()
+      } else {
+        status.value = 'idle'
+        lastError.value = ''
+      }
     }
   }
 
@@ -114,6 +148,8 @@ export function useRealtime () {
   return {
     connect,
     disconnect,
+    isConnected,
+    lastError,
     on
   }
 }

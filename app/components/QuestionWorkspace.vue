@@ -44,6 +44,7 @@
             :available-subjects="availableSubjects"
             :available-tags="availableTags"
             :is-loading-meta="isLoadingMeta"
+            :meta-error="metaError"
             :exported="exported"
             :is-downloading-docx="isDownloadingDocx"
             :download-error="downloadError"
@@ -103,6 +104,7 @@
           :active-pagination="activePagination"
           :active-loading="activeLoading"
           :question-error="questionError"
+          :meta-error="metaError"
           :shown-ids="shownIds"
           :paper-question-ids="paperQuestionIds"
           :can-read-answers="canReadAnswers"
@@ -174,21 +176,16 @@
 </template>
 
 <script setup lang="ts">
-import type { Question, QuestionDifficulty, QuestionType } from '~/types/question'
+import type { WorkspaceSection } from '~/composables/useQuestionWorkspaceRouteState'
+import type { Question } from '~/types/question'
 import type { ExportMode, GenerationDiagnostics, LayoutDensity } from '~/types/generation'
-import type { BankMode, GeneratedPaperResponse, PaperQuestion } from '~/domain/papers'
+import type { BankMode, GeneratedPaperResponse } from '~/domain/papers'
 import {
   buildPaperGeneratePayload,
-  clonePaperQuestion,
   createDefaultGenerationForm,
-  createDefaultPaper,
-  parseBankMode,
-  parseQuestionDifficulty
+  createDefaultPaper
 } from '~/domain/papers'
-import { QUESTION_TYPE_ORDER } from '~/domain/questions'
 import { apiErrorMessage } from '~/utils/apiError'
-
-type WorkspaceSection = 'editor' | 'bank'
 
 const EditQuestionModal = defineAsyncComponent(() => import('~/components/questions/EditQuestionModal.vue'))
 const QuestionCorrectionModal = defineAsyncComponent(() => import('~/components/questions/QuestionCorrectionModal.vue'))
@@ -211,56 +208,34 @@ const {
   availableSubjects,
   availableTags,
   loadMeta,
-  isLoadingMeta
+  isLoadingMeta,
+  metaError
 } = useQuestionBank()
 const { hasPermission, isAuthenticated, isAuthReady, user } = useAuth()
 const { apiFetch, apiFetchRaw } = useApi()
-const route = useRoute()
-const router = useRouter()
-
-function parseQuerySubject (): string {
-  const raw = route.query.subjects
-  return typeof raw === 'string' ? raw : ''
-}
-
-function parseQueryTag (): string {
-  const raw = route.query.tags
-  return typeof raw === 'string' ? raw : ''
-}
-
-function parseWorkspaceSection (value: unknown): WorkspaceSection {
-  return value === 'bank' ? 'bank' : 'editor'
-}
-
-function parseQuestionTypeFilter (value: unknown): QuestionType | '' {
-  return typeof value === 'string' && QUESTION_TYPE_ORDER.includes(value as QuestionType) ? value as QuestionType : ''
-}
-
-function parseLatexFilter (value: unknown): '' | 'true' | 'false' {
-  return value === 'true' || value === 'false' ? value : ''
-}
-
-const activeSection = ref<WorkspaceSection>(parseWorkspaceSection(route.query.section))
-const search = ref((route.query.q as string) || '')
-const filterSubject = ref(parseQuerySubject())
-const filterDifficulty = ref<QuestionDifficulty | ''>(parseQuestionDifficulty(route.query.difficulty))
-const filterType = ref<QuestionType | ''>(parseQuestionTypeFilter(route.query.type))
-const filterTag = ref(parseQueryTag())
-const filterHasLatex = ref<'' | 'true' | 'false'>(parseLatexFilter(route.query.hasLatex))
+const {
+  activeSection,
+  search,
+  filterSubject,
+  filterDifficulty,
+  filterType,
+  filterTag,
+  filterHasLatex,
+  bankMode,
+  syncQuery,
+  resetFilters,
+  toQuestionQuery
+} = useQuestionWorkspaceRouteState()
 const shownIds = reactive(new Set<number>())
 const exportMode = ref<ExportMode>('paper')
 const layoutDensity = ref<LayoutDensity>('auto')
 const includeAnswersInExport = ref(false)
-const bankMode = ref<BankMode>(parseBankMode(route.query.bank))
-const pageSize = ref(20)
 const isGenerating = ref(false)
 const generationError = ref('')
 const generationDiagnostics = ref<GenerationDiagnostics | null>(null)
 const isActive = ref(true)
 const previewFullscreen = ref(false)
 const importModalOpen = ref(false)
-const examDraftName = ref('')
-const selectedExamDraftId = ref('')
 let searchLoadTimer: ReturnType<typeof setTimeout> | null = null
 
 const paper = reactive(createDefaultPaper())
@@ -269,7 +244,6 @@ const generationForm = reactive(createDefaultGenerationForm())
 const editingQuestion = ref<Question | null>(null)
 const reportingQuestion = ref<Question | null>(null)
 const detailQuestion = ref<Question | null>(null)
-const temporaryEditingQuestion = ref<PaperQuestion | null>(null)
 
 const canReadQuestions = computed(() => hasPermission('questions:read'))
 const workspaceAccessTitle = computed(() => isAuthenticated.value ? 'Question bank access required' : 'Create an account to use the question bank')
@@ -297,11 +271,6 @@ const currentQuestions = computed(() => bankMode.value === 'mine' ? myQuestions.
 const activePagination = computed(() => bankMode.value === 'mine' ? myQuestionPagination.value : questionPagination.value)
 const activeLoading = computed(() => bankMode.value === 'mine' ? isLoadingMine.value : isLoading.value)
 
-const paperQuestionIds = computed(() => {
-  const ids = new Set<number>()
-  for (const q of paper.questions) ids.add(q.id)
-  return ids
-})
 const hasCurrentDraftContent = computed(() => Boolean(
   paper.title.trim() ||
   paper.subject.trim() ||
@@ -343,13 +312,6 @@ const {
   user
 })
 
-const activeExamDraftName = computed(() => examDrafts.value.find(draft => draft.id === activeExamDraftId.value)?.name || '')
-const selectedExamDraft = computed(() => examDrafts.value.find(draft => draft.id === selectedExamDraftId.value) || null)
-const examDraftSummaryText = computed(() => {
-  if (!examDrafts.value.length) return 'No saved exam drafts yet.'
-  return `${examDrafts.value.length} saved draft${examDrafts.value.length === 1 ? '' : 's'} on this device.`
-})
-
 const {
   exported,
   exportAccessPrompt,
@@ -383,6 +345,47 @@ const {
   apiFetchRaw
 })
 
+const {
+  paperQuestionIds,
+  temporaryEditingQuestion,
+  toggleQuestion,
+  removeQuestion,
+  moveUp,
+  moveDown,
+  openTemporaryQuestionEdit,
+  applyTemporaryQuestionEdit,
+  resetTemporaryQuestionEdit
+} = usePaperQuestionActions({
+  paper,
+  onPaperQuestionsChanged: () => {
+    downloadedLayoutDensity.value = null
+  }
+})
+
+const {
+  examDraftName,
+  selectedExamDraftId,
+  activeExamDraftName,
+  selectedExamDraft,
+  examDraftSummaryText,
+  resetExamDraftSelection,
+  saveCurrentExamDraft,
+  loadSelectedExamDraft,
+  deleteSelectedExamDraft
+} = useExamDraftControls({
+  examDrafts,
+  activeExamDraftId,
+  hasCurrentDraftContent,
+  defaultDraftName: () => paper.title.trim() || `Exam draft ${examDrafts.value.length + 1}`,
+  saveExamDraft,
+  loadExamDraft,
+  deleteExamDraft,
+  onDraftLoaded: () => {
+    exported.value = false
+    downloadedLayoutDensity.value = null
+  }
+})
+
 watch(
   [isAuthReady, canReadQuestions],
   ([ready, allowed]) => {
@@ -398,7 +401,7 @@ watch(
 )
 
 watch([search, filterSubject, filterDifficulty, filterType, filterTag, filterHasLatex], () => {
-  if (import.meta.client) {
+  if (import.meta.client && isActive.value) {
     syncQuery()
     if (searchLoadTimer) clearTimeout(searchLoadTimer)
     searchLoadTimer = setTimeout(() => {
@@ -409,13 +412,7 @@ watch([search, filterSubject, filterDifficulty, filterType, filterTag, filterHas
 })
 
 watch([bankMode, activeSection], () => {
-  if (import.meta.client) syncQuery()
-})
-
-watch(examDrafts, (drafts) => {
-  if (selectedExamDraftId.value && !drafts.some(draft => draft.id === selectedExamDraftId.value)) {
-    selectedExamDraftId.value = ''
-  }
+  if (import.meta.client && isActive.value) syncQuery()
 })
 
 onBeforeUnmount(() => {
@@ -423,21 +420,6 @@ onBeforeUnmount(() => {
   if (searchLoadTimer) clearTimeout(searchLoadTimer)
   clearDraftSaveTimer()
 })
-
-function syncQuery () {
-  if (!isActive.value) return
-  const query: Record<string, string> = {}
-  const q = search.value.trim()
-  if (activeSection.value !== 'editor') query.section = activeSection.value
-  if (q) query.q = q
-  if (filterSubject.value) query.subjects = filterSubject.value
-  if (filterDifficulty.value) query.difficulty = filterDifficulty.value
-  if (filterType.value) query.type = filterType.value
-  if (filterTag.value) query.tags = filterTag.value
-  if (filterHasLatex.value) query.hasLatex = filterHasLatex.value
-  if (bankMode.value !== 'all') query.bank = bankMode.value
-  void router.replace({ query })
-}
 
 watch(canReadAnswers, (allowed) => {
   if (!allowed) includeAnswersInExport.value = false
@@ -447,53 +429,21 @@ function setActiveSection (section: WorkspaceSection) {
   activeSection.value = section
 }
 
-function resetFilters () {
-  search.value = ''
-  filterSubject.value = ''
-  filterDifficulty.value = ''
-  filterType.value = ''
-  filterTag.value = ''
-  filterHasLatex.value = ''
-}
-
 async function switchBankMode (mode: BankMode) {
   bankMode.value = mode
   await loadCurrentPage(1)
 }
 
-function currentQuery (page: number) {
-  return {
-    q: search.value.trim() || undefined,
-    subjects: filterSubject.value || undefined,
-    difficulty: (filterDifficulty.value || undefined) as Question['difficulty'] | undefined,
-    type: filterType.value || undefined,
-    tags: filterTag.value || undefined,
-    hasLatex: filterHasLatex.value ? filterHasLatex.value === 'true' : undefined,
-    page,
-    pageSize: pageSize.value,
-    sortBy: 'createdAt',
-    sortOrder: 'desc' as const
-  }
-}
-
 async function loadCurrentPage (page: number) {
   if (bankMode.value === 'mine') {
-    await loadMyQuestions(currentQuery(page))
+    await loadMyQuestions(toQuestionQuery(page))
     return
   }
-  await loadQuestions(currentQuery(page))
+  await loadQuestions(toQuestionQuery(page))
 }
 
 function goToPage (page: number) {
   void loadCurrentPage(page)
-}
-
-function toggleQuestion (question: Question) {
-  if (paperQuestionIds.value.has(question.id)) {
-    removeQuestion(question.id)
-    return
-  }
-  paper.questions.push(clonePaperQuestion(question))
 }
 
 function onToggleAnswer (id: number) {
@@ -501,52 +451,8 @@ function onToggleAnswer (id: number) {
   else shownIds.add(id)
 }
 
-function removeQuestion (id: number) {
-  const idx = paper.questions.findIndex(q => q.id === id)
-  if (idx !== -1) paper.questions.splice(idx, 1)
-}
-
 function onDeleteQuestionFromCard (question: Question) {
   removeQuestion(question.id)
-}
-
-function moveUp (idx: number) {
-  if (idx === 0 || idx >= paper.questions.length) return
-  const [removed] = paper.questions.splice(idx, 1)
-  if (!removed) return
-  paper.questions.splice(idx - 1, 0, removed)
-}
-
-function moveDown (idx: number) {
-  if (idx >= paper.questions.length - 1) return
-  const [removed] = paper.questions.splice(idx, 1)
-  if (!removed) return
-  paper.questions.splice(idx + 1, 0, removed)
-}
-
-function openTemporaryQuestionEdit (question: PaperQuestion) {
-  temporaryEditingQuestion.value = question
-}
-
-function applyTemporaryQuestionEdit (question: PaperQuestion) {
-  const idx = paper.questions.findIndex(item => item.id === question.id)
-  if (idx === -1) return
-  paper.questions.splice(idx, 1, question)
-  temporaryEditingQuestion.value = null
-  downloadedLayoutDensity.value = null
-}
-
-function resetTemporaryQuestionEdit (id: number) {
-  const idx = paper.questions.findIndex(item => item.id === id)
-  if (idx === -1) return
-  const current = paper.questions[idx]
-  if (!current?.originalQuestion) return
-  const restored = clonePaperQuestion(current.originalQuestion)
-  restored.marks = current.marks
-  restored.orderNo = current.orderNo
-  paper.questions.splice(idx, 1, restored)
-  if (temporaryEditingQuestion.value?.id === id) temporaryEditingQuestion.value = null
-  downloadedLayoutDensity.value = null
 }
 
 function clearPaper () {
@@ -572,8 +478,7 @@ function newPaper () {
   paper.questions.splice(0, paper.questions.length)
   Object.assign(generationForm, createDefaultGenerationForm())
   generationDiagnostics.value = null
-  examDraftName.value = ''
-  selectedExamDraftId.value = ''
+  resetExamDraftSelection()
   clearActiveExamDraft()
   resetExportState()
   clearWorkspaceDraft()
@@ -594,38 +499,6 @@ watch(
   [() => currentPaperSignature(), () => JSON.stringify(paper.questions), () => JSON.stringify(generationForm), exportMode, layoutDensity, includeAnswersInExport, savedPaperId, savedPaperSignature, generationDiagnostics],
   scheduleWorkspaceDraftSave
 )
-
-function defaultExamDraftName () {
-  return paper.title.trim() || `Exam draft ${examDrafts.value.length + 1}`
-}
-
-function saveCurrentExamDraft () {
-  const summary = saveExamDraft(examDraftName.value || defaultExamDraftName())
-  if (!summary) return
-  examDraftName.value = summary.name
-  selectedExamDraftId.value = summary.id
-}
-
-function loadSelectedExamDraft () {
-  const draft = selectedExamDraft.value
-  if (!draft) return
-  if (hasCurrentDraftContent.value && !window.confirm(`Load "${draft.name}" and replace the current paper?`)) return
-  if (!loadExamDraft(draft.id)) return
-  examDraftName.value = draft.name
-  selectedExamDraftId.value = draft.id
-  exported.value = false
-  downloadedLayoutDensity.value = null
-}
-
-function deleteSelectedExamDraft () {
-  const draft = selectedExamDraft.value
-  if (!draft) return
-  if (!window.confirm(`Delete "${draft.name}"? This cannot be undone.`)) return
-  const wasActive = activeExamDraftId.value === draft.id
-  deleteExamDraft(draft.id)
-  if (selectedExamDraftId.value === draft.id) selectedExamDraftId.value = ''
-  if (wasActive) examDraftName.value = ''
-}
 
 async function generatePaper () {
   generationError.value = ''

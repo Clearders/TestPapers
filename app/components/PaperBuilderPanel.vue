@@ -40,6 +40,7 @@
       :available-subjects="availableSubjects"
       :available-tags="availableTags"
       :is-loading-meta="isLoadingMeta"
+      :meta-error="metaError"
       :total-marks="paper.totalMarks"
       :paper-title="paper.title"
       @update:generation-form="(e) => emit('update:generation-form', e)"
@@ -192,6 +193,7 @@ const props = defineProps<{
   availableSubjects: string[]
   availableTags: string[]
   isLoadingMeta: boolean
+  metaError: string
   exported: boolean
   isDownloadingDocx: boolean
   downloadError: string
@@ -473,11 +475,6 @@ const paperQuestionLatexParts = computed(() => {
 }
 .download-error {
   margin-top: 14px;
-}
-.status-banner--success {
-  border-color: var(--color-success-border);
-  background: var(--color-success-bg);
-  color: var(--color-success-text);
 }
 :deep(.katex-display),
 :deep(.latex-block) {

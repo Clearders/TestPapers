@@ -51,6 +51,7 @@ export function useQuestionBank () {
   const availableSubjects = useState<string[]>('meta-subjects', () => [])
   const availableTags = useState<string[]>('meta-tags', () => [])
   const isLoadingMeta = useState<boolean>('meta-loading', () => false)
+  const metaError = useState<string>('meta-error', () => '')
   const metaLoaded = useState<boolean>('meta-loaded', () => false)
   const { hasPermission } = useAuth()
   const { apiFetch } = useApi()
@@ -171,6 +172,7 @@ export function useQuestionBank () {
   const loadMeta = async () => {
     if (isLoadingMeta.value || metaLoaded.value) return
     isLoadingMeta.value = true
+    metaError.value = ''
     try {
       const [subjectsRes, tagsRes] = await Promise.all([
         apiFetch<string[]>('/meta/subjects', { method: 'GET' }),
@@ -179,8 +181,8 @@ export function useQuestionBank () {
       availableSubjects.value = subjectsRes.data
       availableTags.value = tagsRes.data
       metaLoaded.value = true
-    } catch (e) {
-      console.error('[QuestionBank] Failed to load meta data', e)
+    } catch (error) {
+      metaError.value = apiErrorMessage(error, 'Failed to load question metadata.')
     } finally {
       isLoadingMeta.value = false
     }
@@ -265,6 +267,7 @@ export function useQuestionBank () {
     isLoading,
     isLoadingMine,
     isLoadingMeta,
+    metaError,
     questionPagination,
     myQuestionPagination,
     availableSubjects,

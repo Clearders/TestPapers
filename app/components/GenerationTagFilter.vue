@@ -14,6 +14,7 @@
     <div v-else-if="isLoadingMeta" class="gen-tag-loading" aria-live="polite">
       Loading tags...
     </div>
+    <p v-else-if="metaError" class="form-hint form-hint--error" role="status" aria-live="polite">{{ metaError }}</p>
     <div v-if="selectedTagsDisplay.length" class="gen-selected-tags">
       <span
         v-for="tag in selectedTagsDisplay"
@@ -45,6 +46,7 @@ const props = defineProps<{
   generationForm: GenerationFormState
   availableTags: string[]
   isLoadingMeta: boolean
+  metaError: string
 }>()
 
 const emit = defineEmits<{

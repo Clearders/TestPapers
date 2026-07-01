@@ -41,7 +41,7 @@
                 <button type="button" class="btn btn-outline" @click="$emit('close')">Cancel</button>
               </div>
 
-              <div v-if="errorMsg" class="status-banner status-banner--error">
+              <div v-if="errorMsg" class="status-banner status-banner--error modal-status">
                 {{ errorMsg }}
               </div>
             </form>
@@ -163,10 +163,7 @@ async function handleSubmit () {
   gap: 8px;
   margin-top: 8px;
 }
-.status-banner--error {
-  background: var(--color-danger-bg);
-  border-color: var(--color-danger-border);
-  color: var(--color-danger-text);
+.modal-status {
   margin-top: 12px;
 }
 @media (max-width: 560px) {
@@ -180,9 +177,4 @@ async function handleSubmit () {
   }
 }
 
-[data-theme="dark"] .status-banner--error {
-  background: rgba(248, 113, 113, 0.1);
-  border-color: rgba(248, 113, 113, 0.25);
-  color: var(--color-danger-text);
-}
 </style>

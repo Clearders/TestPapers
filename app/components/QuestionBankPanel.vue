@@ -24,6 +24,10 @@
       @reset-filters="emit('reset-filters')"
     />
 
+    <div v-if="metaError" class="status-banner status-banner--error" role="alert" aria-live="polite">
+      {{ metaError }}
+    </div>
+
     <QuestionCardList
       :questions="currentQuestions"
       :paper-question-ids="paperQuestionIds"
@@ -67,6 +71,7 @@ const props = defineProps<{
   activePagination: ApiPagination
   activeLoading: boolean
   questionError: string
+  metaError: string
   shownIds: Set<number>
   paperQuestionIds: Set<number>
   canReadAnswers: boolean
@@ -154,4 +159,5 @@ function onSwitchBankMode (mode: BankMode) {
   background: color-mix(in srgb, var(--color-primary) 10%, var(--color-surface-solid));
   color: var(--color-primary-d);
 }
+
 </style>
