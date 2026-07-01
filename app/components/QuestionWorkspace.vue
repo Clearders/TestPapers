@@ -1,123 +1,33 @@
 <template>
   <section class="workspace">
-    <div class="workspace-heading">
-      <div>
-        <h1 class="page-title"><AppIcon name="book" /> Workspace</h1>
-        <p class="page-sub">Build an exam in the editor, then switch to the bank to search, filter, inspect, import, and add questions.</p>
-      </div>
-      <div class="workspace-stats">
-        <span class="tag">{{ paper.questions.length }} selected</span>
-        <span class="tag">{{ paper.totalMarks }} marks</span>
-      </div>
-    </div>
+    <WorkspaceHeading
+      :selected-count="paper.questions.length"
+      :total-marks="paper.totalMarks"
+    />
 
-    <div
-      class="workspace-tabs"
-      :class="`workspace-tabs--${activeSection}`"
-      role="tablist"
-      aria-label="Workspace sections"
-    >
-      <button
-        type="button"
-        role="tab"
-        :aria-selected="activeSection === 'editor'"
-        class="workspace-tab"
-        :class="{ 'workspace-tab--active': activeSection === 'editor' }"
-        @click="setActiveSection('editor')"
-      >
-        <AppIcon name="paper" />
-        Paper Editor
-      </button>
-      <button
-        type="button"
-        role="tab"
-        :aria-selected="activeSection === 'bank'"
-        class="workspace-tab"
-        :class="{ 'workspace-tab--active': activeSection === 'bank' }"
-        @click="setActiveSection('bank')"
-      >
-        <AppIcon name="search" />
-        Question Bank
-      </button>
-    </div>
+    <WorkspaceSectionTabs v-model:active-section="activeSection" />
 
     <Transition name="fade" mode="out-in">
       <div v-if="activeSection === 'editor'" key="editor" class="workspace-section editor-section">
-        <div class="editor-toolbar card">
-          <div>
-            <h2>Paper Editor</h2>
-            <p>Draft metadata, generate a balanced paper, order questions, preview output, and export DOCX.</p>
-          </div>
-          <div class="editor-actions">
-            <button type="button" class="btn btn-outline" @click="newPaper">
-              <AppIcon name="add" />
-              New Paper
-            </button>
-            <button type="button" class="btn btn-outline" @click="setActiveSection('bank')">
-              <AppIcon name="search" />
-              Open Bank
-            </button>
-          </div>
-        </div>
+        <WorkspaceEditorToolbar
+          @new-paper="newPaper"
+          @open-bank="setActiveSection('bank')"
+        />
 
-        <div class="exam-draft-card card">
-          <div class="exam-draft-head">
-            <div>
-              <h2><AppIcon name="paper" /> Exam Drafts</h2>
-              <p>{{ examDraftSummaryText }}</p>
-            </div>
-            <span v-if="activeExamDraftName" class="tag">Editing {{ activeExamDraftName }}</span>
-          </div>
-
-          <div class="exam-draft-controls">
-            <div class="form-group draft-name-field">
-              <label class="form-label" for="exam-draft-name">Draft Name</label>
-              <input
-                id="exam-draft-name"
-                v-model="examDraftName"
-                class="form-input"
-                name="examDraftName"
-                placeholder="e.g. Algebra final draft"
-              >
-            </div>
-            <button type="button" class="btn btn-primary draft-action" :disabled="!hasCurrentDraftContent" @click="saveCurrentExamDraft">
-              <AppIcon name="check" />
-              Save Draft
-            </button>
-          </div>
-
-          <div v-if="examDrafts.length" class="exam-draft-controls exam-draft-controls--library">
-            <div class="form-group draft-select-field">
-              <label class="form-label" for="exam-draft-select">Saved Drafts</label>
-              <select id="exam-draft-select" v-model="selectedExamDraftId" class="form-input" name="examDraftSelect">
-                <option value="">Select a draft</option>
-                <option v-for="draft in examDrafts" :key="draft.id" :value="draft.id">
-                  {{ draft.name }} | {{ draft.questionCount }} q | {{ draft.totalMarks }} marks
-                </option>
-              </select>
-            </div>
-            <button type="button" class="btn btn-outline draft-action" :disabled="!selectedExamDraftId" @click="loadSelectedExamDraft">
-              <AppIcon name="download" />
-              Load
-            </button>
-            <button type="button" class="btn btn-danger draft-action" :disabled="!selectedExamDraftId" @click="deleteSelectedExamDraft">
-              <AppIcon name="trash" />
-              Delete
-            </button>
-          </div>
-
-          <div v-if="selectedExamDraft" class="exam-draft-meta">
-            <span>{{ selectedExamDraft.title || 'Untitled paper' }}</span>
-            <span>{{ selectedExamDraft.subject || 'No subject' }}</span>
-            <span>Updated {{ formatDraftTimestamp(selectedExamDraft.updatedAt) }}</span>
-          </div>
-          <div v-if="examDraftSavedAt" class="status-banner status-banner--success exam-draft-status" aria-live="polite">
-            Draft saved {{ formatDraftTimestamp(examDraftSavedAt) }}.
-          </div>
-          <div v-if="examDraftError" class="status-banner status-banner--error exam-draft-status" aria-live="polite">
-            {{ examDraftError }}
-          </div>
-        </div>
+        <ExamDraftPanel
+          v-model:draft-name="examDraftName"
+          v-model:selected-draft-id="selectedExamDraftId"
+          :summary-text="examDraftSummaryText"
+          :active-draft-name="activeExamDraftName"
+          :drafts="examDrafts"
+          :selected-draft="selectedExamDraft"
+          :saved-at="examDraftSavedAt"
+          :error="examDraftError"
+          :has-current-draft-content="hasCurrentDraftContent"
+          @save="saveCurrentExamDraft"
+          @load="loadSelectedExamDraft"
+          @delete-draft="deleteSelectedExamDraft"
+        />
 
         <div class="editor-layout">
           <PaperBuilderPanel
@@ -210,23 +120,12 @@
           @open-import="importModalOpen = true"
           @reset-filters="resetFilters"
         />
-        <div v-else class="card workspace-access-card">
-          <div class="workspace-access-icon">
-            <AppIcon :name="isAuthenticated ? 'users' : 'account'" />
-          </div>
-          <h2>{{ workspaceAccessTitle }}</h2>
-          <p>{{ workspaceAccessMessage }}</p>
-          <div v-if="!isAuthenticated" class="workspace-access-actions">
-            <NuxtLink to="/register" class="btn btn-primary">
-              <AppIcon name="account" />
-              Create Account
-            </NuxtLink>
-            <NuxtLink to="/login" class="btn btn-outline">
-              <AppIcon name="login" />
-              Login
-            </NuxtLink>
-          </div>
-        </div>
+        <WorkspaceAccessPrompt
+          v-else
+          :title="workspaceAccessTitle"
+          :message="workspaceAccessMessage"
+          :is-authenticated="isAuthenticated"
+        />
       </div>
     </Transition>
 
@@ -728,18 +627,6 @@ function deleteSelectedExamDraft () {
   if (wasActive) examDraftName.value = ''
 }
 
-function formatDraftTimestamp (value: string) {
-  if (!value) return 'just now'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return 'just now'
-  return date.toLocaleString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
-}
-
 async function generatePaper () {
   generationError.value = ''
   generationDiagnostics.value = null
@@ -800,200 +687,8 @@ function onQuestionsImported () {
 </script>
 
 <style scoped>
-.workspace-heading {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 16px;
-}
-
-.page-title {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.page-title svg {
-  color: var(--color-primary);
-}
-
-.workspace-stats {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding-top: 8px;
-}
-
-.workspace-tabs {
-  position: relative;
-  display: inline-grid;
-  grid-template-columns: repeat(2, minmax(128px, 1fr));
-  gap: 6px;
-  padding: 5px;
-  margin-bottom: 20px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-pill);
-  background: color-mix(in srgb, var(--color-surface-solid) 72%, transparent);
-  box-shadow: var(--shadow-soft);
-  isolation: isolate;
-}
-
-.workspace-tabs::before {
-  content: "";
-  position: absolute;
-  z-index: 0;
-  top: 5px;
-  bottom: 5px;
-  left: 5px;
-  width: calc((100% - 16px) / 2);
-  border-radius: var(--radius-pill);
-  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
-  box-shadow: 0 10px 24px rgba(118, 87, 255, .22);
-  transform: translateX(0);
-  transition: transform .34s var(--ease-spring), box-shadow .24s ease, opacity .2s ease;
-}
-
-.workspace-tabs--bank::before {
-  transform: translateX(calc(100% + 6px));
-}
-
-.workspace-tab {
-  position: relative;
-  z-index: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-height: 36px;
-  padding: 7px 16px;
-  border: 1px solid transparent;
-  border-radius: var(--radius-pill);
-  background: transparent;
-  color: var(--color-muted);
-  font-size: .88rem;
-  font-weight: 800;
-  transition: color .2s ease, background .2s ease, transform .2s var(--ease-spring), box-shadow .2s ease;
-}
-
-.workspace-tab:hover {
-  color: var(--color-text);
-  transform: translateY(-1px);
-}
-
-.workspace-tab--active {
-  color: var(--color-on-primary);
-  background: transparent;
-  box-shadow: none;
-}
-
 .workspace-section {
   min-width: 0;
-}
-
-.editor-toolbar {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 14px;
-  margin-bottom: 18px;
-  background:
-    linear-gradient(135deg, rgba(118, 87, 255, 0.08), rgba(14, 165, 233, 0.04)),
-    var(--color-surface);
-}
-
-.editor-toolbar h2 {
-  font-size: 1.05rem;
-  font-weight: 850;
-}
-
-.editor-toolbar p {
-  margin-top: 4px;
-  color: var(--color-muted);
-  font-size: .86rem;
-  line-height: 1.5;
-}
-
-.exam-draft-card {
-  margin-bottom: 18px;
-  background:
-    linear-gradient(135deg, rgba(0, 184, 148, 0.08), rgba(255, 138, 76, 0.04)),
-    var(--color-surface);
-}
-
-.exam-draft-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-bottom: 14px;
-}
-
-.exam-draft-head h2 {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 1.02rem;
-  font-weight: 850;
-}
-
-.exam-draft-head p {
-  margin-top: 4px;
-  color: var(--color-muted);
-  font-size: .84rem;
-}
-
-.exam-draft-controls {
-  display: flex;
-  align-items: flex-end;
-  gap: 10px;
-  min-width: 0;
-}
-
-.exam-draft-controls + .exam-draft-controls {
-  margin-top: 12px;
-}
-
-.exam-draft-controls .form-group {
-  margin-bottom: 0;
-}
-
-.draft-name-field,
-.draft-select-field {
-  flex: 1;
-  min-width: 220px;
-}
-
-.draft-action {
-  min-height: 40px;
-  white-space: nowrap;
-}
-
-.exam-draft-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 14px;
-  margin-top: 12px;
-  color: var(--color-muted);
-  font-size: .82rem;
-}
-
-.exam-draft-meta span + span::before {
-  content: "/";
-  margin-right: 14px;
-  color: color-mix(in srgb, var(--color-muted) 54%, transparent);
-}
-
-.exam-draft-status {
-  margin-top: 12px;
-}
-
-.editor-actions,
-.workspace-access-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
 }
 
 .editor-layout {
@@ -1001,35 +696,6 @@ function onQuestionsImported () {
   grid-template-columns: minmax(0, 1.05fr) minmax(380px, .95fr);
   gap: 24px;
   align-items: start;
-}
-
-.workspace-access-card {
-  min-height: 360px;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: center;
-  gap: 14px;
-}
-
-.workspace-access-icon {
-  display: inline-grid;
-  place-items: center;
-  width: 48px;
-  height: 48px;
-  border-radius: var(--radius);
-  color: var(--color-on-primary);
-  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
-  box-shadow: var(--shadow-soft);
-}
-
-.workspace-access-card h2 {
-  font-size: 1.08rem;
-}
-
-.workspace-access-card p {
-  color: var(--color-muted);
-  line-height: 1.6;
 }
 
 :deep(.katex-display),
@@ -1045,67 +711,16 @@ function onQuestionsImported () {
   }
 }
 
-@media (max-width: 620px) {
-  .workspace-tabs,
-  .workspace-tab,
-  .editor-actions,
-  .editor-actions .btn,
-  .exam-draft-controls,
-  .exam-draft-controls .btn,
-  .draft-name-field,
-  .draft-select-field {
-    width: 100%;
-  }
-
-  .workspace-tabs {
-    border-radius: var(--radius);
-    grid-template-columns: 1fr;
-  }
-
-  .workspace-tabs::before {
-    right: 5px;
-    bottom: auto;
-    width: auto;
-    height: calc((100% - 16px) / 2);
-    border-radius: var(--radius);
-  }
-
-  .workspace-tabs--bank::before {
-    transform: translateY(calc(100% + 6px));
-  }
-
-  .editor-toolbar {
-    flex-direction: column;
-  }
-
-  .exam-draft-controls {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .exam-draft-meta span + span::before {
-    content: "";
-    margin-right: 0;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .workspace-tabs::before {
-    transition: none;
-  }
-}
-
 @media print {
-  .workspace-heading,
-  .workspace-tabs,
-  .editor-toolbar,
-  .exam-draft-card,
-  :deep(.paper-panel) {
-    display: none !important;
-  }
-
   .editor-layout {
     display: block;
+  }
+
+  :deep(.workspace-heading),
+  :deep(.workspace-tabs),
+  :deep(.editor-toolbar),
+  :deep(.paper-panel) {
+    display: none !important;
   }
 }
 </style>

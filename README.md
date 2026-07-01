@@ -110,7 +110,9 @@ npm run dev
 npm run build
 npm run preview
 npm run lint
+npm run typecheck
 npm run check
+npm run verify
 ```
 
 The Nuxt commands run through `scripts/run-nuxi.mjs`, so they work even when `node_modules/.bin` is not directly on `PATH`.
@@ -120,6 +122,7 @@ Additional checks:
 ```bash
 npm run check:auth-ssr-state
 npm run check:csp-hardening
+npm run check:paper-domain
 npm run check:realtime-backoff
 npm run smoke:workspace
 ```

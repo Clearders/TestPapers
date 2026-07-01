@@ -14,143 +14,34 @@
     </div>
 
     <div class="gen-controls">
-      <div class="gen-field">
-        <label id="gen-subjects-label" class="form-label">Subjects</label>
-        <div v-if="availableSubjects.length" class="gen-subject-pool" role="group" aria-labelledby="gen-subjects-label">
-          <button
-            v-for="subject in availableSubjects"
-            :key="subject"
-            type="button"
-            class="gen-subject-chip"
-            :class="{ 'gen-subject-chip--active': generationForm.subjects.includes(subject) }"
-            @click="toggleSubject(subject)"
-          >{{ subject }}</button>
-        </div>
-        <div v-else-if="isLoadingMeta" class="gen-subject-loading" aria-live="polite">
-          Loading subjects…
-        </div>
-        <p v-else class="form-hint">No subjects available. Create questions with subjects first.</p>
-      </div>
+      <GenerationSubjectSelector
+        :generation-form="generationForm"
+        :available-subjects="availableSubjects"
+        :is-loading-meta="isLoadingMeta"
+        @update:generation-form="emit('update:generationForm', $event)"
+      />
 
-      <div class="gen-field">
-        <label id="gen-score-label" class="form-label">Total Score</label>
-        <div class="gen-pill-group" role="group" aria-labelledby="gen-score-label">
-          <button
-            v-for="score in [50, 100, 120, 150]"
-            :key="score"
-            type="button"
-            class="gen-pill"
-            :class="{ 'gen-pill--active': totalMarks === score }"
-            @click="$emit('update:totalMarks', score)"
-          >{{ score }}</button>
-          <input
-            :value="totalMarks"
-            class="gen-pill-input"
-            type="number"
-            min="1"
-            placeholder="Custom"
-            @input="$emit('update:totalMarks', Number(($event.target as HTMLInputElement).value))"
-          >
-        </div>
-      </div>
+      <GenerationScoreControl
+        :total-marks="totalMarks"
+        @update:total-marks="emit('update:totalMarks', $event)"
+      />
 
-      <div class="gen-field">
-        <label class="form-label">Question Type</label>
-        <div
-          class="gen-type-list"
-          role="listbox"
-          aria-label="Question types"
-          aria-multiselectable="true"
-        >
-          <button
-            v-for="type in QUESTION_TYPE_ORDER"
-            :key="type"
-            type="button"
-            class="gen-type-option"
-            :class="{ 'gen-type-option--active': generationForm.questionTypes.includes(type) }"
-            role="option"
-            :aria-selected="generationForm.questionTypes.includes(type)"
-            @click="toggleQuestionType(type)"
-          >
-            <span class="gen-type-option-label">{{ QUESTION_TYPE_LABELS[type] }}</span>
-            <span v-if="generationForm.questionTypes.includes(type)" class="gen-type-option-check">✓</span>
-          </button>
-        </div>
-        <div v-if="generationForm.questionTypes.length" class="gen-type-counts">
-          <div v-for="type in generationForm.questionTypes" :key="type" class="gen-type-count-row">
-            <span class="gen-type-count-label">{{ QUESTION_TYPE_LABELS[type] }}</span>
-            <input
-              :value="generationForm.typeCounts[type]"
-              class="gen-type-count-input"
-              type="number"
-              min="1"
-              @input="updateTypeCount(type, Number(($event.target as HTMLInputElement).value))"
-            >
-          </div>
-        </div>
-      </div>
+      <GenerationQuestionTypeSelector
+        :generation-form="generationForm"
+        @update:generation-form="emit('update:generationForm', $event)"
+      />
 
-      <div class="gen-field">
-        <div class="gen-field__label-row">
-          <label class="form-label" for="gen-difficulty">Difficulty</label>
-          <span class="gen-diff-badge" :class="difficultyBadgeClass">{{ difficultyLabel }}</span>
-        </div>
-        <div class="gen-range-wrap">
-          <input
-            id="gen-difficulty"
-            :value="generationForm.difficultyCoefficient"
-            class="gen-range"
-            type="range"
-            min="0"
-            max="1"
-            step="0.05"
-            @input="updateDifficultyCoefficient(Number(($event.target as HTMLInputElement).value))"
-          >
-          <div class="gen-range-ticks">
-            <span>Easy</span>
-            <span>Medium</span>
-            <span>Hard</span>
-          </div>
-        </div>
-      </div>
+      <GenerationDifficultyControl
+        :generation-form="generationForm"
+        @update:generation-form="emit('update:generationForm', $event)"
+      />
 
-      <div class="gen-field">
-        <label id="gen-tags-label" class="form-label">Tag Filters <span class="gen-optional">(optional)</span></label>
-        <div v-if="availableTags.length" class="gen-tag-pool" role="group" aria-labelledby="gen-tags-label">
-          <button
-            v-for="tag in availableTags"
-            :key="tag"
-            type="button"
-            class="gen-tag-chip"
-            :class="tagChipClass(tag)"
-            @click="toggleTag($event, tag)"
-          >{{ tag }}</button>
-        </div>
-        <div v-else-if="isLoadingMeta" class="gen-tag-loading" aria-live="polite">
-          Loading tags…
-        </div>
-        <div v-if="selectedTagsDisplay.length" class="gen-selected-tags">
-          <span
-            v-for="tag in selectedTagsDisplay"
-            :key="tag.value"
-            class="gen-selected-pill"
-            :class="'gen-spill--' + tag.group"
-          >
-            {{ tag.value }}
-            <button type="button" class="gen-pill-remove" aria-label="Remove" @click="removeTag(tag.value)">×</button>
-          </span>
-        </div>
-        <label class="form-label" for="gen-custom-tag">Custom Tag</label>
-        <input
-          id="gen-custom-tag"
-          v-model="customTagInputModel"
-          class="form-input gen-tag-input"
-          name="customTag"
-          placeholder="Type custom tag and press Enter…"
-          @keydown.enter.prevent="addCustomTag"
-        >
-        <p class="form-hint">Click a tag to add as Required; Shift+click for Preferred. Tap × to remove.</p>
-      </div>
+      <GenerationTagFilter
+        :generation-form="generationForm"
+        :available-tags="availableTags"
+        :is-loading-meta="isLoadingMeta"
+        @update:generation-form="emit('update:generationForm', $event)"
+      />
     </div>
 
     <div class="gen-action">
@@ -160,7 +51,7 @@
         :disabled="isGenerating || !generationForm.subjects.length || !paperTitle.trim() || !generationForm.questionTypes.length"
       >
         <span v-if="isGenerating" class="gen-spinner"/>
-        {{ isGenerating ? 'Generating…' : 'Generate Paper' }}
+        {{ isGenerating ? 'Generating...' : 'Generate Paper' }}
       </button>
       <span class="form-hint">Uses the paper title, duration, and the generation subject above.</span>
     </div>
@@ -175,7 +66,7 @@
       <div v-if="generationDiagnostics" class="gen-result">
         <div class="gen-result-header">
           <span class="gen-result-title">Generation Result</span>
-          <span class="gen-result-meta">{{ generationDiagnostics.questionCount }} questions · {{ generationDiagnostics.candidateCount }} candidates · {{ generationDiagnostics.generationsRun }} generations</span>
+          <span class="gen-result-meta">{{ generationDiagnostics.questionCount }} questions | {{ generationDiagnostics.candidateCount }} candidates | {{ generationDiagnostics.generationsRun }} generations</span>
         </div>
         <div class="gen-stats">
           <div class="gen-stat">
@@ -209,9 +100,7 @@
 </template>
 
 <script setup lang="ts">
-import type { QuestionType } from '~/types/question'
 import type { GenerationDiagnostics, GenerationFormState } from '~/types/generation'
-import { QUESTION_TYPE_LABELS, QUESTION_TYPE_ORDER } from '~/domain/questions'
 
 const props = defineProps<{
   generationForm: GenerationFormState
@@ -232,95 +121,6 @@ const emit = defineEmits<{
   generate: []
 }>()
 
-const customTagInputModel = ref('')
-
-function toggleQuestionType (type: QuestionType) {
-  const form = { ...props.generationForm }
-  const index = form.questionTypes.indexOf(type)
-  if (index === -1) {
-    form.questionTypes = [...form.questionTypes, type]
-    form.typeCounts = { ...form.typeCounts, [type]: form.typeCounts[type] || 1 }
-  } else {
-    form.questionTypes = form.questionTypes.filter(t => t !== type)
-    const { [type]: _removed, ...restCounts } = form.typeCounts
-    form.typeCounts = restCounts
-  }
-  emit('update:generationForm', form)
-}
-
-function updateTypeCount (type: QuestionType, value: number) {
-  const form = { ...props.generationForm }
-  form.typeCounts = { ...form.typeCounts, [type]: value || 1 }
-  emit('update:generationForm', form)
-}
-
-function updateDifficultyCoefficient (value: number) {
-  const form = { ...props.generationForm }
-  form.difficultyCoefficient = value
-  emit('update:generationForm', form)
-}
-
-function toggleSubject (subject: string) {
-  const form = { ...props.generationForm }
-  const index = form.subjects.indexOf(subject)
-  if (index === -1) {
-    form.subjects = [...form.subjects, subject]
-  } else {
-    form.subjects = form.subjects.filter(s => s !== subject)
-  }
-  emit('update:generationForm', form)
-}
-
-function toggleTag (event: MouseEvent, tag: string) {
-  const form = { ...props.generationForm }
-  const shift = event.shiftKey
-  if (form.requiredTags.includes(tag)) {
-    form.requiredTags = form.requiredTags.filter(t => t !== tag)
-  } else if (form.preferredTags.includes(tag)) {
-    form.preferredTags = form.preferredTags.filter(t => t !== tag)
-  } else if (shift) {
-    form.preferredTags = [...form.preferredTags, tag]
-  } else {
-    form.requiredTags = [...form.requiredTags, tag]
-  }
-  emit('update:generationForm', form)
-}
-
-function removeTag (tag: string) {
-  const form = { ...props.generationForm }
-  form.requiredTags = form.requiredTags.filter(t => t !== tag)
-  form.preferredTags = form.preferredTags.filter(t => t !== tag)
-  emit('update:generationForm', form)
-}
-
-function addCustomTag () {
-  const input = customTagInputModel.value.trim()
-  if (!input) return
-  const tags = input.split(',').map(t => t.trim().toLowerCase()).filter(Boolean)
-  const form = { ...props.generationForm }
-  for (const tag of tags) {
-    if (!form.requiredTags.includes(tag) && !form.preferredTags.includes(tag)) {
-      form.requiredTags = [...form.requiredTags, tag]
-    }
-  }
-  customTagInputModel.value = ''
-  form.customTagInput = ''
-  emit('update:generationForm', form)
-}
-
-const selectedTagsDisplay = computed(() => {
-  const display: { value: string; group: string }[] = []
-  for (const tag of props.generationForm.requiredTags) {
-    if (!display.some(d => d.value === tag)) display.push({ value: tag, group: 'required' })
-  }
-  for (const tag of props.generationForm.preferredTags) {
-    const existing = display.find(d => d.value === tag)
-    if (existing) existing.group = 'both'
-    else display.push({ value: tag, group: 'preferred' })
-  }
-  return display
-})
-
 const fitnessClass = computed(() => {
   if (!props.generationDiagnostics) return ''
   const f = props.generationDiagnostics.fitness
@@ -328,27 +128,6 @@ const fitnessClass = computed(() => {
   if (f >= 0.60) return 'gen-fitness--mid'
   return 'gen-fitness--low'
 })
-
-const difficultyLabel = computed(() => {
-  const coeff = props.generationForm.difficultyCoefficient
-  if (coeff <= 0.3) return 'Easy'
-  if (coeff <= 0.55) return 'Easy-Medium'
-  if (coeff <= 0.75) return 'Medium-Hard'
-  return 'Hard'
-})
-
-const difficultyBadgeClass = computed(() => {
-  const coeff = props.generationForm.difficultyCoefficient
-  if (coeff <= 0.3) return 'badge-easy'
-  if (coeff <= 0.55) return 'badge-medium'
-  return 'badge-hard'
-})
-
-function tagChipClass (tag: string) {
-  if (props.generationForm.requiredTags.includes(tag)) return 'gen-chip--required'
-  if (props.generationForm.preferredTags.includes(tag)) return 'gen-chip--preferred'
-  return ''
-}
 
 function formatDistribution (distribution: Record<string, number>) {
   return Object.entries(distribution)
@@ -470,365 +249,6 @@ function formatDistribution (distribution: Record<string, number>) {
 .gen-field:nth-child(2) { animation-delay: .04s; }
 .gen-field:nth-child(3) { animation-delay: .08s; }
 .gen-field:nth-child(4) { animation-delay: .12s; }
-.gen-field:nth-child(5) { animation-delay: .16s; }
-.gen-field__label-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-.gen-diff-badge {
-  flex-shrink: 0;
-}
-.gen-optional {
-  font-weight: 400;
-  color: var(--color-muted);
-  font-size: .8rem;
-}
-
-.gen-pill-group {
-  display: flex;
-  align-items: center;
-  background: var(--color-border);
-  padding: 3px;
-  border-radius: var(--radius-pill);
-  gap: 2px;
-  overflow-x: auto;
-}
-.gen-pill {
-  flex: 1;
-  background: transparent;
-  border: none;
-  border-radius: var(--radius-pill);
-  padding: 5px 10px;
-  font-size: .82rem;
-  font-weight: 500;
-  color: var(--color-muted);
-  text-align: center;
-  white-space: nowrap;
-  transition: background .22s ease, color .22s ease, transform .22s var(--ease-spring), box-shadow .22s ease;
-  cursor: pointer;
-}
-.gen-pill:hover {
-  color: var(--color-text);
-  background: rgba(255, 255, 255, 0.45);
-  transform: translateY(-2px);
-}
-
-[data-theme="dark"] .gen-pill:hover {
-  background: rgba(255, 255, 255, 0.08);
-}
-.gen-pill--active {
-  background: var(--color-surface);
-  color: var(--color-primary);
-  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
-  animation: selectedPulse .32s var(--ease-out) both;
-}
-.gen-pill-input {
-  width: 64px;
-  border-radius: var(--radius-pill);
-  border: none;
-  text-align: center;
-  padding: 5px;
-  font-size: .82rem;
-  font-weight: 500;
-  background: var(--color-surface);
-  color: var(--color-text);
-  box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
-  transition: box-shadow 0.2s ease;
-}
-.gen-pill-input:focus {
-  outline: 2px solid var(--color-primary);
-  outline-offset: -2px;
-}
-
-.gen-type-list {
-  max-height: 160px;
-  overflow-y: auto;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  background: var(--color-surface);
-  display: flex;
-  flex-direction: column;
-  overscroll-behavior: contain;
-  scrollbar-width: thin;
-  scrollbar-color: var(--color-border) transparent;
-}
-.gen-type-option {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  min-height: 40px;
-  padding: 6px 14px;
-  border: none;
-  border-bottom: 1px solid var(--color-border);
-  background: transparent;
-  cursor: pointer;
-  font-size: .85rem;
-  font-weight: 500;
-  color: var(--color-muted);
-  transition: background .22s ease, color .22s ease, transform .22s var(--ease-out), border-color .22s ease, box-shadow .22s ease;
-  text-align: left;
-  width: 100%;
-}
-.gen-type-option:last-child {
-  border-bottom: none;
-}
-.gen-type-option:hover {
-  background: rgba(79, 110, 247, 0.04);
-  color: var(--color-text);
-  transform: translateX(2px);
-}
-.gen-type-option:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: -2px;
-  border-radius: 0;
-}
-.gen-type-option--active {
-  background: rgba(118, 87, 255, 0.1);
-  color: var(--color-primary);
-  font-weight: 800;
-  border-left: 3px solid var(--color-primary);
-  box-shadow: inset 12px 0 22px rgba(118, 87, 255, .08);
-}
-.gen-type-option--active:hover {
-  background: rgba(79, 110, 247, 0.1);
-}
-.gen-type-option-label {
-  flex: 1;
-}
-.gen-type-option-check {
-  font-size: .7rem;
-  color: var(--color-accent);
-  font-weight: 700;
-  flex-shrink: 0;
-}
-
-.gen-type-counts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 8px;
-}
-
-.gen-type-count-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: var(--color-border);
-  border-radius: var(--radius-pill);
-  padding: 2px 2px 2px 12px;
-  animation: genChipIn .24s var(--ease-out) both;
-}
-
-.gen-type-count-label {
-  font-size: .78rem;
-  color: var(--color-text);
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-.gen-type-count-input {
-  width: 48px;
-  border-radius: var(--radius-pill);
-  border: none;
-  text-align: center;
-  padding: 4px 6px;
-  font-size: .82rem;
-  font-weight: 500;
-  background: var(--color-surface);
-  color: var(--color-text);
-  box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
-  transition: box-shadow 0.2s ease;
-}
-
-.gen-type-count-input:focus {
-  outline: 2px solid var(--color-primary);
-  outline-offset: -2px;
-}
-
-.gen-range-wrap {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.gen-range {
-  width: 100%;
-  height: 6px;
-  border-radius: 3px;
-  background: linear-gradient(to right, var(--color-success), #eab308, #ef4444);
-  appearance: none;
-  cursor: pointer;
-}
-.gen-range::-webkit-slider-thumb {
-  appearance: none;
-  width: 18px;
-  height: 18px;
-  background: var(--color-surface);
-  border: 2px solid var(--color-primary);
-  border-radius: 50%;
-  cursor: pointer;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.12);
-  transition: transform .18s var(--ease-spring), box-shadow .18s ease;
-}
-.gen-range::-webkit-slider-thumb:hover {
-  transform: scale(1.15);
-  box-shadow: 0 0 0 7px rgba(118, 87, 255, .12);
-}
-.gen-range-ticks {
-  display: flex;
-  justify-content: space-between;
-  font-size: .7rem;
-  color: var(--color-muted);
-  padding: 0 2px;
-}
-
-.gen-tag-pool {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  max-height: 140px;
-  overflow-y: auto;
-  padding: 2px 0;
-}
-.gen-tag-chip {
-  display: inline-flex;
-  align-items: center;
-  padding: 3px 10px;
-  border-radius: var(--radius-pill);
-  border: 1px solid var(--color-border);
-  background: var(--color-surface);
-  font-size: .78rem;
-  font-weight: 500;
-  color: var(--color-muted);
-  cursor: pointer;
-  transition: border-color .22s ease, color .22s ease, background .22s ease, transform .22s var(--ease-spring), box-shadow .22s ease;
-  animation: genChipIn .24s var(--ease-out) both;
-}
-.gen-tag-chip:hover {
-  color: var(--color-text);
-  border-color: var(--color-primary);
-  background: rgba(79, 110, 247, 0.04);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-soft);
-}
-.gen-chip--required {
-  border-color: var(--color-primary);
-  background: rgba(79, 110, 247, 0.08);
-  color: var(--color-primary);
-  font-weight: 600;
-}
-.gen-chip--preferred {
-  border-color: var(--color-accent);
-  background: rgba(34, 197, 94, 0.08);
-  color: var(--color-success-text);
-  font-weight: 600;
-}
-
-.gen-tag-loading {
-  font-size: .82rem;
-  color: var(--color-muted);
-  padding: 8px 0;
-}
-
-.gen-subject-pool {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  max-height: 140px;
-  overflow-y: auto;
-  padding: 2px 0;
-}
-.gen-subject-chip {
-  display: inline-flex;
-  align-items: center;
-  padding: 3px 10px;
-  border-radius: var(--radius-pill);
-  border: 1px solid var(--color-border);
-  background: var(--color-surface);
-  font-size: .78rem;
-  font-weight: 500;
-  color: var(--color-muted);
-  cursor: pointer;
-  transition: border-color .22s ease, color .22s ease, background .22s ease, transform .22s var(--ease-spring), box-shadow .22s ease;
-  animation: genChipIn .24s var(--ease-out) both;
-}
-.gen-subject-chip:hover {
-  color: var(--color-text);
-  border-color: var(--color-primary);
-  background: rgba(79, 110, 247, 0.04);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-soft);
-}
-.gen-subject-chip--active {
-  border-color: var(--color-primary);
-  background: rgba(79, 110, 247, 0.08);
-  color: var(--color-primary);
-  font-weight: 600;
-}
-.gen-subject-loading {
-  font-size: .82rem;
-  color: var(--color-muted);
-  padding: 8px 0;
-}
-
-.gen-selected-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 8px;
-}
-.gen-selected-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 4px 10px;
-  border-radius: var(--radius-pill);
-  font-size: .78rem;
-  font-weight: 500;
-  animation: genChipIn .24s var(--ease-out) both;
-}
-.gen-spill--required {
-  background: rgba(79, 110, 247, 0.12);
-  color: var(--color-primary);
-  border: 1px solid rgba(79, 110, 247, 0.25);
-}
-.gen-spill--preferred {
-  background: rgba(34, 197, 94, 0.12);
-  color: var(--color-success-text);
-  border: 1px solid rgba(34, 197, 94, 0.25);
-}
-.gen-spill--both {
-  background: linear-gradient(135deg, rgba(79, 110, 247, 0.12), rgba(34, 197, 94, 0.12));
-  color: var(--color-text);
-  border: 1px solid rgba(79, 110, 247, 0.25);
-}
-.gen-pill-remove {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 16px;
-  height: 16px;
-  border: none;
-  border-radius: 50%;
-  background: transparent;
-  color: inherit;
-  font-size: .85rem;
-  line-height: 1;
-  cursor: pointer;
-  opacity: 0.5;
-  transition: opacity 0.2s ease;
-}
-.gen-pill-remove:hover {
-  opacity: 1;
-}
-
-.gen-tag-input {
-  font-size: .82rem;
-  margin-top: 8px;
-}
-
 .gen-action {
   position: relative;
   z-index: 1;
@@ -868,19 +288,10 @@ function formatDistribution (distribution: Record<string, number>) {
   0%, 100% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }
 }
-@keyframes genChipIn {
-  from { opacity: 0; transform: translateY(6px) scale(.94); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
 @keyframes genGlowFloat {
   0%, 100% { transform: translate3d(0, 0, 0) rotate(-10deg); opacity: .42; }
   50% { transform: translate3d(-18px, 14px, 0) rotate(-6deg); opacity: .72; }
 }
-@keyframes selectedPulse {
-  from { transform: scale(.96); }
-  to { transform: scale(1); }
-}
-
 .gen-result {
   position: relative;
   z-index: 1;
@@ -992,10 +403,6 @@ function formatDistribution (distribution: Record<string, number>) {
   color: var(--color-danger-text);
 }
 @media (max-width: 560px) {
-  .gen-tag-pool {
-    max-height: 200px;
-  }
-
   .gen-stats {
     grid-template-columns: repeat(2, 1fr);
   }

@@ -3,7 +3,7 @@ import withNuxt from './.nuxt/eslint.config.mjs'
 
 export default withNuxt({
   rules: {
-    // 项目中存在 index.vue、login.vue 等单单词页面组件名，属合理场景
+    // Route files such as index.vue and login.vue intentionally use single-word names.
     'vue/multi-word-component-names': 'off'
   }
 })
