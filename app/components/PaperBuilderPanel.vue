@@ -6,7 +6,7 @@
         <p class="panel-sub">Build directly from the filtered bank.</p>
       </div>
       <span class="badge tag-count">
-        {{ paper.questions.length }} question{{ paper.questions.length !== 1 ? 's' : '' }}
+        {{ paperQuestions.length }} question{{ paperQuestions.length !== 1 ? 's' : '' }}
       </span>
     </div>
 
@@ -32,7 +32,7 @@
     </div>
 
     <PaperGenerationForm
-      :generation-form="generationForm"
+      :generation-form="generationFormState"
       :can-write-papers="canWritePapers"
       :is-generating="isGenerating"
       :generation-error="generationError"
@@ -41,19 +41,19 @@
       :available-tags="availableTags"
       :is-loading-meta="isLoadingMeta"
       :meta-error="metaError"
-      :total-marks="paper.totalMarks"
-      :paper-title="paper.title"
+      :total-marks="paperState.totalMarks"
+      :paper-title="paperState.title"
       @update:generation-form="(e) => emit('update:generation-form', e)"
       @update:total-marks="(v) => emit('update:total-marks', v)"
       @generate="() => emit('generate')"
     />
 
     <Transition name="fade" mode="out-in">
-      <TransitionGroup v-if="paper.questions.length" name="list" tag="div" class="paper-question-list">
-        <div v-for="(q, idx) in paper.questions" :key="q.id" class="paper-q-item card">
+      <TransitionGroup v-if="paperQuestions.length" name="list" tag="div" class="paper-question-list">
+        <div v-for="(q, idx) in paperQuestions" :key="q.id" class="paper-q-item card">
           <div class="paper-q-controls">
             <button class="icon-btn" :disabled="idx === 0" aria-label="Move question up" @click="emit('move-up', idx)"><AppIcon name="arrow-up" /></button>
-            <button class="icon-btn" :disabled="idx === paper.questions.length - 1" aria-label="Move question down" @click="emit('move-down', idx)"><AppIcon name="arrow-down" /></button>
+            <button class="icon-btn" :disabled="idx === paperQuestions.length - 1" aria-label="Move question down" @click="emit('move-down', idx)"><AppIcon name="arrow-down" /></button>
           </div>
           <div class="paper-q-body">
             <div class="paper-q-num">Q{{ idx + 1 }}</div>
@@ -103,7 +103,7 @@
         <AppIcon name="check" />
         {{ isSavingPaper ? 'Saving...' : 'Save Paper' }}
       </button>
-      <button class="btn btn-success" :disabled="!paper.questions.length || !paper.title.trim()" @click="emit('export-paper')">
+      <button class="btn btn-success" :disabled="!paperQuestions.length || !paperState.title.trim()" @click="emit('export-paper')">
         <AppIcon name="paper" />
         Export Paper
       </button>
@@ -111,7 +111,7 @@
         <AppIcon name="download" />
         {{ isDownloadingDocx ? 'Preparing DOCX...' : 'Download DOCX' }}
       </button>
-      <button class="btn btn-outline" :disabled="!paper.questions.length" @click="emit('clear-paper')">
+      <button class="btn btn-outline" :disabled="!paperQuestions.length" @click="emit('clear-paper')">
         <AppIcon name="x" />
         Clear All
       </button>
@@ -133,11 +133,11 @@
       v-model:layout-density="layoutDensityModel"
       v-model:include-answers-in-export="includeAnswersModel"
       :visible="exported"
-      :paper-title="paper.title"
-      :paper-subject="paper.subject"
-      :paper-duration="paper.duration"
-      :paper-total-marks="paper.totalMarks"
-      :paper-questions="paper.questions"
+      :paper-title="paperState.title"
+      :paper-subject="paperState.subject"
+      :paper-duration="paperState.duration"
+      :paper-total-marks="paperState.totalMarks"
+      :paper-questions="paperQuestions"
       :can-read-answers="canReadAnswers"
       :downloaded-layout-density="downloadedLayoutDensity"
     />
@@ -176,6 +176,7 @@
 import type { ExportAccessPrompt } from '~/composables/usePaperExport'
 import type { ExportMode, GenerationDiagnostics, LayoutDensity } from '~/types/generation'
 import type { GenerationFormState, PaperQuestion, PaperState } from '~/domain/papers'
+import { createDefaultGenerationForm, createDefaultPaper } from '~/domain/papers'
 import { formatScoreWeight } from '~/utils/format'
 import { parseLatexParts } from '~/composables/useLatexParts'
 
@@ -228,16 +229,31 @@ const emit = defineEmits<{
   'dismiss-export-access-prompt': []
 }>();
 
+const paperState = computed(() => ({
+  ...createDefaultPaper(),
+  ...(props.paper || {}),
+  questions: Array.isArray(props.paper?.questions) ? props.paper.questions : []
+}))
+const paperQuestions = computed(() => paperState.value.questions)
+const generationFormState = computed(() => ({
+  ...createDefaultGenerationForm(),
+  ...(props.generationForm || {}),
+  questionTypes: Array.isArray(props.generationForm?.questionTypes) ? props.generationForm.questionTypes : [],
+  subjects: Array.isArray(props.generationForm?.subjects) ? props.generationForm.subjects : [],
+  requiredTags: Array.isArray(props.generationForm?.requiredTags) ? props.generationForm.requiredTags : [],
+  preferredTags: Array.isArray(props.generationForm?.preferredTags) ? props.generationForm.preferredTags : []
+}))
+
 const paperTitleModel = computed({
-  get: () => props.paper.title,
+  get: () => paperState.value.title,
   set: (v: string) => emit('update:paper-title', v)
 })
 const paperSubjectModel = computed({
-  get: () => props.paper.subject,
+  get: () => paperState.value.subject,
   set: (v: string) => emit('update:paper-subject', v)
 })
 const paperDurationModel = computed({
-  get: () => props.paper.duration,
+  get: () => paperState.value.duration,
   set: (v: number) => emit('update:paper-duration', v)
 })
 const exportModeModel = computed({
@@ -255,12 +271,12 @@ const includeAnswersModel = computed({
 
 const canSavePaper = computed(() => {
   if (props.isSavingPaper) return false
-  return Boolean(props.paper.questions.length && props.paper.title.trim() && props.paper.subject.trim())
+  return Boolean(paperQuestions.value.length && paperState.value.title.trim() && paperState.value.subject.trim())
 })
 
 const paperQuestionLatexParts = computed(() => {
   const map = new Map<number, ReturnType<typeof parseLatexParts>>()
-  for (const q of props.paper.questions) map.set(q.id, parseLatexParts(q.text))
+  for (const q of paperQuestions.value) map.set(q.id, parseLatexParts(q.text))
   return map
 })
 </script>

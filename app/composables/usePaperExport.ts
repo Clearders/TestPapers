@@ -62,7 +62,7 @@ export function usePaperExport (params: UsePaperExportParams) {
 
   const canWritePapers = computed(() => hasPermission('papers:write'))
   const canDownloadDocx = computed(() => {
-    if (!paper.questions.length || !paper.title.trim() || !paper.subject.trim() || isDownloadingDocx.value) return false
+    if (!paper?.questions?.length || !paper.title.trim() || !paper.subject.trim() || isDownloadingDocx.value) return false
     return true
   })
 

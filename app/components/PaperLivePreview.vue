@@ -6,6 +6,17 @@
         <p>{{ previewSummary }}</p>
       </div>
       <div class="live-preview-actions">
+        <button
+          v-if="commentsEnabled"
+          class="icon-btn comment-btn"
+          type="button"
+          aria-label="Open draft comments"
+          :title="`${openCommentCount} open comments, ${commentCount} total`"
+          @click="$emit('toggle-comments')"
+        >
+          <AppIcon name="edit" />
+          <span v-if="openCommentCount" class="comment-count">{{ openCommentCount }}</span>
+        </button>
         <button class="icon-btn" type="button" aria-label="Print paper" title="Print paper" @click="$emit('print-paper')">
           <AppIcon name="printer" />
         </button>
@@ -27,15 +38,15 @@
         v-model:layout-density="layoutDensityModel"
         v-model:include-answers-in-export="includeAnswersModel"
         :visible="true"
-        :paper-title="paper.title || 'Untitled Paper'"
-        :paper-subject="paper.subject"
-        :paper-duration="paper.duration"
-        :paper-total-marks="paper.totalMarks"
-        :paper-questions="paper.questions"
+        :paper-title="paperState.title || 'Untitled Paper'"
+        :paper-subject="paperState.subject"
+        :paper-duration="paperState.duration"
+        :paper-total-marks="paperState.totalMarks"
+        :paper-questions="paperQuestions"
         :can-read-answers="canReadAnswers"
         :downloaded-layout-density="downloadedLayoutDensity"
       />
-      <div v-if="!paper.questions.length" class="empty-preview card">
+      <div v-if="!paperQuestions.length" class="empty-preview card">
         <span class="empty-preview-icon"><AppIcon name="paper" /></span>
         <p>No questions added yet.</p>
       </div>
@@ -46,8 +57,9 @@
 <script setup lang="ts">
 import type { ExportMode, LayoutDensity } from '~/types/generation'
 import type { PaperState } from '~/domain/papers'
+import { createDefaultPaper } from '~/domain/papers'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   paper: PaperState
   exportMode: ExportMode
   layoutDensity: LayoutDensity
@@ -55,7 +67,14 @@ const props = defineProps<{
   canReadAnswers: boolean
   downloadedLayoutDensity: LayoutDensity | null
   fullscreen: boolean
-}>()
+  commentsEnabled?: boolean
+  commentCount?: number
+  openCommentCount?: number
+}>(), {
+  commentsEnabled: false,
+  commentCount: 0,
+  openCommentCount: 0
+})
 
 const emit = defineEmits<{
   'update:exportMode': [value: ExportMode]
@@ -63,7 +82,15 @@ const emit = defineEmits<{
   'update:includeAnswersInExport': [value: boolean]
   'toggle-fullscreen': []
   'print-paper': []
+  'toggle-comments': []
 }>()
+
+const paperState = computed(() => ({
+  ...createDefaultPaper(),
+  ...(props.paper || {}),
+  questions: Array.isArray(props.paper?.questions) ? props.paper.questions : []
+}))
+const paperQuestions = computed(() => paperState.value.questions)
 
 const exportModeModel = computed({
   get: () => props.exportMode,
@@ -81,8 +108,8 @@ const includeAnswersModel = computed({
 })
 
 const previewSummary = computed(() => {
-  const questionCount = props.paper.questions.length
-  const marks = props.paper.totalMarks || 0
+  const questionCount = paperQuestions.value.length
+  const marks = paperState.value.totalMarks || 0
   return `${questionCount} question${questionCount === 1 ? '' : 's'} | ${marks} marks`
 })
 
@@ -161,6 +188,26 @@ const previewSummary = computed(() => {
   border-color: var(--color-primary);
   transform: translateY(-2px);
   box-shadow: var(--shadow-soft);
+}
+
+.comment-btn {
+  position: relative;
+}
+
+.comment-count {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  display: inline-grid;
+  min-width: 18px;
+  height: 18px;
+  place-items: center;
+  padding: 0 5px;
+  border-radius: var(--radius-pill);
+  background: var(--color-danger);
+  color: #fff;
+  font-size: .68rem;
+  font-weight: 800;
 }
 
 .preview-scroll {

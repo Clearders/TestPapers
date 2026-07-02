@@ -1,8 +1,8 @@
 <template>
   <section class="workspace">
     <WorkspaceHeading
-      :selected-count="paper.questions.length"
-      :total-marks="paper.totalMarks"
+      :selected-count="paperQuestions.length"
+      :total-marks="workspacePaper.totalMarks"
     />
 
     <WorkspaceSectionTabs v-model:active-section="activeSection" />
@@ -29,13 +29,41 @@
           @delete-draft="deleteSelectedExamDraft"
         />
 
+        <CloudDraftPanel
+          v-if="isAuthenticated && canReadPapers"
+          v-model:selected-draft-id="selectedCloudDraftId"
+          v-model:draft-name="cloudDraftName"
+          v-model:collaborator-username="cloudCollaboratorUsername"
+          v-model:collaborator-role="cloudCollaboratorRole"
+          :drafts="cloudDrafts"
+          :active-draft="activeCloudDraft"
+          :is-loading="isLoadingCloudDrafts"
+          :is-saving="isSavingCloudDraft"
+          :is-downloading="isDownloadingCloudDraft"
+          :error="cloudDraftError"
+          :conflict="cloudDraftConflict"
+          :saved-at="cloudDraftSavedAt"
+          :has-current-draft-content="hasCurrentDraftContent"
+          :can-manage-active="canManageActiveCloudDraft"
+          :can-edit-active="canEditActiveCloudDraft"
+          @save="saveCloudDraftFromWorkspace"
+          @load="loadSelectedCloudDraftFromWorkspace"
+          @delete-draft="deleteSelectedCloudDraftFromWorkspace"
+          @reload="loadCloudDrafts"
+          @download="downloadCloudDraftDocx"
+          @set-review-status="setCloudDraftReviewStatus"
+          @add-collaborator="addCloudCollaboratorFromForm"
+          @update-collaborator="updateCloudDraftCollaborator"
+          @remove-collaborator="removeCloudDraftCollaboratorFromPanel"
+        />
+
         <div class="editor-layout">
           <PaperBuilderPanel
             v-model:export-mode="exportMode"
             v-model:layout-density="layoutDensity"
             v-model:include-answers-in-export="includeAnswersInExport"
-            :paper="paper"
-            :generation-form="generationForm"
+            :paper="workspacePaper"
+            :generation-form="workspaceGenerationForm"
             :can-read-answers="canReadAnswers"
             :can-write-papers="canWritePapers"
             :is-generating="isGenerating"
@@ -77,12 +105,16 @@
             v-model:export-mode="exportMode"
             v-model:layout-density="layoutDensity"
             v-model:include-answers-in-export="includeAnswersInExport"
-            :paper="paper"
+            :paper="workspacePaper"
             :can-read-answers="canReadAnswers"
             :downloaded-layout-density="downloadedLayoutDensity"
             :fullscreen="previewFullscreen"
+            :comments-enabled="!!activeCloudDraft"
+            :comment-count="activeCloudDraft?.commentCount || 0"
+            :open-comment-count="activeCloudDraft?.openCommentCount || 0"
             @toggle-fullscreen="previewFullscreen = !previewFullscreen"
             @print-paper="printPaper"
+            @toggle-comments="commentsDrawerOpen = !commentsDrawerOpen"
           />
         </div>
       </div>
@@ -172,12 +204,26 @@
       @save="applyTemporaryQuestionEdit"
       @reset="resetTemporaryQuestionEdit"
     />
+
+    <DraftCommentsDrawer
+      v-model:open="commentsDrawerOpen"
+      v-model:filter="commentsFilter"
+      v-model:message="newCommentMessage"
+      v-model:selected-question-public-id="commentQuestionPublicId"
+      :comments="activeCloudDraft?.comments || []"
+      :questions="paperQuestions"
+      :active-draft-name="activeCloudDraft?.name || ''"
+      :can-comment="canCommentActiveCloudDraft"
+      @add-comment="addCloudCommentFromDrawer"
+      @update-comment-status="updateCloudDraftCommentStatus"
+    />
   </section>
 </template>
 
 <script setup lang="ts">
 import type { WorkspaceSection } from '~/composables/useQuestionWorkspaceRouteState'
 import type { Question } from '~/types/question'
+import type { DraftCollaboratorRole, DraftCommentStatus } from '~/types/draft'
 import type { ExportMode, GenerationDiagnostics, LayoutDensity } from '~/types/generation'
 import type { BankMode, GeneratedPaperResponse } from '~/domain/papers'
 import {
@@ -213,6 +259,7 @@ const {
 } = useQuestionBank()
 const { hasPermission, isAuthenticated, isAuthReady, user } = useAuth()
 const { apiFetch, apiFetchRaw } = useApi()
+const { on: onRealtimeEvent } = useRealtime()
 const {
   activeSection,
   search,
@@ -236,16 +283,37 @@ const generationDiagnostics = ref<GenerationDiagnostics | null>(null)
 const isActive = ref(true)
 const previewFullscreen = ref(false)
 const importModalOpen = ref(false)
+const commentsDrawerOpen = ref(false)
+const commentsFilter = ref<'open' | 'resolved' | 'all'>('open')
+const newCommentMessage = ref('')
+const commentQuestionPublicId = ref('')
+const cloudCollaboratorUsername = ref('')
+const cloudCollaboratorRole = ref<DraftCollaboratorRole>('viewer')
 let searchLoadTimer: ReturnType<typeof setTimeout> | null = null
 
 const paper = reactive(createDefaultPaper())
 const generationForm = reactive(createDefaultGenerationForm())
+const workspacePaper = computed(() => ({
+  ...createDefaultPaper(),
+  ...(paper || {}),
+  questions: Array.isArray(paper?.questions) ? paper.questions : []
+}))
+const paperQuestions = computed(() => workspacePaper.value.questions)
+const workspaceGenerationForm = computed(() => ({
+  ...createDefaultGenerationForm(),
+  ...(generationForm || {}),
+  questionTypes: Array.isArray(generationForm?.questionTypes) ? generationForm.questionTypes : [],
+  subjects: Array.isArray(generationForm?.subjects) ? generationForm.subjects : [],
+  requiredTags: Array.isArray(generationForm?.requiredTags) ? generationForm.requiredTags : [],
+  preferredTags: Array.isArray(generationForm?.preferredTags) ? generationForm.preferredTags : []
+}))
 
 const editingQuestion = ref<Question | null>(null)
 const reportingQuestion = ref<Question | null>(null)
 const detailQuestion = ref<Question | null>(null)
 
 const canReadQuestions = computed(() => hasPermission('questions:read'))
+const canReadPapers = computed(() => hasPermission('papers:read'))
 const workspaceAccessTitle = computed(() => isAuthenticated.value ? 'Question bank access required' : 'Create an account to use the question bank')
 const workspaceAccessMessage = computed(() => (
   isAuthenticated.value
@@ -271,14 +339,20 @@ const currentQuestions = computed(() => bankMode.value === 'mine' ? myQuestions.
 const activePagination = computed(() => bankMode.value === 'mine' ? myQuestionPagination.value : questionPagination.value)
 const activeLoading = computed(() => bankMode.value === 'mine' ? isLoadingMine.value : isLoading.value)
 
-const hasCurrentDraftContent = computed(() => Boolean(
-  paper.title.trim() ||
-  paper.subject.trim() ||
-  paper.questions.length ||
-  generationForm.subjects.length ||
-  generationForm.requiredTags.length ||
-  generationForm.preferredTags.length
-))
+const hasCurrentDraftContent = computed(() => {
+  const questions = Array.isArray(paperQuestions.value) ? paperQuestions.value : []
+  const subjects = Array.isArray(workspaceGenerationForm.value.subjects) ? workspaceGenerationForm.value.subjects : []
+  const requiredTags = Array.isArray(workspaceGenerationForm.value.requiredTags) ? workspaceGenerationForm.value.requiredTags : []
+  const preferredTags = Array.isArray(workspaceGenerationForm.value.preferredTags) ? workspaceGenerationForm.value.preferredTags : []
+  return Boolean(
+    workspacePaper.value.title.trim() ||
+    workspacePaper.value.subject.trim() ||
+    questions.length ||
+    subjects.length ||
+    requiredTags.length ||
+    preferredTags.length
+  )
+})
 
 const savedPaperId = ref<string | null>(null)
 const savedPaperSignature = ref('')
@@ -290,6 +364,8 @@ const {
   examDraftError,
   examDraftSavedAt,
   currentPaperSignature,
+  createWorkspaceDraft,
+  applyWorkspaceDraft,
   restoreWorkspaceDraft,
   loadExamDraftSummaries,
   saveExamDraft,
@@ -386,12 +462,50 @@ const {
   }
 })
 
+const {
+  cloudDrafts,
+  activeCloudDraft,
+  selectedCloudDraftId,
+  cloudDraftName,
+  cloudDraftError,
+  cloudDraftSavedAt,
+  cloudDraftConflict,
+  isLoadingCloudDrafts,
+  isSavingCloudDraft,
+  isDownloadingCloudDraft,
+  canManageActiveCloudDraft,
+  canEditActiveCloudDraft,
+  canCommentActiveCloudDraft,
+  clearActiveCloudDraft,
+  loadCloudDrafts,
+  loadCloudDraft,
+  saveActiveCloudDraft,
+  setCloudDraftReviewStatus,
+  deleteSelectedCloudDraft,
+  addCloudDraftCollaborator,
+  updateCloudDraftCollaborator,
+  removeCloudDraftCollaborator,
+  addCloudDraftComment,
+  updateCloudDraftComment,
+  downloadCloudDraftDocx
+} = useSharedDrafts({
+  createWorkspaceDraft,
+  applyWorkspaceDraft,
+  defaultDraftName: () => paper.title.trim() || `Cloud draft ${cloudDrafts.value.length + 1}`,
+  onDraftLoaded: () => {
+    exported.value = false
+    downloadedLayoutDensity.value = null
+    commentsDrawerOpen.value = false
+  }
+})
+
 watch(
   [isAuthReady, canReadQuestions],
   ([ready, allowed]) => {
     if (!import.meta.client || !ready) return
     restoreWorkspaceDraft()
     loadExamDraftSummaries()
+    if (canReadPapers.value) void loadCloudDrafts()
     if (allowed) {
       void loadCurrentPage(1)
       void loadMeta()
@@ -415,6 +529,19 @@ watch([bankMode, activeSection], () => {
   if (import.meta.client && isActive.value) syncQuery()
 })
 
+watch(isAuthenticated, (authenticated) => {
+  if (!authenticated) {
+    clearActiveCloudDraft()
+    commentsDrawerOpen.value = false
+  }
+})
+
+if (import.meta.client) {
+  for (const event of ['draft.updated', 'draft.review.updated', 'draft.comment.created', 'draft.comment.updated']) {
+    onRealtimeEvent(event, handleDraftRealtimeEvent)
+  }
+}
+
 onBeforeUnmount(() => {
   isActive.value = false
   if (searchLoadTimer) clearTimeout(searchLoadTimer)
@@ -424,6 +551,12 @@ onBeforeUnmount(() => {
 watch(canReadAnswers, (allowed) => {
   if (!allowed) includeAnswersInExport.value = false
 })
+
+watch(
+  [paper, generationForm, exportMode, layoutDensity, includeAnswersInExport, generationDiagnostics],
+  () => scheduleWorkspaceDraftSave(),
+  { deep: true }
+)
 
 function setActiveSection (section: WorkspaceSection) {
   activeSection.value = section
@@ -480,6 +613,8 @@ function newPaper () {
   generationDiagnostics.value = null
   resetExamDraftSelection()
   clearActiveExamDraft()
+  clearActiveCloudDraft()
+  commentsDrawerOpen.value = false
   resetExportState()
   clearWorkspaceDraft()
   void nextTick(() => {
@@ -490,15 +625,6 @@ function newPaper () {
 watch([exportMode, layoutDensity, includeAnswersInExport], () => {
   downloadedLayoutDensity.value = null
 })
-
-watch(() => currentPaperSignature(), () => {
-  downloadedLayoutDensity.value = null
-})
-
-watch(
-  [() => currentPaperSignature(), () => JSON.stringify(paper.questions), () => JSON.stringify(generationForm), exportMode, layoutDensity, includeAnswersInExport, savedPaperId, savedPaperSignature, generationDiagnostics],
-  scheduleWorkspaceDraftSave
-)
 
 async function generatePaper () {
   generationError.value = ''
@@ -556,6 +682,65 @@ function openDetailModal (question: Question) {
 function onQuestionsImported () {
   void loadMeta()
   void loadCurrentPage(1)
+}
+
+function handleDraftRealtimeEvent (payload: unknown) {
+  if (!isRecord(payload)) return
+  if (canReadPapers.value) void loadCloudDrafts()
+  const draftId = typeof payload.draftId === 'string' ? payload.draftId : ''
+  const actorId = typeof payload.actorId === 'number' ? payload.actorId : null
+  if (draftId && draftId === activeCloudDraft.value?.publicId && actorId !== user.value?.id) {
+    cloudDraftConflict.value = true
+  }
+}
+
+async function saveCloudDraftFromWorkspace () {
+  await saveActiveCloudDraft()
+}
+
+async function loadSelectedCloudDraftFromWorkspace () {
+  if (!selectedCloudDraftId.value) return
+  const targetName = cloudDrafts.value.find(draft => draft.publicId === selectedCloudDraftId.value)?.name || 'this cloud draft'
+  const replacingDifferentDraft = activeCloudDraft.value?.publicId !== selectedCloudDraftId.value
+  if (replacingDifferentDraft && hasCurrentDraftContent.value && !window.confirm(`Load "${targetName}" and replace the current paper?`)) return
+  await loadCloudDraft(selectedCloudDraftId.value)
+}
+
+async function deleteSelectedCloudDraftFromWorkspace () {
+  if (!selectedCloudDraftId.value) return
+  const targetName = cloudDrafts.value.find(draft => draft.publicId === selectedCloudDraftId.value)?.name || 'this cloud draft'
+  if (!window.confirm(`Delete "${targetName}"? This cannot be undone.`)) return
+  await deleteSelectedCloudDraft()
+}
+
+async function addCloudCollaboratorFromForm () {
+  const username = cloudCollaboratorUsername.value.trim()
+  if (!username) return
+  const updated = await addCloudDraftCollaborator(username, cloudCollaboratorRole.value)
+  if (updated) cloudCollaboratorUsername.value = ''
+}
+
+async function removeCloudDraftCollaboratorFromPanel (userPublicId: string) {
+  if (!window.confirm('Remove this collaborator from the cloud draft?')) return
+  await removeCloudDraftCollaborator(userPublicId)
+}
+
+async function addCloudCommentFromDrawer () {
+  const message = newCommentMessage.value.trim()
+  if (!message) return
+  const updated = await addCloudDraftComment(message, commentQuestionPublicId.value || null)
+  if (updated) {
+    newCommentMessage.value = ''
+    commentQuestionPublicId.value = ''
+  }
+}
+
+async function updateCloudDraftCommentStatus (commentPublicId: string, status: DraftCommentStatus) {
+  await updateCloudDraftComment(commentPublicId, { status })
+}
+
+function isRecord (value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 </script>
 

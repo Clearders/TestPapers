@@ -1,5 +1,12 @@
 <template>
-  <QuestionWorkspace />
+  <div class="workspace-client-page">
+    <ClientOnly>
+      <QuestionWorkspace />
+      <template #fallback>
+        <section class="workspace-shell-fallback" aria-busy="true" />
+      </template>
+    </ClientOnly>
+  </div>
 </template>
 
 <script setup lang="ts">

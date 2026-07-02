@@ -11,9 +11,13 @@ export function usePaperQuestionActions (params: UsePaperQuestionActionsParams) 
   const { paper, onPaperQuestionsChanged } = params
   const temporaryEditingQuestion = ref<PaperQuestion | null>(null)
 
+  function questions () {
+    return Array.isArray(paper?.questions) ? paper.questions : []
+  }
+
   const paperQuestionIds = computed(() => {
     const ids = new Set<number>()
-    for (const q of paper.questions) ids.add(q.id)
+    for (const q of questions()) ids.add(q.id)
     return ids
   })
 
@@ -22,7 +26,7 @@ export function usePaperQuestionActions (params: UsePaperQuestionActionsParams) 
   }
 
   function removeQuestion (id: number) {
-    const idx = paper.questions.findIndex(q => q.id === id)
+    const idx = questions().findIndex(q => q.id === id)
     if (idx === -1) return false
     paper.questions.splice(idx, 1)
     markQuestionsChanged()
@@ -39,7 +43,7 @@ export function usePaperQuestionActions (params: UsePaperQuestionActionsParams) 
   }
 
   function moveUp (idx: number) {
-    if (idx === 0 || idx >= paper.questions.length) return
+    if (idx === 0 || idx >= questions().length) return
     const [removed] = paper.questions.splice(idx, 1)
     if (!removed) return
     paper.questions.splice(idx - 1, 0, removed)
@@ -47,7 +51,7 @@ export function usePaperQuestionActions (params: UsePaperQuestionActionsParams) 
   }
 
   function moveDown (idx: number) {
-    if (idx >= paper.questions.length - 1) return
+    if (idx >= questions().length - 1) return
     const [removed] = paper.questions.splice(idx, 1)
     if (!removed) return
     paper.questions.splice(idx + 1, 0, removed)
@@ -59,7 +63,7 @@ export function usePaperQuestionActions (params: UsePaperQuestionActionsParams) 
   }
 
   function applyTemporaryQuestionEdit (question: PaperQuestion) {
-    const idx = paper.questions.findIndex(item => item.id === question.id)
+    const idx = questions().findIndex(item => item.id === question.id)
     if (idx === -1) return
     paper.questions.splice(idx, 1, question)
     temporaryEditingQuestion.value = null
@@ -67,7 +71,7 @@ export function usePaperQuestionActions (params: UsePaperQuestionActionsParams) 
   }
 
   function resetTemporaryQuestionEdit (id: number) {
-    const idx = paper.questions.findIndex(item => item.id === id)
+    const idx = questions().findIndex(item => item.id === id)
     if (idx === -1) return
     const current = paper.questions[idx]
     if (!current?.originalQuestion) return

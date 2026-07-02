@@ -25,12 +25,12 @@
       </button>
     </div>
 
-    <div v-if="drafts.length" class="exam-draft-controls exam-draft-controls--library">
+    <div v-if="draftList.length" class="exam-draft-controls exam-draft-controls--library">
       <div class="form-group draft-select-field">
         <label class="form-label" for="exam-draft-select">Saved Drafts</label>
         <select id="exam-draft-select" v-model="selectedDraftIdModel" class="form-input" name="examDraftSelect">
           <option value="">Select a draft</option>
-          <option v-for="draft in drafts" :key="draft.id" :value="draft.id">
+          <option v-for="draft in draftList" :key="draft.id" :value="draft.id">
             {{ draft.name }} | {{ draft.questionCount }} q | {{ draft.totalMarks }} marks
           </option>
         </select>
@@ -91,6 +91,8 @@ const selectedDraftIdModel = computed({
   get: () => props.selectedDraftId,
   set: (value: string) => emit('update:selectedDraftId', value)
 })
+
+const draftList = computed(() => Array.isArray(props.drafts) ? props.drafts : [])
 
 function formatDraftTimestamp (value: string | null) {
   if (!value) return 'just now'

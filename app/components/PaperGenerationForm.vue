@@ -15,7 +15,7 @@
 
     <div class="gen-controls">
       <GenerationSubjectSelector
-        :generation-form="generationForm"
+        :generation-form="generationFormState"
         :available-subjects="availableSubjects"
         :is-loading-meta="isLoadingMeta"
         :meta-error="metaError"
@@ -28,17 +28,17 @@
       />
 
       <GenerationQuestionTypeSelector
-        :generation-form="generationForm"
+        :generation-form="generationFormState"
         @update:generation-form="emit('update:generationForm', $event)"
       />
 
       <GenerationDifficultyControl
-        :generation-form="generationForm"
+        :generation-form="generationFormState"
         @update:generation-form="emit('update:generationForm', $event)"
       />
 
       <GenerationTagFilter
-        :generation-form="generationForm"
+        :generation-form="generationFormState"
         :available-tags="availableTags"
         :is-loading-meta="isLoadingMeta"
         :meta-error="metaError"
@@ -50,7 +50,7 @@
       <button
         class="btn btn-primary gen-submit"
         type="submit"
-        :disabled="isGenerating || !generationForm.subjects.length || !paperTitle.trim() || !generationForm.questionTypes.length"
+        :disabled="isGenerating || !generationFormState.subjects.length || !paperTitle.trim() || !generationFormState.questionTypes.length"
       >
         <span v-if="isGenerating" class="gen-spinner"/>
         {{ isGenerating ? 'Generating...' : 'Generate Paper' }}
@@ -103,6 +103,7 @@
 
 <script setup lang="ts">
 import type { GenerationDiagnostics, GenerationFormState } from '~/types/generation'
+import { createDefaultGenerationForm } from '~/domain/papers'
 
 const props = defineProps<{
   generationForm: GenerationFormState
@@ -123,6 +124,15 @@ const emit = defineEmits<{
   'update:totalMarks': [value: number]
   generate: []
 }>()
+
+const generationFormState = computed(() => ({
+  ...createDefaultGenerationForm(),
+  ...(props.generationForm || {}),
+  questionTypes: Array.isArray(props.generationForm?.questionTypes) ? props.generationForm.questionTypes : [],
+  subjects: Array.isArray(props.generationForm?.subjects) ? props.generationForm.subjects : [],
+  requiredTags: Array.isArray(props.generationForm?.requiredTags) ? props.generationForm.requiredTags : [],
+  preferredTags: Array.isArray(props.generationForm?.preferredTags) ? props.generationForm.preferredTags : []
+}))
 
 const fitnessClass = computed(() => {
   if (!props.generationDiagnostics) return ''

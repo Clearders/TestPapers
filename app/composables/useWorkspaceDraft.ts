@@ -62,6 +62,7 @@ export function useWorkspaceDraft (params: UseWorkspaceDraftParams) {
   }
 
   function currentPaperSignature () {
+    if (!paper) return ''
     return getPaperSignature(paper)
   }
 

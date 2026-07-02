@@ -42,6 +42,8 @@ const limitedUser = {
 let authMode = 'full'
 let protectedRequests = []
 let apiRequests = []
+let browserExceptions = []
+let browserConsole = []
 const sampleQuestions = [{
   id: 101,
   publicId: 'q-smoke-101',
@@ -60,6 +62,10 @@ const sampleQuestions = [{
   createdAt: '2026-01-01T00:00:00.000Z',
   updatedAt: '2026-01-01T00:00:00.000Z'
 }]
+
+let cloudDraftSequence = 1
+let cloudCommentSequence = 1
+let sharedDrafts = []
 
 let appProcess
 let browserProcess
@@ -85,6 +91,204 @@ function currentAuthUser() {
 function apiPathFor(url) {
   const parsed = new URL(url)
   return parsed.pathname.replace(/^\/api\/v1/, '')
+}
+
+function parseJsonBody(postData) {
+  if (!postData) return {}
+  try {
+    return JSON.parse(postData)
+  } catch {
+    return {}
+  }
+}
+
+function userRef(user) {
+  return {
+    publicId: user.publicId,
+    username: user.username,
+    displayName: user.displayName
+  }
+}
+
+function draftSummary(draft) {
+  const openCommentCount = draft.comments.filter(comment => comment.status === 'open').length
+  return {
+    id: draft.id,
+    publicId: draft.publicId,
+    name: draft.name,
+    owner: draft.owner,
+    accessRole: draft.accessRole,
+    reviewStatus: draft.reviewStatus,
+    revision: draft.revision,
+    collaboratorCount: draft.collaborators.length,
+    commentCount: draft.comments.length,
+    openCommentCount,
+    updatedBy: draft.updatedBy,
+    createdAt: draft.createdAt,
+    updatedAt: draft.updatedAt
+  }
+}
+
+function draftDetail(draft) {
+  return {
+    ...draftSummary(draft),
+    state: draft.state,
+    collaborators: draft.collaborators,
+    comments: draft.comments
+  }
+}
+
+function findSharedDraft(path) {
+  const publicId = path.split('/')[2]
+  return sharedDrafts.find(draft => draft.publicId === publicId) || null
+}
+
+function handleDraftApi(path, method, postData) {
+  if (path === '/drafts' && method === 'GET') {
+    return apiEnvelope(sharedDrafts.map(draftSummary))
+  }
+
+  if (path === '/drafts' && method === 'POST') {
+    const body = parseJsonBody(postData)
+    const now = new Date().toISOString()
+    const draft = {
+      id: 7000 + cloudDraftSequence,
+      publicId: `draft-smoke-${cloudDraftSequence}`,
+      name: body.name || `Smoke Cloud Draft ${cloudDraftSequence}`,
+      owner: userRef(testUser),
+      accessRole: 'owner',
+      reviewStatus: 'draft',
+      revision: 1,
+      state: body.state,
+      collaborators: [],
+      comments: [],
+      updatedBy: userRef(testUser),
+      createdAt: now,
+      updatedAt: now
+    }
+    cloudDraftSequence += 1
+    sharedDrafts = [draft, ...sharedDrafts]
+    return apiEnvelope(draftDetail(draft))
+  }
+
+  if (/^\/drafts\/[^/]+$/.test(path)) {
+    const draft = findSharedDraft(path)
+    if (!draft) return apiEnvelope({})
+
+    if (method === 'GET') return apiEnvelope(draftDetail(draft))
+
+    if (method === 'PATCH') {
+      const body = parseJsonBody(postData)
+      const now = new Date().toISOString()
+      if (typeof body.name === 'string') draft.name = body.name
+      if (body.state && typeof body.state === 'object') draft.state = body.state
+      if (typeof body.reviewStatus === 'string') draft.reviewStatus = body.reviewStatus
+      draft.revision += 1
+      draft.updatedBy = userRef(testUser)
+      draft.updatedAt = now
+      return apiEnvelope(draftDetail(draft))
+    }
+
+    if (method === 'DELETE') {
+      sharedDrafts = sharedDrafts.filter(item => item.publicId !== draft.publicId)
+      return apiEnvelope({})
+    }
+  }
+
+  if (/^\/drafts\/[^/]+\/collaborators$/.test(path) && method === 'POST') {
+    const draft = findSharedDraft(path)
+    if (!draft) return apiEnvelope({})
+    const body = parseJsonBody(postData)
+    const collaboratorUser = body.username === limitedUser.username ? limitedUser : {
+      ...limitedUser,
+      publicId: `usr-${body.username || 'unknown'}`,
+      username: body.username || 'unknown',
+      displayName: body.username || 'Unknown User'
+    }
+    const now = new Date().toISOString()
+    const collaborator = {
+      user: userRef(collaboratorUser),
+      role: body.role === 'editor' ? 'editor' : 'viewer',
+      createdAt: now,
+      updatedAt: now
+    }
+    draft.collaborators = [
+      collaborator,
+      ...draft.collaborators.filter(item => item.user.publicId !== collaborator.user.publicId)
+    ]
+    draft.updatedBy = userRef(testUser)
+    draft.updatedAt = now
+    return apiEnvelope(draftDetail(draft))
+  }
+
+  if (/^\/drafts\/[^/]+\/collaborators\/[^/]+$/.test(path)) {
+    const draft = findSharedDraft(path)
+    if (!draft) return apiEnvelope({})
+    const userPublicId = path.split('/').at(-1)
+    if (method === 'PATCH') {
+      const body = parseJsonBody(postData)
+      const now = new Date().toISOString()
+      draft.collaborators = draft.collaborators.map(collaborator => (
+        collaborator.user.publicId === userPublicId
+          ? { ...collaborator, role: body.role === 'editor' ? 'editor' : 'viewer', updatedAt: now }
+          : collaborator
+      ))
+      draft.updatedAt = now
+      return apiEnvelope(draftDetail(draft))
+    }
+    if (method === 'DELETE') {
+      draft.collaborators = draft.collaborators.filter(collaborator => collaborator.user.publicId !== userPublicId)
+      draft.updatedAt = new Date().toISOString()
+      return apiEnvelope(draftDetail(draft))
+    }
+  }
+
+  if (/^\/drafts\/[^/]+\/comments$/.test(path) && method === 'POST') {
+    const draft = findSharedDraft(path)
+    if (!draft) return apiEnvelope({})
+    const body = parseJsonBody(postData)
+    const now = new Date().toISOString()
+    draft.comments = [
+      ...draft.comments,
+      {
+        id: 8000 + cloudCommentSequence,
+        publicId: `comment-smoke-${cloudCommentSequence}`,
+        questionPublicId: body.questionPublicId || null,
+        message: body.message || 'Smoke comment',
+        status: 'open',
+        author: userRef(testUser),
+        createdAt: now,
+        updatedAt: now
+      }
+    ]
+    cloudCommentSequence += 1
+    draft.updatedAt = now
+    draft.updatedBy = userRef(testUser)
+    return apiEnvelope(draftDetail(draft))
+  }
+
+  if (/^\/drafts\/[^/]+\/comments\/[^/]+$/.test(path) && method === 'PATCH') {
+    const draft = findSharedDraft(path)
+    if (!draft) return apiEnvelope({})
+    const body = parseJsonBody(postData)
+    const commentPublicId = path.split('/').at(-1)
+    const now = new Date().toISOString()
+    draft.comments = draft.comments.map(comment => (
+      comment.publicId === commentPublicId
+        ? {
+            ...comment,
+            message: typeof body.message === 'string' ? body.message : comment.message,
+            status: body.status === 'resolved' ? 'resolved' : 'open',
+            updatedAt: now
+          }
+        : comment
+    ))
+    draft.updatedAt = now
+    draft.updatedBy = userRef(testUser)
+    return apiEnvelope(draftDetail(draft))
+  }
+
+  return apiEnvelope({})
 }
 
 function recordApiRequest(params) {
@@ -114,7 +318,7 @@ async function waitForApiRequest(predicate, label, timeoutMs = TIMEOUT_MS) {
   throw new Error(`Timed out waiting for ${label}: ${JSON.stringify(apiRequests)}`)
 }
 
-function apiResponseFor(url, method = 'GET') {
+function apiResponseFor(url, method = 'GET', postData = '') {
   const path = apiPathFor(url)
   const currentUser = currentAuthUser()
   if (path === '/auth/refresh') return apiEnvelope(currentUser ? { user: currentUser, expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString() } : null)
@@ -130,6 +334,7 @@ function apiResponseFor(url, method = 'GET') {
   }
   if (path === '/meta/subjects') return apiEnvelope(['Mathematics'])
   if (path === '/meta/tags') return apiEnvelope(['smoke'])
+  if (path === '/drafts' || path.startsWith('/drafts/')) return handleDraftApi(path, method, postData)
   if (path === '/papers' && method === 'POST') {
     return apiEnvelope({
       id: 501,
@@ -527,11 +732,22 @@ function sampleWorkspaceDraft() {
 async function installApiMocks(cdp) {
   await cdp.send('Page.enable')
   await cdp.send('Runtime.enable')
+  browserExceptions = []
+  browserConsole = []
+  cdp.on('Runtime.exceptionThrown', params => {
+    browserExceptions.push(params.exceptionDetails)
+  })
+  cdp.on('Runtime.consoleAPICalled', params => {
+    browserConsole.push({
+      type: params.type,
+      args: params.args.map(arg => arg.value || arg.description || '').filter(Boolean).join(' ')
+    })
+  })
   await cdp.send('Fetch.enable', { patterns: [{ urlPattern: `${BASE_URL}/api/v1/*` }] })
   cdp.on('Fetch.requestPaused', async params => {
     recordApiRequest(params)
     const path = apiPathFor(params.request.url)
-    if (path === '/papers/draft-download' || /^\/papers\/[^/]+\/download$/.test(path)) {
+    if (path === '/papers/draft-download' || /^\/papers\/[^/]+\/download$/.test(path) || /^\/drafts\/[^/]+\/download$/.test(path)) {
       await cdp.send('Fetch.fulfillRequest', {
         requestId: params.requestId,
         responseCode: 200,
@@ -545,7 +761,7 @@ async function installApiMocks(cdp) {
       return
     }
 
-    const body = Buffer.from(JSON.stringify(apiResponseFor(params.request.url, params.request.method))).toString('base64')
+    const body = Buffer.from(JSON.stringify(apiResponseFor(params.request.url, params.request.method, params.request.postData || ''))).toString('base64')
     await cdp.send('Fetch.fulfillRequest', {
       requestId: params.requestId,
       responseCode: 200,
@@ -565,23 +781,64 @@ async function seedWorkspaceDraft(cdp, key) {
 }
 
 async function setWorkspaceMetadata(cdp, titleValue, subjectValue) {
-  await evaluate(cdp, jsExpression(`
-    const valueSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set
-    const setInput = (selector, value) => {
-      const input = document.querySelector(selector)
-      if (!input) return false
-      valueSetter.call(input, value)
-      input.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: value }))
-      input.dispatchEvent(new Event('change', { bubbles: true }))
-      return true
-    }
-    return setInput('#paper-title', ${JSON.stringify(titleValue)}) && setInput('#paper-subject', ${JSON.stringify(subjectValue)})
+  const started = Date.now()
+  let lastState = null
+  while (Date.now() - started < TIMEOUT_MS) {
+    lastState = await evaluate(cdp, jsExpression(`
+      const valueSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set
+      const setInput = (selector, value) => {
+        const input = document.querySelector(selector)
+        if (!input || !valueSetter) return false
+        valueSetter.call(input, value)
+        input.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: value }))
+        input.dispatchEvent(new Event('change', { bubbles: true }))
+        return true
+      }
+      const updated = setInput('#paper-title', ${JSON.stringify(titleValue)}) && setInput('#paper-subject', ${JSON.stringify(subjectValue)})
+      return {
+        updated,
+        title: document.querySelector('#paper-title')?.value || '',
+        subject: document.querySelector('#paper-subject')?.value || ''
+      }
+    `))
+    if (lastState.updated && lastState.title === titleValue && lastState.subject === subjectValue) return
+    await delay(250)
+  }
+  throw new Error(`Timed out waiting for Workspace metadata entry: ${JSON.stringify(lastState)}`)
+}
+
+async function setControlValue(cdp, selector, value) {
+  const updated = await evaluate(cdp, jsExpression(`
+    const element = document.querySelector(${JSON.stringify(selector)})
+    if (!element) return false
+    const prototype = element instanceof HTMLTextAreaElement
+      ? HTMLTextAreaElement.prototype
+      : element instanceof HTMLSelectElement
+        ? HTMLSelectElement.prototype
+        : HTMLInputElement.prototype
+    const valueSetter = Object.getOwnPropertyDescriptor(prototype, 'value')?.set
+    if (!valueSetter) return false
+    valueSetter.call(element, ${JSON.stringify(value)})
+    element.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: ${JSON.stringify(value)} }))
+    element.dispatchEvent(new Event('change', { bubbles: true }))
+    return true
   `))
-  await waitFor(
-    cdp,
-    `document.querySelector('#paper-title')?.value === ${JSON.stringify(titleValue)} && document.querySelector('#paper-subject')?.value === ${JSON.stringify(subjectValue)}`,
-    'Workspace metadata entry'
-  )
+  if (!updated) throw new Error(`Could not update form control ${selector}`)
+}
+
+async function selectCloudDraftByName(cdp, name) {
+  const selected = await evaluate(cdp, jsExpression(`
+    const select = document.querySelector('#cloud-draft-select')
+    if (!select) return false
+    const option = [...select.options].find(item => item.textContent.includes(${JSON.stringify(name)}))
+    if (!option) return false
+    const valueSetter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set
+    valueSetter.call(select, option.value)
+    select.dispatchEvent(new Event('input', { bubbles: true }))
+    select.dispatchEvent(new Event('change', { bubbles: true }))
+    return true
+  `))
+  if (!selected) throw new Error(`Could not select cloud draft named ${name}`)
 }
 
 async function setTemporaryQuestionText(cdp, text) {
@@ -709,12 +966,104 @@ async function exerciseTemporaryDraftEdit(cdp) {
   )
 }
 
+async function exerciseCloudDraftFlow(cdp) {
+  await waitFor(cdp, `document.querySelector('#cloud-draft-name') && document.body.innerText.includes('Cloud Drafts')`, 'cloud draft panel')
+
+  resetApiRequests()
+  await setControlValue(cdp, '#cloud-draft-name', 'Smoke Cloud Draft')
+  await clickByText(cdp, 'button', 'Create Cloud Draft')
+  await waitForApiRequest(request => request.path === '/drafts' && request.method === 'POST', 'cloud draft create')
+  await waitFor(
+    cdp,
+    `document.body.innerText.includes('Cloud draft saved') && document.body.innerText.includes('Revision 1') && [...document.querySelectorAll('#cloud-draft-select option')].some(option => option.textContent.includes('Smoke Cloud Draft'))`,
+    'cloud draft creation reflected in UI'
+  )
+
+  resetApiRequests()
+  await clickByText(cdp, 'button', 'Refresh')
+  await waitForApiRequest(request => request.path === '/drafts' && request.method === 'GET', 'cloud draft list refresh')
+
+  await selectCloudDraftByName(cdp, 'Smoke Cloud Draft')
+  await waitFor(
+    cdp,
+    `document.querySelector('#cloud-draft-select')?.value && [...document.querySelectorAll('.cloud-draft-card button')].some(button => button.innerText.includes('Load') && !button.disabled)`,
+    'cloud draft load button enabled'
+  )
+  resetApiRequests()
+  await clickByText(cdp, '.cloud-draft-card button', 'Load')
+  await waitForApiRequest(request => /^\/drafts\/draft-smoke-\d+$/.test(request.path) && request.method === 'GET', 'cloud draft load')
+  await waitFor(cdp, `document.querySelector('#paper-title')?.value === 'Workspace Smoke Draft'`, 'cloud draft loaded into workspace')
+
+  resetApiRequests()
+  await setWorkspaceMetadata(cdp, 'Workspace Smoke Cloud Update', 'Mathematics')
+  await clickByText(cdp, 'button', 'Save Cloud Draft')
+  await waitForApiRequest(request => /^\/drafts\/draft-smoke-\d+$/.test(request.path) && request.method === 'PATCH', 'cloud draft update')
+  await waitFor(cdp, `document.body.innerText.includes('Revision 2') && document.body.innerText.includes('Cloud draft saved')`, 'cloud draft update reflected in UI')
+
+  resetApiRequests()
+  await setControlValue(cdp, 'input[name="cloudDraftCollaborator"]', limitedUser.username)
+  await setControlValue(cdp, 'select[name="cloudDraftCollaboratorRole"]', 'editor')
+  await clickByText(cdp, 'button', 'Add')
+  await waitForApiRequest(request => /^\/drafts\/draft-smoke-\d+\/collaborators$/.test(request.path) && request.method === 'POST', 'cloud collaborator add')
+  await waitFor(cdp, `document.body.innerText.includes('@${limitedUser.username}') && document.body.innerText.includes('1 collaborator')`, 'cloud collaborator visible')
+
+  resetApiRequests()
+  await clickByAriaLabel(cdp, 'button', 'Open draft comments')
+  await waitFor(cdp, `document.querySelector('[aria-label="Draft comments"]') && document.querySelector('#draft-comment-message')`, 'draft comments drawer')
+  await setControlValue(cdp, '#draft-comment-message', 'Smoke review note')
+  await clickByText(cdp, 'button', 'Add Comment')
+  await waitForApiRequest(request => /^\/drafts\/draft-smoke-\d+\/comments$/.test(request.path) && request.method === 'POST', 'cloud comment create')
+  await waitFor(cdp, `document.body.innerText.includes('Smoke review note') && document.body.innerText.includes('1 open comment')`, 'cloud comment visible')
+
+  resetApiRequests()
+  await clickByText(cdp, '.comment-item button', 'Resolve')
+  await waitForApiRequest(request => /^\/drafts\/draft-smoke-\d+\/comments\/comment-smoke-\d+$/.test(request.path) && request.method === 'PATCH', 'cloud comment resolve')
+  await waitFor(cdp, `document.body.innerText.includes('0 open comments') || document.body.innerText.includes('0 open comment')`, 'cloud comment resolved')
+
+  resetApiRequests()
+  await clickByText(cdp, 'button', 'In Review')
+  await waitForApiRequest(request => /^\/drafts\/draft-smoke-\d+$/.test(request.path) && request.method === 'PATCH' && request.postData.includes('"reviewStatus":"in_review"'), 'cloud review request')
+  await waitFor(cdp, `document.body.innerText.includes('In Review')`, 'cloud review request visible')
+
+  resetApiRequests()
+  await clickByText(cdp, 'button', 'Approved')
+  await waitForApiRequest(request => /^\/drafts\/draft-smoke-\d+$/.test(request.path) && request.method === 'PATCH' && request.postData.includes('"reviewStatus":"approved"'), 'cloud approval')
+  await waitFor(cdp, `document.body.innerText.includes('Approved')`, 'cloud approval visible')
+
+  resetApiRequests()
+  await installDownloadClickProbe(cdp)
+  await clickByText(cdp, 'button', 'Download')
+  await waitForApiRequest(request => /^\/drafts\/draft-smoke-\d+\/download$/.test(request.path) && request.method === 'GET', 'cloud draft DOCX download')
+  await waitFor(cdp, `window.__workspaceDocxDownloads?.length >= 1`, 'cloud draft DOCX download click')
+
+  log('Cloud draft flow smoke passed')
+}
+
 async function runAccessSmoke(cdp, mode, expectedPrompt, draftKey, label) {
   authMode = mode
   protectedRequests = []
   await installApiMocks(cdp)
   await cdp.send('Page.navigate', { url: `${BASE_URL}/questions?smoke=${mode}` })
-  await waitFor(cdp, `document.querySelector('#paper-title') && document.body.innerText.includes('Paper Editor')`, `${label} Workspace shell`)
+  try {
+    await waitFor(cdp, `document.querySelector('#paper-title') && document.body.innerText.includes('Paper Editor')`, `${label} Workspace shell`)
+  } catch (error) {
+    const state = await evaluate(cdp, jsExpression(`
+      return {
+        readyState: document.readyState,
+        path: location.pathname,
+        search: location.search,
+        hasPaperTitle: Boolean(document.querySelector('#paper-title')),
+        hasFallback: Boolean(document.querySelector('.workspace-shell-fallback')),
+        exceptions: ${JSON.stringify(browserExceptions)},
+        console: ${JSON.stringify(browserConsole.slice(-20))},
+        nuxtError: window.__NUXT__?.error || window.__NUXT__?.payload?.error || null,
+        vueError: window.__testpapersLastVueError || null,
+        bodyText: document.body.innerText.slice(0, 2000),
+        bodyHtml: document.body.innerHTML.slice(0, 2000)
+      }
+    `))
+    throw new Error(`${label} Workspace shell did not render: ${JSON.stringify(state)}; ${error.message}`, { cause: error })
+  }
   await seedWorkspaceDraft(cdp, draftKey)
   await waitFor(cdp, `document.querySelector('#paper-title')?.value === 'Workspace Access Draft' && document.body.innerText.includes('Q1')`, `${label} restored draft`)
   await evaluate(cdp, jsExpression(`
@@ -845,6 +1194,8 @@ async function runSmoke(cdp) {
   }
   await setWorkspaceMetadata(cdp, 'Workspace Smoke Draft', 'Mathematics')
   await exerciseTemporaryDraftEdit(cdp)
+  await exerciseCloudDraftFlow(cdp)
+  await setWorkspaceMetadata(cdp, 'Workspace Smoke Draft', 'Mathematics')
   await evaluate(cdp, jsExpression(`
     const draftName = document.querySelector('#exam-draft-name')
     draftName.value = 'Smoke Named Draft'
