@@ -39,11 +39,13 @@ for (const [sourcePath, outputPath] of modules) compileModule(sourcePath, output
 
 const {
   buildExamDraftSummary,
+  buildPaperDraftDownloadPayload,
   buildPaperGeneratePayload,
   buildPaperPayload,
   createDefaultGenerationForm,
   createDefaultPaper,
   filenameFromDisposition,
+  hasTemporaryQuestionEdits,
   validateWorkspaceDraft
 } = await import(pathToFileURL(join(tempRoot, 'papers/index.mjs')))
 
@@ -88,6 +90,26 @@ assert.deepEqual(
   },
   'paper payloads should trim metadata, normalize numbers, and preserve ordered question refs'
 )
+
+assert.equal(hasTemporaryQuestionEdits(paper), false, 'plain paper questions should not use draft-only DOCX export')
+
+const temporaryPaper = {
+  ...paper,
+  questions: [{
+    ...sampleQuestion,
+    text: 'Draft-only 2 + 2 = 4',
+    isTemporaryEdit: true,
+    originalQuestion: sampleQuestion
+  }]
+}
+const draftDownloadPayload = buildPaperDraftDownloadPayload(temporaryPaper, 'categorized', 'dense', true)
+assert.equal(hasTemporaryQuestionEdits(temporaryPaper), true, 'temporary edits should select draft-only DOCX export')
+assert.equal(draftDownloadPayload.questionOrder, 'categorized', 'draft DOCX payload should preserve export order')
+assert.equal(draftDownloadPayload.layoutDensity, 'dense', 'draft DOCX payload should preserve layout density')
+assert.equal(draftDownloadPayload.includeAnswer, true, 'draft DOCX payload should preserve answer export flag')
+assert.equal(draftDownloadPayload.questions[0].questionPublicId, 'question-42', 'draft DOCX payload should retain the source question id')
+assert.equal(draftDownloadPayload.questions[0].text, 'Draft-only 2 + 2 = 4', 'draft DOCX payload should include temporary question text')
+assert.equal(draftDownloadPayload.questions[0].marks, 3, 'draft DOCX payload should normalize question marks')
 
 const generationForm = {
   ...createDefaultGenerationForm(),

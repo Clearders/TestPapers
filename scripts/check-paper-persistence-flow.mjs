@@ -34,6 +34,14 @@ assert(
 )
 
 assert(
+  usePaperExport.includes('const useDraftDownload = hasTemporaryQuestionEdits(paper)') &&
+    usePaperExport.includes("apiFetchRaw('/papers/draft-download'") &&
+    usePaperExport.includes('hasExportPermission(useDraftDownload ? false : !hasReusableSavedPaper())') &&
+    usePaperExport.includes('? await requestDraftDocxDownload()'),
+  'temporary question edits must export through draft-download without creating or updating a persisted paper.'
+)
+
+assert(
   useWorkspaceDraft.includes('savedPaperId.value = draft.savedPaperId') &&
     !useWorkspaceDraft.includes('signatureMatches'),
   'workspace draft hydration must keep savedPaperId even when the saved signature is stale.'

@@ -31,7 +31,7 @@
               </div>
               <div class="form-group">
                 <label class="form-label" for="temp-scoreweight">Weight</label>
-                <input id="temp-scoreweight" v-model.number="form.scoreWeight" class="form-input" type="number" min="0.01" max="100" step="0.1">
+                <input id="temp-scoreweight" v-model.number="form.scoreWeight" class="form-input" type="number" min="0.01" max="100" step="0.01">
               </div>
               <div class="form-group">
                 <label class="form-label" for="temp-marks">Marks</label>

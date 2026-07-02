@@ -11,6 +11,9 @@ const APP_PORT = Number(process.env.SMOKE_WORKSPACE_PORT || 4178)
 const DEBUG_PORT = Number(process.env.SMOKE_WORKSPACE_DEBUG_PORT || 9224)
 const BASE_URL = `http://${HOST}:${APP_PORT}`
 const TIMEOUT_MS = 45_000
+const DOCX_CONTENT_TYPE = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+const ORIGINAL_QUESTION_TEXT = 'Smoke draft restoration question: 2 + 2 = ?'
+const DRAFT_QUESTION_TEXT = 'Smoke temporary draft edit: 2 + 2 should equal 4 in this paper only.'
 
 const testUser = {
   id: 9001,
@@ -38,6 +41,7 @@ const limitedUser = {
 
 let authMode = 'full'
 let protectedRequests = []
+let apiRequests = []
 const sampleQuestions = [{
   id: 101,
   publicId: 'q-smoke-101',
@@ -45,7 +49,7 @@ const sampleQuestions = [{
   subjects: ['Mathematics'],
   difficulty: 'easy',
   tags: ['smoke'],
-  text: 'Smoke draft restoration question: 2 + 2 = ?',
+  text: ORIGINAL_QUESTION_TEXT,
   options: ['3', '4', '5', '6'],
   answer: '4',
   hasLatex: false,
@@ -78,9 +82,40 @@ function currentAuthUser() {
   return authMode === 'limited' ? limitedUser : testUser
 }
 
-function apiResponseFor(url) {
+function apiPathFor(url) {
   const parsed = new URL(url)
-  const path = parsed.pathname.replace(/^\/api\/v1/, '')
+  return parsed.pathname.replace(/^\/api\/v1/, '')
+}
+
+function recordApiRequest(params) {
+  const path = apiPathFor(params.request.url)
+  apiRequests.push({
+    path,
+    method: params.request.method,
+    url: params.request.url,
+    postData: params.request.postData || ''
+  })
+}
+
+function resetApiRequests() {
+  apiRequests = []
+}
+
+function apiRequestsMatching(predicate) {
+  return apiRequests.filter(predicate)
+}
+
+async function waitForApiRequest(predicate, label, timeoutMs = TIMEOUT_MS) {
+  const started = Date.now()
+  while (Date.now() - started < timeoutMs) {
+    if (apiRequests.some(predicate)) return
+    await delay(100)
+  }
+  throw new Error(`Timed out waiting for ${label}: ${JSON.stringify(apiRequests)}`)
+}
+
+function apiResponseFor(url, method = 'GET') {
+  const path = apiPathFor(url)
   const currentUser = currentAuthUser()
   if (path === '/auth/refresh') return apiEnvelope(currentUser ? { user: currentUser, expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString() } : null)
   if (path === '/auth/me') return apiEnvelope(currentUser)
@@ -95,6 +130,27 @@ function apiResponseFor(url) {
   }
   if (path === '/meta/subjects') return apiEnvelope(['Mathematics'])
   if (path === '/meta/tags') return apiEnvelope(['smoke'])
+  if (path === '/papers' && method === 'POST') {
+    return apiEnvelope({
+      id: 501,
+      publicId: 'paper-smoke-saved',
+      title: 'Workspace Smoke Draft',
+      subject: 'Mathematics',
+      duration: 60,
+      totalMarks: 100
+    })
+  }
+  if (/^\/papers\/[^/]+$/.test(path) && method === 'PATCH') {
+    return apiEnvelope({
+      id: 501,
+      publicId: path.split('/').at(-1),
+      title: 'Workspace Smoke Draft',
+      subject: 'Mathematics',
+      duration: 60,
+      totalMarks: 100
+    })
+  }
+  if (/^\/papers\/[^/]+\/questions$/.test(path) && method === 'PUT') return apiEnvelope({})
   if (/^\/questions\/[^/]+\/corrections$/.test(path)) return apiEnvelope([])
   if (/^\/questions\/[^/]+\/revisions$/.test(path)) return apiEnvelope([])
   return apiEnvelope({})
@@ -473,7 +529,23 @@ async function installApiMocks(cdp) {
   await cdp.send('Runtime.enable')
   await cdp.send('Fetch.enable', { patterns: [{ urlPattern: `${BASE_URL}/api/v1/*` }] })
   cdp.on('Fetch.requestPaused', async params => {
-    const body = Buffer.from(JSON.stringify(apiResponseFor(params.request.url))).toString('base64')
+    recordApiRequest(params)
+    const path = apiPathFor(params.request.url)
+    if (path === '/papers/draft-download' || /^\/papers\/[^/]+\/download$/.test(path)) {
+      await cdp.send('Fetch.fulfillRequest', {
+        requestId: params.requestId,
+        responseCode: 200,
+        responseHeaders: [
+          { name: 'content-type', value: DOCX_CONTENT_TYPE },
+          { name: 'content-disposition', value: 'attachment; filename="workspace-smoke.docx"' },
+          { name: 'x-layout-density', value: 'compact' }
+        ],
+        body: Buffer.from('PK\u0003\u0004 workspace smoke docx').toString('base64')
+      })
+      return
+    }
+
+    const body = Buffer.from(JSON.stringify(apiResponseFor(params.request.url, params.request.method))).toString('base64')
     await cdp.send('Fetch.fulfillRequest', {
       requestId: params.requestId,
       responseCode: 200,
@@ -509,6 +581,131 @@ async function setWorkspaceMetadata(cdp, titleValue, subjectValue) {
     cdp,
     `document.querySelector('#paper-title')?.value === ${JSON.stringify(titleValue)} && document.querySelector('#paper-subject')?.value === ${JSON.stringify(subjectValue)}`,
     'Workspace metadata entry'
+  )
+}
+
+async function setTemporaryQuestionText(cdp, text) {
+  const updated = await evaluate(cdp, jsExpression(`
+    const textarea = document.querySelector('#temp-text')
+    const valueSetter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set
+    if (!textarea || !valueSetter) return false
+    valueSetter.call(textarea, ${JSON.stringify(text)})
+    textarea.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: ${JSON.stringify(text)} }))
+    textarea.dispatchEvent(new Event('change', { bubbles: true }))
+    return true
+  `))
+  if (!updated) throw new Error('Could not update temporary question text')
+}
+
+async function submitTemporaryQuestionEdit(cdp) {
+  const result = await evaluate(cdp, jsExpression(`
+    const form = document.querySelector('[aria-label="Temporary question edit"] form')
+    const submitButton = form ? [...form.querySelectorAll('button')].find(button => button.innerText.includes('Apply to Draft')) : null
+    if (!form || !submitButton) return { submitted: false, reason: 'missing form or submit button' }
+    const invalid = [...form.elements]
+      .filter(element => typeof element.checkValidity === 'function' && !element.checkValidity())
+      .map(element => ({ id: element.id || element.name || element.tagName, value: element.value, message: element.validationMessage }))
+    if (invalid.length) return { submitted: false, invalid }
+    form.requestSubmit(submitButton)
+    return { submitted: true }
+  `))
+  if (!result?.submitted) throw new Error(`Could not submit temporary question edit: ${JSON.stringify(result)}`)
+}
+
+async function installDownloadClickProbe(cdp) {
+  await evaluate(cdp, jsExpression(`
+    window.__workspaceDocxDownloads = []
+    if (!window.__workspaceOriginalAnchorClick) {
+      window.__workspaceOriginalAnchorClick = HTMLAnchorElement.prototype.click
+      HTMLAnchorElement.prototype.click = function () {
+        if (this.download) {
+          window.__workspaceDocxDownloads.push({ download: this.download, href: this.href })
+          return
+        }
+        return window.__workspaceOriginalAnchorClick.call(this)
+      }
+    }
+    return true
+  `))
+}
+
+function assertDraftOnlyDownloadRequest() {
+  const draftRequests = apiRequestsMatching(request => request.path === '/papers/draft-download' && request.method === 'POST')
+  if (draftRequests.length !== 1) {
+    throw new Error(`Expected exactly one draft DOCX download request, saw ${JSON.stringify(apiRequests)}`)
+  }
+
+  let payload
+  try {
+    payload = JSON.parse(draftRequests[0].postData)
+  } catch (error) {
+    throw new Error(`Draft DOCX download request body was not JSON: ${draftRequests[0].postData}`, { cause: error })
+  }
+
+  const firstQuestion = payload?.questions?.[0]
+  if (firstQuestion?.text !== DRAFT_QUESTION_TEXT || firstQuestion?.questionPublicId !== sampleQuestions[0].publicId) {
+    throw new Error(`Draft DOCX payload did not include the temporary question edit: ${JSON.stringify(payload)}`)
+  }
+
+  const persistedPaperRequests = apiRequestsMatching(request => (
+    request.path !== '/papers/draft-download' &&
+    (
+      request.path === '/papers' ||
+      /^\/papers\/[^/]+$/.test(request.path) ||
+      /^\/papers\/[^/]+\/questions$/.test(request.path) ||
+      /^\/papers\/[^/]+\/download$/.test(request.path)
+    )
+  ))
+  if (persistedPaperRequests.length) {
+    throw new Error(`Draft-only DOCX export saved or reused a persisted paper: ${JSON.stringify(persistedPaperRequests)}`)
+  }
+}
+
+async function exerciseTemporaryDraftEdit(cdp) {
+  await waitFor(cdp, `document.querySelector('.live-preview')?.innerText.includes(${JSON.stringify(ORIGINAL_QUESTION_TEXT)})`, 'original question visible in live preview')
+  await clickByText(cdp, 'button', 'Edit Draft')
+  await waitFor(cdp, `document.querySelector('[aria-label="Temporary question edit"]') && document.querySelector('#temp-text')`, 'temporary question edit modal')
+  await setTemporaryQuestionText(cdp, DRAFT_QUESTION_TEXT)
+  await submitTemporaryQuestionEdit(cdp)
+  try {
+    await waitFor(
+      cdp,
+      `!document.querySelector('[aria-label="Temporary question edit"]') && document.querySelector('.live-preview')?.innerText.includes(${JSON.stringify(DRAFT_QUESTION_TEXT)})`,
+      'temporary edit reflected in live preview'
+    )
+  } catch (error) {
+    const state = await evaluate(cdp, jsExpression(`
+      const modal = document.querySelector('[aria-label="Temporary question edit"]')
+      const preview = document.querySelector('.live-preview')
+      return {
+        modalOpen: Boolean(modal),
+        modalText: modal?.innerText.slice(0, 1200) || '',
+        textareaValue: document.querySelector('#temp-text')?.value || '',
+        builderText: document.querySelector('.paper-panel')?.innerText.slice(0, 1200) || '',
+        previewText: preview?.innerText.slice(0, 1200) || '',
+        bodyText: document.body.innerText.slice(0, 1600)
+      }
+    `))
+    throw new Error(`Temporary edit did not update the draft: ${JSON.stringify(state)}; ${error.message}`, { cause: error })
+  }
+  await waitFor(cdp, `document.body.innerText.includes('draft edit')`, 'temporary edit marker')
+
+  resetApiRequests()
+  await installDownloadClickProbe(cdp)
+  await clickByText(cdp, 'button', 'Download DOCX')
+  await waitForApiRequest(request => request.path === '/papers/draft-download' && request.method === 'POST', 'draft DOCX download')
+  await waitFor(
+    cdp,
+    `window.__workspaceDocxDownloads?.length === 1 && document.body.innerText.includes('Downloaded DOCX used Compact layout from Auto.')`,
+    'draft DOCX download completion'
+  )
+  assertDraftOnlyDownloadRequest()
+
+  await clickByText(cdp, 'button', 'Reset')
+  await waitFor(
+    cdp,
+    `document.querySelector('.live-preview')?.innerText.includes(${JSON.stringify(ORIGINAL_QUESTION_TEXT)}) && !document.querySelector('.live-preview')?.innerText.includes(${JSON.stringify(DRAFT_QUESTION_TEXT)}) && !document.body.innerText.includes('draft edit')`,
+    'temporary edit reset'
   )
 }
 
@@ -647,6 +844,7 @@ async function runSmoke(cdp) {
     throw new Error(`Draft paper build did not activate: ${JSON.stringify(draftState)}; ${error.message}`, { cause: error })
   }
   await setWorkspaceMetadata(cdp, 'Workspace Smoke Draft', 'Mathematics')
+  await exerciseTemporaryDraftEdit(cdp)
   await evaluate(cdp, jsExpression(`
     const draftName = document.querySelector('#exam-draft-name')
     draftName.value = 'Smoke Named Draft'
