@@ -49,6 +49,15 @@
         <ol class="export-q-list" :start="section.start">
           <li v-for="q in section.questions" :key="q.id" class="export-question">
             <span v-if="q.marks" class="export-mark">{{ q.marks }} mark{{ q.marks !== 1 ? 's' : '' }}</span>
+            <button
+              v-if="commentCountForQuestion(q)"
+              type="button"
+              class="question-comment-link"
+              @click="$emit('open-question-comments', q.publicId)"
+            >
+              <AppIcon name="edit" />
+              {{ commentCountForQuestion(q) }} open comment{{ commentCountForQuestion(q) === 1 ? '' : 's' }}
+            </button>
             <div class="export-q-text">
               <template v-for="(part, i) in parseLatexParts(q.text)" :key="i">
                 <LatexRenderer v-if="part.isLatex" :formula="part.content" :block="part.block" />
@@ -131,12 +140,14 @@ const props = defineProps<{
   includeAnswersInExport: boolean
   canReadAnswers: boolean
   downloadedLayoutDensity: LayoutDensity | null
+  questionCommentCounts?: Record<string, number>
 }>()
 
 defineEmits<{
   'update:exportMode': [value: ExportMode]
   'update:layoutDensity': [value: LayoutDensity]
   'update:includeAnswersInExport': [value: boolean]
+  'open-question-comments': [questionPublicId: string]
 }>()
 
 const layoutDensityOptions: { value: LayoutDensity; label: string }[] = [
@@ -172,6 +183,10 @@ function getEssayBlankStyle (question: Question) {
   return {
     minHeight: `${getEssayBlankHeightPx(question.essayBlankSpace)}px`
   }
+}
+
+function commentCountForQuestion (question: PaperQuestion) {
+  return props.questionCommentCounts?.[question.publicId] || 0
 }
 
 const exportSections = computed(() => {
@@ -271,6 +286,23 @@ const exportSections = computed(() => {
   margin-right: 8px;
   color: var(--color-muted);
   font-size: .82rem;
+}
+.question-comment-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin: 0 8px 6px 0;
+  padding: 3px 8px;
+  border: 1px solid var(--color-warning-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+  font-size: .76rem;
+  font-weight: 800;
+}
+.question-comment-link:hover {
+  border-color: var(--color-warning);
+  transform: translateY(-1px);
 }
 .export-options {
   margin-top: 10px;

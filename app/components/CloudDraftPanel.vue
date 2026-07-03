@@ -22,13 +22,23 @@
           :disabled="!!activeDraft && !canManageActive"
         >
       </div>
-      <button type="button" class="btn btn-primary draft-action" :disabled="isSaving || !hasCurrentDraftContent || (!!activeDraft && !canEditActive)" @click="emit('save')">
+      <button type="button" class="btn btn-primary draft-action" :disabled="conflict || isSaving || !hasCurrentDraftContent || (!!activeDraft && !canEditActive)" @click="emit('save')">
         <AppIcon name="upload" />
         {{ activeDraft ? 'Save Cloud Draft' : 'Create Cloud Draft' }}
       </button>
       <button type="button" class="btn btn-outline draft-action" :disabled="!activeDraft || isDownloading" @click="emit('download')">
         <AppIcon name="download" />
-        {{ isDownloading ? 'Preparing...' : 'Download' }}
+        {{ isDownloading ? 'Preparing...' : 'Download Saved Draft' }}
+      </button>
+      <button
+        v-if="activeDraft && canEditActive"
+        type="button"
+        class="btn btn-success draft-action"
+        :disabled="!hasUnsavedChanges || conflict || isSaving || isDownloading"
+        @click="emit('save-and-download')"
+      >
+        <AppIcon name="check" />
+        Save and Download
       </button>
     </div>
 
@@ -58,6 +68,7 @@
 
     <div v-if="activeDraft" class="active-cloud-meta">
       <span>{{ accessLabel(activeDraft.accessRole) }}</span>
+      <span v-if="hasUnsavedChanges" class="cloud-unsaved">Unsaved workspace changes</span>
       <span>{{ activeDraft.collaboratorCount }} collaborator{{ activeDraft.collaboratorCount === 1 ? '' : 's' }}</span>
       <span>{{ activeDraft.openCommentCount }} open comment{{ activeDraft.openCommentCount === 1 ? '' : 's' }}</span>
       <span>Revision {{ activeDraft.revision }}</span>
@@ -67,16 +78,18 @@
     <div v-if="activeDraft" class="review-actions">
       <span class="review-label">Review</span>
       <button
-        v-for="status in reviewStatuses"
+        v-for="status in availableReviewStatuses"
         :key="status.value"
         type="button"
         class="btn btn-sm"
         :class="activeDraft.reviewStatus === status.value ? 'btn-primary' : 'btn-outline'"
-        :disabled="!canEditActive || isSaving"
+        :disabled="isReviewActionDisabled(status.value)"
+        :title="reviewActionTitle(status.value)"
         @click="emit('set-review-status', status.value)"
       >
-        {{ status.label }}
+        {{ reviewActionLabel(status.value) }}
       </button>
+      <span v-if="reviewNote" class="review-note">{{ reviewNote }}</span>
     </div>
 
     <div v-if="activeDraft && canManageActive" class="sharing-box">
@@ -90,12 +103,13 @@
           class="form-input"
           name="cloudDraftCollaborator"
           placeholder="Username"
+          :disabled="conflict"
         >
-        <select v-model="collaboratorRoleModel" class="form-input collaborator-role" name="cloudDraftCollaboratorRole">
+        <select v-model="collaboratorRoleModel" class="form-input collaborator-role" name="cloudDraftCollaboratorRole" :disabled="conflict">
           <option value="viewer">Viewer</option>
           <option value="editor">Editor</option>
         </select>
-        <button type="button" class="btn btn-outline draft-action" :disabled="!collaboratorUsername.trim()" @click="emit('add-collaborator')">
+        <button type="button" class="btn btn-outline draft-action" :disabled="conflict || !collaboratorUsername.trim()" @click="emit('add-collaborator')">
           <AppIcon name="add" />
           Add
         </button>
@@ -106,11 +120,11 @@
             <strong>{{ collaborator.user.displayName }}</strong>
             <span>@{{ collaborator.user.username }}</span>
           </div>
-          <select class="form-input collaborator-role" :value="collaborator.role" @change="onCollaboratorRoleChange(collaborator.user.publicId, $event)">
+          <select class="form-input collaborator-role" :value="collaborator.role" :disabled="conflict" @change="onCollaboratorRoleChange(collaborator.user.publicId, $event)">
             <option value="viewer">Viewer</option>
             <option value="editor">Editor</option>
           </select>
-          <button type="button" class="icon-btn" aria-label="Remove collaborator" @click="emit('remove-collaborator', collaborator.user.publicId)">
+          <button type="button" class="icon-btn" :disabled="conflict" aria-label="Remove collaborator" @click="emit('remove-collaborator', collaborator.user.publicId)">
             <AppIcon name="x" />
           </button>
         </div>
@@ -121,7 +135,17 @@
       Cloud draft saved {{ formatTimestamp(savedAt) }}.
     </div>
     <div v-if="conflict" class="status-banner status-banner--error cloud-draft-status" aria-live="polite">
-      This cloud draft changed elsewhere. Refresh or load the latest revision before saving again.
+      <span>This cloud draft changed elsewhere. Load the latest revision before editing, or save this workspace as a new cloud draft.</span>
+      <div class="conflict-actions">
+        <button type="button" class="btn btn-outline btn-sm" @click="emit('load-latest')">
+          <AppIcon name="download" />
+          Load Latest
+        </button>
+        <button type="button" class="btn btn-primary btn-sm" :disabled="isSaving" @click="emit('save-as-new')">
+          <AppIcon name="add" />
+          Save as New
+        </button>
+      </div>
     </div>
     <div v-if="error" class="status-banner status-banner--error cloud-draft-status" aria-live="polite">
       {{ error }}
@@ -131,6 +155,7 @@
 
 <script setup lang="ts">
 import type { DraftCollaboratorRole, DraftReviewStatus, SharedDraft, SharedDraftSummary } from '~/types/draft'
+import { nextReviewStatuses } from '~/domain/drafts'
 
 const props = defineProps<{
   drafts: SharedDraftSummary[]
@@ -148,6 +173,7 @@ const props = defineProps<{
   hasCurrentDraftContent: boolean
   canManageActive: boolean
   canEditActive: boolean
+  hasUnsavedChanges: boolean
 }>()
 
 const emit = defineEmits<{
@@ -161,6 +187,9 @@ const emit = defineEmits<{
   reload: []
   download: []
   'set-review-status': [value: DraftReviewStatus]
+  'load-latest': []
+  'save-as-new': []
+  'save-and-download': []
   'add-collaborator': []
   'update-collaborator': [userPublicId: string, role: DraftCollaboratorRole]
   'remove-collaborator': [userPublicId: string]
@@ -172,6 +201,7 @@ const reviewStatuses: { value: DraftReviewStatus, label: string }[] = [
   { value: 'changes_requested', label: 'Changes Requested' },
   { value: 'approved', label: 'Approved' }
 ]
+const reviewStatusByValue = new Map(reviewStatuses.map(status => [status.value, status]))
 
 const selectedDraftIdModel = computed({
   get: () => props.selectedDraftId,
@@ -198,8 +228,42 @@ const summaryText = computed(() => {
   return `${props.drafts.length} cloud draft${props.drafts.length === 1 ? '' : 's'} available.`
 })
 
+const availableReviewStatuses = computed(() => {
+  if (!props.activeDraft) return []
+  return nextReviewStatuses(props.activeDraft)
+    .map(value => reviewStatusByValue.get(value))
+    .filter((status): status is { value: DraftReviewStatus, label: string } => Boolean(status))
+})
+
+const reviewNote = computed(() => {
+  if (!props.activeDraft) return ''
+  if (props.conflict) return 'Load latest before changing review status.'
+  if (!availableReviewStatuses.value.length) return 'Review status is read-only for your role.'
+  if (availableReviewStatuses.value.some(status => status.value === 'approved') && props.activeDraft.openCommentCount > 0) {
+    return 'Resolve open comments before approval.'
+  }
+  return ''
+})
+
 function reviewLabel (value: DraftReviewStatus) {
-  return reviewStatuses.find(status => status.value === value)?.label || 'Draft'
+  return reviewStatusByValue.get(value)?.label || 'Draft'
+}
+
+function reviewActionLabel (value: DraftReviewStatus) {
+  if (props.activeDraft?.accessRole === 'editor' && value === 'in_review') return 'Submit for Review'
+  return reviewLabel(value)
+}
+
+function isReviewActionDisabled (value: DraftReviewStatus) {
+  if (!props.canEditActive || props.conflict || props.isSaving) return true
+  if (props.activeDraft?.reviewStatus === value) return true
+  return value === 'approved' && (props.activeDraft?.openCommentCount || 0) > 0
+}
+
+function reviewActionTitle (value: DraftReviewStatus) {
+  if (props.conflict) return 'Load latest before changing review status.'
+  if (value === 'approved' && (props.activeDraft?.openCommentCount || 0) > 0) return 'Resolve open comments before approval.'
+  return reviewActionLabel(value)
 }
 
 function accessLabel (value: string) {
@@ -314,10 +378,20 @@ function onCollaboratorRoleChange (userPublicId: string, event: Event) {
 }
 
 .review-label,
-.sharing-head span:first-child {
+.sharing-head span:first-child,
+.review-note {
   font-size: .82rem;
   font-weight: 800;
   color: var(--color-text);
+}
+
+.review-note {
+  color: var(--color-muted);
+  font-weight: 700;
+}
+
+.cloud-unsaved {
+  color: var(--color-warning);
 }
 
 .sharing-box {
@@ -379,8 +453,20 @@ function onCollaboratorRoleChange (userPublicId: string, event: Event) {
   border-color: var(--color-danger);
 }
 
+.icon-btn:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
 .cloud-draft-status {
   margin-top: 12px;
+}
+
+.conflict-actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-left: auto;
 }
 
 .review-approved {
@@ -415,6 +501,11 @@ function onCollaboratorRoleChange (userPublicId: string, event: Event) {
   .collaborator-row {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .conflict-actions {
+    width: 100%;
+    margin-left: 0;
   }
 
   .active-cloud-meta span + span::before {

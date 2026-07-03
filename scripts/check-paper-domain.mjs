@@ -39,12 +39,14 @@ for (const [sourcePath, outputPath] of modules) compileModule(sourcePath, output
 
 const {
   buildExamDraftSummary,
+  buildExportReadinessItems,
   buildPaperDraftDownloadPayload,
   buildPaperGeneratePayload,
   buildPaperPayload,
   createDefaultGenerationForm,
   createDefaultPaper,
   filenameFromDisposition,
+  hasExportReadinessBlockers,
   hasTemporaryQuestionEdits,
   validateWorkspaceDraft
 } = await import(pathToFileURL(join(tempRoot, 'papers/index.mjs')))
@@ -197,6 +199,48 @@ assert.equal(
   filenameFromDisposition("attachment; filename*=UTF-8''Algebra%20Quiz.docx", 'Fallback'),
   'Algebra Quiz.docx',
   'download filenames should decode RFC 5987 filenames'
+)
+
+const blockedReadiness = buildExportReadinessItems({
+  paper: { ...createDefaultPaper(), title: '', subject: '', questions: [] },
+  canReadAnswers: false,
+  includeAnswersInExport: false,
+  activeCloudDraftName: 'Review copy',
+  cloudDraftConflict: true,
+  hasCloudDraftChanges: true,
+  openCommentCount: 2,
+  downloadedLayoutDensity: null,
+  layoutDensity: 'auto'
+})
+assert.equal(hasExportReadinessBlockers(blockedReadiness), true, 'readiness should report blockers for incomplete stale exports')
+assert.deepEqual(
+  blockedReadiness.filter(item => item.level === 'blocked').map(item => item.id),
+  ['missing-title', 'missing-subject', 'missing-questions', 'stale-cloud-draft'],
+  'readiness blockers should cover missing fields and stale cloud revisions'
+)
+assert.ok(
+  blockedReadiness.some(item => item.id === 'open-comments' && item.level === 'warning'),
+  'open review comments should be warnings'
+)
+assert.ok(
+  blockedReadiness.some(item => item.id === 'answers-omitted' && item.level === 'warning'),
+  'missing answer permission should be visible before export'
+)
+
+const readyReadiness = buildExportReadinessItems({
+  paper,
+  canReadAnswers: true,
+  includeAnswersInExport: true,
+  cloudDraftConflict: false,
+  hasCloudDraftChanges: false,
+  openCommentCount: 0,
+  downloadedLayoutDensity: 'dense',
+  layoutDensity: 'auto'
+})
+assert.equal(hasExportReadinessBlockers(readyReadiness), false, 'complete export readiness should not block')
+assert.ok(
+  readyReadiness.some(item => item.id === 'effective-layout' && item.level === 'ok'),
+  'last downloaded layout should be reported as an OK readiness item'
 )
 
 console.log('[paper-domain] OK')

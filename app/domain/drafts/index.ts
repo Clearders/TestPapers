@@ -1,5 +1,6 @@
 import type { ApiErrorInfo } from '~/utils/apiError'
 import type { DraftComment, DraftCommentStatus, DraftReviewStatus, SharedDraftSummary } from '~/types/draft'
+import type { WorkspaceDraft } from '~/domain/papers'
 
 export function canManageSharedDraft (draft: Pick<SharedDraftSummary, 'accessRole'> | null) {
   return draft?.accessRole === 'owner' || draft?.accessRole === 'admin'
@@ -22,6 +23,20 @@ export function groupDraftComments (comments: DraftComment[]) {
 
 export function draftCommentCount (comments: DraftComment[], status?: DraftCommentStatus) {
   return status ? comments.filter(comment => comment.status === status).length : comments.length
+}
+
+export function openCommentCountsByQuestion (comments: DraftComment[]) {
+  const counts: Record<string, number> = {}
+  for (const comment of comments) {
+    if (comment.status !== 'open' || !comment.questionPublicId) continue
+    counts[comment.questionPublicId] = (counts[comment.questionPublicId] || 0) + 1
+  }
+  return counts
+}
+
+export function hasSharedDraftChanges (currentDraft: WorkspaceDraft, savedDraft: WorkspaceDraft | null | undefined) {
+  if (!savedDraft) return false
+  return JSON.stringify(currentDraft) !== JSON.stringify(savedDraft)
 }
 
 export function isDraftRevisionConflict (error: ApiErrorInfo | unknown) {

@@ -1,4 +1,4 @@
-import type { ExportMode, GenerationDiagnostics, GenerationFormState, LayoutDensity } from '~/types/generation'
+import type { ExportMode, ExportReadinessItem, GenerationDiagnostics, GenerationFormState, LayoutDensity } from '~/types/generation'
 import type { EssayBlankSpace, Question, QuestionDifficulty, QuestionEntity, QuestionImage, QuestionType } from '~/types/question'
 import { toRaw } from 'vue'
 import {
@@ -115,6 +115,18 @@ export interface WorkspaceDraft {
   savedPaperId: string | null
   savedPaperSignature: string
   generationDiagnostics: GenerationDiagnostics | null
+}
+
+export interface BuildExportReadinessInput {
+  paper: PaperState
+  canReadAnswers: boolean
+  includeAnswersInExport: boolean
+  activeCloudDraftName?: string
+  cloudDraftConflict: boolean
+  hasCloudDraftChanges: boolean
+  openCommentCount: number
+  downloadedLayoutDensity: LayoutDensity | null
+  layoutDensity: LayoutDensity
 }
 
 export interface ExamDraftSummary {
@@ -262,6 +274,70 @@ export function hasTemporaryQuestionEdits (paper: PaperState) {
   return paper.questions.some(question => question.isTemporaryEdit)
 }
 
+export function buildExportReadinessItems (input: BuildExportReadinessInput): ExportReadinessItem[] {
+  const items: ExportReadinessItem[] = []
+  const title = input.paper.title.trim()
+  const subject = input.paper.subject.trim()
+  const questionCount = input.paper.questions.length
+
+  if (!title) items.push({ id: 'missing-title', level: 'blocked', message: 'Add a paper title before export.' })
+  if (!subject) items.push({ id: 'missing-subject', level: 'blocked', message: 'Add a paper subject before export.' })
+  if (!questionCount) items.push({ id: 'missing-questions', level: 'blocked', message: 'Add at least one question before export.' })
+  if (input.cloudDraftConflict) {
+    items.push({
+      id: 'stale-cloud-draft',
+      level: 'blocked',
+      message: 'This cloud draft changed elsewhere. Load latest or save as a new cloud draft before export.'
+    })
+  }
+  if (input.openCommentCount > 0) {
+    items.push({
+      id: 'open-comments',
+      level: 'warning',
+      message: `${input.openCommentCount} open review comment${input.openCommentCount === 1 ? '' : 's'} remain.`
+    })
+  }
+  if (input.activeCloudDraftName && input.hasCloudDraftChanges) {
+    items.push({
+      id: 'unsaved-cloud-draft',
+      level: 'warning',
+      message: `Save "${input.activeCloudDraftName}" if the cloud draft should match this workspace before download.`
+    })
+  }
+  if (!input.canReadAnswers) {
+    items.push({
+      id: 'answers-omitted',
+      level: 'warning',
+      message: 'Answers will be omitted because this account cannot read answers.'
+    })
+  } else if (!input.includeAnswersInExport) {
+    items.push({
+      id: 'answers-disabled',
+      level: 'warning',
+      message: 'Answers are turned off for this export.'
+    })
+  }
+  if (input.downloadedLayoutDensity) {
+    items.push({
+      id: 'effective-layout',
+      level: 'ok',
+      message: `Last DOCX used ${layoutDensityLabel(input.downloadedLayoutDensity)} layout.`
+    })
+  } else if (!items.some(item => item.level === 'blocked')) {
+    items.push({
+      id: 'required-fields-ready',
+      level: 'ok',
+      message: `Ready to export ${questionCount} question${questionCount === 1 ? '' : 's'} with ${layoutDensityLabel(input.layoutDensity)} layout.`
+    })
+  }
+
+  return items
+}
+
+export function hasExportReadinessBlockers (items: ExportReadinessItem[]) {
+  return items.some(item => item.level === 'blocked')
+}
+
 export function buildPaperGeneratePayload (paper: PaperState, generationForm: GenerationFormState, bankMode: BankMode): PaperGeneratePayload | null {
   if (!paper.title.trim() || !generationForm.subjects.length) return null
 
@@ -372,6 +448,13 @@ export function validateExamDraftSummary (value: unknown): ExamDraftSummary | nu
 export function layoutDensityFromHeader (value: string | null): LayoutDensity | null {
   if (value === 'normal' || value === 'compact' || value === 'dense' || value === 'auto') return value
   return null
+}
+
+export function layoutDensityLabel (value: LayoutDensity) {
+  if (value === 'normal') return 'Normal'
+  if (value === 'compact') return 'Compact'
+  if (value === 'dense') return 'Dense'
+  return 'Auto'
 }
 
 export function filenameFromDisposition (disposition: string | null, fallbackTitle: string) {

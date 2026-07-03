@@ -25,13 +25,19 @@
       </div>
 
       <form v-if="canComment" class="comment-form" @submit.prevent="emit('add-comment')">
-        <label class="form-label" for="draft-comment-target">Target</label>
+        <label class="form-label" for="draft-comment-target">Target / Filter</label>
         <select id="draft-comment-target" v-model="selectedQuestionModel" class="form-input" name="draftCommentTarget">
-          <option value="">Draft-level comment</option>
+          <option value="">All comments and draft-level notes</option>
           <option v-for="(question, index) in questions" :key="question.publicId" :value="question.publicId">
             Q{{ index + 1 }} - {{ question.text.slice(0, 64) }}
           </option>
         </select>
+        <div v-if="selectedQuestionPublicId" class="focused-target">
+          <span>Showing {{ targetLabel(selectedQuestionPublicId) }} comments</span>
+          <button type="button" class="btn btn-outline btn-sm" @click="emit('update:selectedQuestionPublicId', '')">
+            Show All
+          </button>
+        </div>
         <label class="form-label" for="draft-comment-message">Comment</label>
         <textarea
           id="draft-comment-message"
@@ -62,6 +68,7 @@
             <button
               type="button"
               class="btn btn-outline btn-sm"
+              :disabled="!canComment"
               @click="emit('update-comment-status', comment.publicId, comment.status === 'open' ? 'resolved' : 'open')"
             >
               {{ comment.status === 'open' ? 'Resolve' : 'Reopen' }}
@@ -119,8 +126,11 @@ const selectedQuestionModel = computed({
 })
 
 const filteredComments = computed(() => {
-  if (props.filter === 'all') return props.comments
-  return props.comments.filter(comment => comment.status === props.filter)
+  return props.comments.filter((comment) => {
+    const statusMatches = props.filter === 'all' || comment.status === props.filter
+    const targetMatches = !props.selectedQuestionPublicId || comment.questionPublicId === props.selectedQuestionPublicId
+    return statusMatches && targetMatches
+  })
 })
 
 function targetLabel (questionPublicId?: string | null) {
@@ -219,6 +229,21 @@ function formatTimestamp (value: string) {
 
 .comment-form .btn {
   align-self: flex-start;
+}
+
+.focused-target {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--color-warning-border);
+  border-radius: var(--radius);
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+  font-size: .82rem;
+  font-weight: 800;
 }
 
 .comment-list {

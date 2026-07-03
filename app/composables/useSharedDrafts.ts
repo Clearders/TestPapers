@@ -13,6 +13,12 @@ import {
   filenameFromDisposition,
   validateWorkspaceDraft
 } from '~/domain/papers'
+import {
+  canCommentOnSharedDraft,
+  canEditSharedDraft,
+  canManageSharedDraft,
+  hasSharedDraftChanges
+} from '~/domain/drafts'
 import { apiErrorMessage, getStatusCode } from '~/utils/apiError'
 
 export interface UseSharedDraftsParams {
@@ -60,16 +66,20 @@ export function useSharedDrafts (params: UseSharedDraftsParams) {
   const isDownloadingCloudDraft = ref(false)
 
   const selectedCloudDraft = computed(() => cloudDrafts.value.find(draft => draft.publicId === selectedCloudDraftId.value) || null)
-  const canManageActiveCloudDraft = computed(() => activeCloudDraft.value?.accessRole === 'owner' || activeCloudDraft.value?.accessRole === 'admin')
-  const canEditActiveCloudDraft = computed(() => {
-    const role = activeCloudDraft.value?.accessRole
-    return role === 'owner' || role === 'admin' || role === 'editor'
-  })
-  const canCommentActiveCloudDraft = computed(() => Boolean(activeCloudDraft.value))
+  const canManageActiveCloudDraft = computed(() => canManageSharedDraft(activeCloudDraft.value))
+  const canEditActiveCloudDraft = computed(() => canEditSharedDraft(activeCloudDraft.value))
+  const canCommentActiveCloudDraft = computed(() => canCommentOnSharedDraft(activeCloudDraft.value) && !cloudDraftConflict.value)
+  const hasActiveCloudDraftChanges = computed(() => hasSharedDraftChanges(createWorkspaceDraft(), activeCloudDraft.value?.state))
 
   function resetCloudDraftStatus () {
     cloudDraftError.value = ''
     cloudDraftConflict.value = false
+  }
+
+  function blockStaleMutation (message: string) {
+    if (!cloudDraftConflict.value) return false
+    cloudDraftError.value = message
+    return true
   }
 
   function rememberDraft (draft: SharedDraft) {
@@ -150,6 +160,7 @@ export function useSharedDrafts (params: UseSharedDraftsParams) {
 
   async function patchActiveCloudDraft (patch: Omit<SharedDraftUpdatePayload, 'baseRevision'>, fallback: string) {
     if (!activeCloudDraft.value) return await createCloudDraft()
+    if (blockStaleMutation('This cloud draft changed elsewhere. Load latest or save as a new cloud draft before editing it.')) return null
     resetCloudDraftStatus()
     isSavingCloudDraft.value = true
     try {
@@ -183,6 +194,12 @@ export function useSharedDrafts (params: UseSharedDraftsParams) {
     return await patchActiveCloudDraft(patch, 'Failed to save cloud draft.')
   }
 
+  async function saveActiveCloudDraftAsNew () {
+    const baseName = cloudDraftName.value.trim() || activeCloudDraft.value?.name || defaultDraftName()
+    const copyName = activeCloudDraft.value ? `${baseName} copy` : baseName
+    return await createCloudDraft(copyName)
+  }
+
   async function setCloudDraftReviewStatus (reviewStatus: DraftReviewStatus) {
     return await patchActiveCloudDraft({ reviewStatus }, 'Failed to update review status.')
   }
@@ -208,6 +225,7 @@ export function useSharedDrafts (params: UseSharedDraftsParams) {
 
   async function addCloudDraftCollaborator (username: string, role: DraftCollaboratorRole) {
     if (!activeCloudDraft.value) return null
+    if (blockStaleMutation('This cloud draft changed elsewhere. Load latest before changing collaborators.')) return null
     resetCloudDraftStatus()
     try {
       const response = await apiFetch<SharedDraft>(`/drafts/${activeCloudDraft.value.publicId}/collaborators`, {
@@ -224,6 +242,7 @@ export function useSharedDrafts (params: UseSharedDraftsParams) {
 
   async function updateCloudDraftCollaborator (userPublicId: string, role: DraftCollaboratorRole) {
     if (!activeCloudDraft.value) return null
+    if (blockStaleMutation('This cloud draft changed elsewhere. Load latest before changing collaborators.')) return null
     resetCloudDraftStatus()
     try {
       const response = await apiFetch<SharedDraft>(`/drafts/${activeCloudDraft.value.publicId}/collaborators/${userPublicId}`, {
@@ -240,6 +259,7 @@ export function useSharedDrafts (params: UseSharedDraftsParams) {
 
   async function removeCloudDraftCollaborator (userPublicId: string) {
     if (!activeCloudDraft.value) return null
+    if (blockStaleMutation('This cloud draft changed elsewhere. Load latest before changing collaborators.')) return null
     resetCloudDraftStatus()
     try {
       const response = await apiFetch<SharedDraft>(`/drafts/${activeCloudDraft.value.publicId}/collaborators/${userPublicId}`, {
@@ -255,6 +275,7 @@ export function useSharedDrafts (params: UseSharedDraftsParams) {
 
   async function addCloudDraftComment (message: string, questionPublicId?: string | null) {
     if (!activeCloudDraft.value) return null
+    if (blockStaleMutation('This cloud draft changed elsewhere. Load latest before commenting.')) return null
     resetCloudDraftStatus()
     try {
       const response = await apiFetch<SharedDraft>(`/drafts/${activeCloudDraft.value.publicId}/comments`, {
@@ -271,6 +292,7 @@ export function useSharedDrafts (params: UseSharedDraftsParams) {
 
   async function updateCloudDraftComment (commentPublicId: string, patch: { message?: string, status?: DraftCommentStatus }) {
     if (!activeCloudDraft.value) return null
+    if (blockStaleMutation('This cloud draft changed elsewhere. Load latest before changing comments.')) return null
     resetCloudDraftStatus()
     try {
       const response = await apiFetch<SharedDraft>(`/drafts/${activeCloudDraft.value.publicId}/comments/${commentPublicId}`, {
@@ -326,11 +348,13 @@ export function useSharedDrafts (params: UseSharedDraftsParams) {
     canManageActiveCloudDraft,
     canEditActiveCloudDraft,
     canCommentActiveCloudDraft,
+    hasActiveCloudDraftChanges,
     clearActiveCloudDraft,
     loadCloudDrafts,
     createCloudDraft,
     loadCloudDraft,
     saveActiveCloudDraft,
+    saveActiveCloudDraftAsNew,
     setCloudDraftReviewStatus,
     deleteSelectedCloudDraft,
     addCloudDraftCollaborator,

@@ -30,8 +30,10 @@ const {
   canManageSharedDraft,
   draftCommentCount,
   groupDraftComments,
+  hasSharedDraftChanges,
   isDraftRevisionConflict,
-  nextReviewStatuses
+  nextReviewStatuses,
+  openCommentCountsByQuestion
 } = await import(pathToFileURL(join(tempRoot, 'drafts/index.mjs')))
 
 const ownerDraft = { accessRole: 'owner', reviewStatus: 'draft' }
@@ -47,15 +49,29 @@ assert.equal(canCommentOnSharedDraft(viewerDraft), true, 'viewers should be able
 assert.equal(canCommentOnSharedDraft(null), false, 'missing drafts should not be commentable')
 
 const comments = [
-  { publicId: 'comment-1', status: 'open', message: 'Needs a graph.' },
+  { publicId: 'comment-1', status: 'open', message: 'Needs a graph.', questionPublicId: 'question-1' },
   { publicId: 'comment-2', status: 'resolved', message: 'Fixed typo.' },
-  { publicId: 'comment-3', status: 'open', message: 'Check marks.' }
+  { publicId: 'comment-3', status: 'open', message: 'Check marks.', questionPublicId: 'question-1' },
+  { publicId: 'comment-4', status: 'open', message: 'Draft note.' }
 ]
 const grouped = groupDraftComments(comments)
-assert.deepEqual(grouped.open.map(comment => comment.publicId), ['comment-1', 'comment-3'], 'open comments should group in order')
+assert.deepEqual(grouped.open.map(comment => comment.publicId), ['comment-1', 'comment-3', 'comment-4'], 'open comments should group in order')
 assert.deepEqual(grouped.resolved.map(comment => comment.publicId), ['comment-2'], 'resolved comments should group in order')
-assert.equal(draftCommentCount(comments), 3, 'all comments should be counted when no status filter is supplied')
-assert.equal(draftCommentCount(comments, 'open'), 2, 'open comment counts should filter by status')
+assert.equal(draftCommentCount(comments), 4, 'all comments should be counted when no status filter is supplied')
+assert.equal(draftCommentCount(comments, 'open'), 3, 'open comment counts should filter by status')
+assert.deepEqual(
+  openCommentCountsByQuestion(comments),
+  { 'question-1': 2 },
+  'open question comment counts should ignore resolved and draft-level comments'
+)
+
+const savedWorkspaceDraft = { version: 1, paper: { title: 'A', questions: [] } }
+assert.equal(hasSharedDraftChanges(savedWorkspaceDraft, savedWorkspaceDraft), false, 'matching draft state should not be dirty')
+assert.equal(
+  hasSharedDraftChanges({ ...savedWorkspaceDraft, paper: { title: 'B', questions: [] } }, savedWorkspaceDraft),
+  true,
+  'changed draft state should be dirty'
+)
 
 assert.deepEqual(
   nextReviewStatuses(ownerDraft),

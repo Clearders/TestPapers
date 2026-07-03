@@ -46,11 +46,15 @@
           :has-current-draft-content="hasCurrentDraftContent"
           :can-manage-active="canManageActiveCloudDraft"
           :can-edit-active="canEditActiveCloudDraft"
+          :has-unsaved-changes="hasActiveCloudDraftChanges"
           @save="saveCloudDraftFromWorkspace"
           @load="loadSelectedCloudDraftFromWorkspace"
           @delete-draft="deleteSelectedCloudDraftFromWorkspace"
           @reload="loadCloudDrafts"
           @download="downloadCloudDraftDocx"
+          @load-latest="loadLatestActiveCloudDraft"
+          @save-as-new="saveCloudDraftAsNewFromWorkspace"
+          @save-and-download="saveCloudDraftAndDownloadDocx"
           @set-review-status="setCloudDraftReviewStatus"
           @add-collaborator="addCloudCollaboratorFromForm"
           @update-collaborator="updateCloudDraftCollaborator"
@@ -82,6 +86,8 @@
             :downloaded-layout-density="downloadedLayoutDensity"
             :can-download-docx="canDownloadDocx"
             :export-access-prompt="exportAccessPrompt"
+            :export-readiness-items="exportReadinessItems"
+            :has-export-readiness-blockers="hasExportReadinessBlockersForCurrentPaper"
             :show-inline-export-preview="false"
             @update:paper-title="paper.title = $event"
             @update:paper-subject="paper.subject = $event"
@@ -112,9 +118,11 @@
             :comments-enabled="!!activeCloudDraft"
             :comment-count="activeCloudDraft?.commentCount || 0"
             :open-comment-count="activeCloudDraft?.openCommentCount || 0"
+            :question-comment-counts="cloudDraftQuestionCommentCounts"
             @toggle-fullscreen="previewFullscreen = !previewFullscreen"
             @print-paper="printPaper"
             @toggle-comments="commentsDrawerOpen = !commentsDrawerOpen"
+            @open-question-comments="openQuestionComments"
           />
         </div>
       </div>
@@ -227,10 +235,13 @@ import type { DraftCollaboratorRole, DraftCommentStatus } from '~/types/draft'
 import type { ExportMode, GenerationDiagnostics, LayoutDensity } from '~/types/generation'
 import type { BankMode, GeneratedPaperResponse } from '~/domain/papers'
 import {
+  buildExportReadinessItems,
   buildPaperGeneratePayload,
   createDefaultGenerationForm,
-  createDefaultPaper
+  createDefaultPaper,
+  hasExportReadinessBlockers
 } from '~/domain/papers'
+import { openCommentCountsByQuestion } from '~/domain/drafts'
 import { apiErrorMessage } from '~/utils/apiError'
 
 const EditQuestionModal = defineAsyncComponent(() => import('~/components/questions/EditQuestionModal.vue'))
@@ -476,10 +487,12 @@ const {
   canManageActiveCloudDraft,
   canEditActiveCloudDraft,
   canCommentActiveCloudDraft,
+  hasActiveCloudDraftChanges,
   clearActiveCloudDraft,
   loadCloudDrafts,
   loadCloudDraft,
   saveActiveCloudDraft,
+  saveActiveCloudDraftAsNew,
   setCloudDraftReviewStatus,
   deleteSelectedCloudDraft,
   addCloudDraftCollaborator,
@@ -498,6 +511,20 @@ const {
     commentsDrawerOpen.value = false
   }
 })
+
+const cloudDraftQuestionCommentCounts = computed(() => openCommentCountsByQuestion(activeCloudDraft.value?.comments || []))
+const exportReadinessItems = computed(() => buildExportReadinessItems({
+  paper: workspacePaper.value,
+  canReadAnswers: canReadAnswers.value,
+  includeAnswersInExport: includeAnswersInExport.value,
+  activeCloudDraftName: activeCloudDraft.value?.name || '',
+  cloudDraftConflict: cloudDraftConflict.value,
+  hasCloudDraftChanges: hasActiveCloudDraftChanges.value,
+  openCommentCount: activeCloudDraft.value?.openCommentCount || 0,
+  downloadedLayoutDensity: downloadedLayoutDensity.value,
+  layoutDensity: layoutDensity.value
+}))
+const hasExportReadinessBlockersForCurrentPaper = computed(() => hasExportReadinessBlockers(exportReadinessItems.value))
 
 watch(
   [isAuthReady, canReadQuestions],
@@ -698,6 +725,21 @@ async function saveCloudDraftFromWorkspace () {
   await saveActiveCloudDraft()
 }
 
+async function loadLatestActiveCloudDraft () {
+  const draftId = activeCloudDraft.value?.publicId
+  if (!draftId) return
+  await loadCloudDraft(draftId)
+}
+
+async function saveCloudDraftAsNewFromWorkspace () {
+  await saveActiveCloudDraftAsNew()
+}
+
+async function saveCloudDraftAndDownloadDocx () {
+  const updated = await saveActiveCloudDraft()
+  if (updated) await downloadCloudDraftDocx()
+}
+
 async function loadSelectedCloudDraftFromWorkspace () {
   if (!selectedCloudDraftId.value) return
   const targetName = cloudDrafts.value.find(draft => draft.publicId === selectedCloudDraftId.value)?.name || 'this cloud draft'
@@ -737,6 +779,12 @@ async function addCloudCommentFromDrawer () {
 
 async function updateCloudDraftCommentStatus (commentPublicId: string, status: DraftCommentStatus) {
   await updateCloudDraftComment(commentPublicId, { status })
+}
+
+function openQuestionComments (questionPublicId: string) {
+  commentQuestionPublicId.value = questionPublicId
+  commentsFilter.value = 'open'
+  commentsDrawerOpen.value = true
 }
 
 function isRecord (value: unknown): value is Record<string, unknown> {

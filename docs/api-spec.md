@@ -362,7 +362,7 @@ Shared drafts persist collaborative paper workspace state in the cloud. They are
 | `baseRevision` | integer | yes | Must equal the current draft `revision`; conflicts return `409 DRAFT_REVISION_CONFLICT` with `currentRevision` |
 | `name` | string | no | Owner/admin only |
 | `state` | object | no | Full workspace draft state replacement |
-| `reviewStatus` | `draft` / `in_review` / `changes_requested` / `approved` | no | Owner/admin can set any status; editors can only set `in_review` |
+| `reviewStatus` | `draft` / `in_review` / `changes_requested` / `approved` | no | Owner/admin can set any status; editors can only set `in_review`; approval is rejected while open comments remain |
 
 `state.paper` may contain `title`, `subject`, `duration`, `totalMarks`, and `questions`. Question entries must be objects. If a question includes `publicId` or `text`, those values must be strings. Draft detail responses redact `answer` and `originalQuestion.answer` from `state.paper.questions` unless the caller has `answers:read`.
 
@@ -641,6 +641,7 @@ interface PaperDraftDetail extends PaperDraftSummary {
 | 409 | `DRAFT_REVISION_CONFLICT` | Shared draft `baseRevision` is stale |
 | 409 | `USER_ALREADY_EXISTS` | Username already exists |
 | 413 | `PAYLOAD_TOO_LARGE` | Upload exceeds size limit |
+| 422 | `DRAFT_OPEN_COMMENTS` | Shared draft cannot be approved until open comments are resolved |
 | 422 | `VALIDATION_ERROR` | Request validation failed |
 | 422 | `INSUFFICIENT_QUESTIONS` | Auto-generation has too few candidates |
 | 429 | `RATE_LIMIT_EXCEEDED` | Too many requests |

@@ -194,6 +194,8 @@ For production, prefer the same-origin Nginx layout:
 
 Shared drafts are saved through `/api/v1/drafts` and keep the current workspace state separate from persisted papers. A cloud draft download uses the draft's stored question snapshots, export mode, layout density, and answer-export setting, so temporary question edits in the collaborative draft appear in the downloaded DOCX without creating or updating a saved paper.
 
+The workspace shows stale cloud revisions, unsaved cloud-draft changes, open review comments, answer-permission omissions, and the last effective DOCX layout before export. Draft approval stays unavailable until open comments are resolved.
+
 ### Realtime Updates
 
 - WebSocket connection managed by `useRealtime.ts`.
@@ -236,7 +238,7 @@ Shared drafts are saved through `/api/v1/drafts` and keep the current workspace 
 
 - Listing, creating, loading, saving, deleting, and downloading cloud drafts.
 - Collaborator add/update/remove flows for `viewer` and `editor` draft roles.
-- Draft comments and review status changes.
+- Draft comments, question-level comment counts, and role-aware review status changes.
 - `409 DRAFT_REVISION_CONFLICT` detection through `baseRevision` optimistic locking.
 
 For the full backend contract, see [docs/api-spec.md](docs/api-spec.md).

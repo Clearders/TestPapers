@@ -45,6 +45,8 @@
         :paper-questions="paperQuestions"
         :can-read-answers="canReadAnswers"
         :downloaded-layout-density="downloadedLayoutDensity"
+        :question-comment-counts="questionCommentCounts"
+        @open-question-comments="$emit('open-question-comments', $event)"
       />
       <div v-if="!paperQuestions.length" class="empty-preview card">
         <span class="empty-preview-icon"><AppIcon name="paper" /></span>
@@ -70,10 +72,12 @@ const props = withDefaults(defineProps<{
   commentsEnabled?: boolean
   commentCount?: number
   openCommentCount?: number
+  questionCommentCounts?: Record<string, number>
 }>(), {
   commentsEnabled: false,
   commentCount: 0,
-  openCommentCount: 0
+  openCommentCount: 0,
+  questionCommentCounts: () => ({})
 })
 
 const emit = defineEmits<{
@@ -83,6 +87,7 @@ const emit = defineEmits<{
   'toggle-fullscreen': []
   'print-paper': []
   'toggle-comments': []
+  'open-question-comments': [questionPublicId: string]
 }>()
 
 const paperState = computed(() => ({

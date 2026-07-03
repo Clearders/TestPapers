@@ -31,3 +31,10 @@ export interface GenerationFormState {
 
 export type ExportMode = 'paper' | 'categorized'
 export type LayoutDensity = 'auto' | 'normal' | 'compact' | 'dense'
+export type ExportReadinessLevel = 'blocked' | 'warning' | 'ok'
+
+export interface ExportReadinessItem {
+  id: string
+  level: ExportReadinessLevel
+  message: string
+}

@@ -99,15 +99,27 @@
     </Transition>
 
     <div class="paper-actions paper-actions--export">
+      <div v-if="exportReadinessItems.length" class="export-readiness" aria-label="Export readiness">
+        <div
+          v-for="item in exportReadinessItems"
+          :key="item.id"
+          class="export-readiness-item"
+          :class="`export-readiness-item--${item.level}`"
+        >
+          <AppIcon :name="readinessIcon(item.level)" />
+          <span>{{ item.message }}</span>
+        </div>
+      </div>
+
       <button class="btn btn-outline" :disabled="!canSavePaper" @click="emit('save-paper')">
         <AppIcon name="check" />
         {{ isSavingPaper ? 'Saving...' : 'Save Paper' }}
       </button>
-      <button class="btn btn-success" :disabled="!paperQuestions.length || !paperState.title.trim()" @click="emit('export-paper')">
+      <button class="btn btn-success" :disabled="hasExportReadinessBlockers" @click="emit('export-paper')">
         <AppIcon name="paper" />
         Export Paper
       </button>
-      <button class="btn btn-primary" :disabled="!canDownloadDocx" @click="emit('download-docx')">
+      <button class="btn btn-primary" :disabled="!canDownloadDocx || hasExportReadinessBlockers" @click="emit('download-docx')">
         <AppIcon name="download" />
         {{ isDownloadingDocx ? 'Preparing DOCX...' : 'Download DOCX' }}
       </button>
@@ -174,7 +186,7 @@
 
 <script setup lang="ts">
 import type { ExportAccessPrompt } from '~/composables/usePaperExport'
-import type { ExportMode, GenerationDiagnostics, LayoutDensity } from '~/types/generation'
+import type { ExportMode, ExportReadinessItem, ExportReadinessLevel, GenerationDiagnostics, LayoutDensity } from '~/types/generation'
 import type { GenerationFormState, PaperQuestion, PaperState } from '~/domain/papers'
 import { createDefaultGenerationForm, createDefaultPaper } from '~/domain/papers'
 import { formatScoreWeight } from '~/utils/format'
@@ -204,6 +216,8 @@ const props = defineProps<{
   downloadedLayoutDensity: LayoutDensity | null
   canDownloadDocx: boolean
   exportAccessPrompt: ExportAccessPrompt
+  exportReadinessItems?: ExportReadinessItem[]
+  hasExportReadinessBlockers?: boolean
   showInlineExportPreview?: boolean
 }>()
 
@@ -279,6 +293,15 @@ const paperQuestionLatexParts = computed(() => {
   for (const q of paperQuestions.value) map.set(q.id, parseLatexParts(q.text))
   return map
 })
+
+const exportReadinessItems = computed(() => props.exportReadinessItems || [])
+const hasExportReadinessBlockers = computed(() => Boolean(props.hasExportReadinessBlockers))
+
+function readinessIcon (level: ExportReadinessLevel) {
+  if (level === 'ok') return 'check'
+  if (level === 'blocked') return 'x'
+  return 'edit'
+}
 </script>
 
 <style scoped>
@@ -488,6 +511,41 @@ const paperQuestionLatexParts = computed(() => {
 }
 .paper-actions--export {
   margin-top: 20px;
+}
+.export-readiness {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1 1 100%;
+  width: 100%;
+}
+.export-readiness-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 9px 11px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--color-surface-solid) 74%, transparent);
+  color: var(--color-muted);
+  font-size: .84rem;
+  font-weight: 700;
+  line-height: 1.45;
+}
+.export-readiness-item--blocked {
+  border-color: var(--color-danger-border);
+  background: var(--color-danger-bg);
+  color: var(--color-danger-text);
+}
+.export-readiness-item--warning {
+  border-color: var(--color-warning-border);
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+}
+.export-readiness-item--ok {
+  border-color: var(--color-success-border);
+  background: var(--color-success-bg);
+  color: var(--color-success-text);
 }
 .download-error {
   margin-top: 14px;
