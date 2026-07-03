@@ -201,7 +201,7 @@ The workspace shows stale cloud revisions, unsaved cloud-draft changes, open rev
 - WebSocket connection managed by `useRealtime.ts`.
 - Auth via HttpOnly Cookie or Bearer token; tokens are not accepted in URLs.
 - Heartbeat ping/pong and exponential backoff reconnection.
-- Broadcast events include question and paper create/update/delete/order changes plus shared draft update, comment, and review changes.
+- Broadcast events include question and paper create/update/delete/order changes plus shared draft update, delete, comment, and review changes.
 
 ### Theme
 

@@ -489,6 +489,7 @@ const {
   canCommentActiveCloudDraft,
   hasActiveCloudDraftChanges,
   clearActiveCloudDraft,
+  removeDeletedCloudDraft,
   loadCloudDrafts,
   loadCloudDraft,
   saveActiveCloudDraft,
@@ -567,6 +568,7 @@ if (import.meta.client) {
   for (const event of ['draft.updated', 'draft.review.updated', 'draft.comment.created', 'draft.comment.updated']) {
     onRealtimeEvent(event, handleDraftRealtimeEvent)
   }
+  onRealtimeEvent('draft.deleted', handleDraftDeletedRealtimeEvent)
 }
 
 onBeforeUnmount(() => {
@@ -719,6 +721,14 @@ function handleDraftRealtimeEvent (payload: unknown) {
   if (draftId && draftId === activeCloudDraft.value?.publicId && actorId !== user.value?.id) {
     cloudDraftConflict.value = true
   }
+}
+
+function handleDraftDeletedRealtimeEvent (payload: unknown) {
+  if (!isRecord(payload)) return
+  const draftId = typeof payload.draftId === 'string' ? payload.draftId : ''
+  if (!draftId) return
+  const result = removeDeletedCloudDraft(draftId)
+  if (result.deletedActive) commentsDrawerOpen.value = false
 }
 
 async function saveCloudDraftFromWorkspace () {

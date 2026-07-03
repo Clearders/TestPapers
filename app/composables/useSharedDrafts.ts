@@ -14,6 +14,7 @@ import {
   validateWorkspaceDraft
 } from '~/domain/papers'
 import {
+  applySharedDraftDeleted,
   canCommentOnSharedDraft,
   canEditSharedDraft,
   canManageSharedDraft,
@@ -99,6 +100,32 @@ export function useSharedDrafts (params: UseSharedDraftsParams) {
     cloudDraftName.value = ''
     cloudDraftSavedAt.value = null
     cloudDraftConflict.value = false
+  }
+
+  function removeDeletedCloudDraft (draftId: string, message = 'This cloud draft was deleted elsewhere.') {
+    const result = applySharedDraftDeleted(
+      {
+        drafts: cloudDrafts.value,
+        activeDraft: activeCloudDraft.value,
+        selectedDraftId: selectedCloudDraftId.value
+      },
+      draftId
+    )
+
+    cloudDrafts.value = result.drafts
+    activeCloudDraft.value = result.activeDraft
+    selectedCloudDraftId.value = result.selectedDraftId
+
+    if (result.deletedActive) {
+      cloudDraftName.value = ''
+      cloudDraftSavedAt.value = null
+      cloudDraftConflict.value = false
+    }
+    if (message && (result.deletedActive || result.deletedSelected)) {
+      cloudDraftError.value = message
+    }
+
+    return result
   }
 
   async function loadCloudDrafts () {
@@ -211,9 +238,7 @@ export function useSharedDrafts (params: UseSharedDraftsParams) {
     isSavingCloudDraft.value = true
     try {
       await apiFetch(`/drafts/${draftId}`, { method: 'DELETE' })
-      cloudDrafts.value = cloudDrafts.value.filter(draft => draft.publicId !== draftId)
-      if (activeCloudDraft.value?.publicId === draftId) clearActiveCloudDraft()
-      selectedCloudDraftId.value = ''
+      removeDeletedCloudDraft(draftId, '')
       return true
     } catch (error) {
       cloudDraftError.value = apiErrorMessage(error, 'Failed to delete cloud draft.')
@@ -350,6 +375,7 @@ export function useSharedDrafts (params: UseSharedDraftsParams) {
     canCommentActiveCloudDraft,
     hasActiveCloudDraftChanges,
     clearActiveCloudDraft,
+    removeDeletedCloudDraft,
     loadCloudDrafts,
     createCloudDraft,
     loadCloudDraft,

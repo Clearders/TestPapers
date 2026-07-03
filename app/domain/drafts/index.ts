@@ -2,6 +2,17 @@ import type { ApiErrorInfo } from '~/utils/apiError'
 import type { DraftComment, DraftCommentStatus, DraftReviewStatus, SharedDraftSummary } from '~/types/draft'
 import type { WorkspaceDraft } from '~/domain/papers'
 
+type DraftIdentity = Pick<SharedDraftSummary, 'publicId'>
+
+export interface SharedDraftDeletionResult<TSummary extends DraftIdentity, TActiveDraft extends DraftIdentity> {
+  drafts: TSummary[]
+  activeDraft: TActiveDraft | null
+  selectedDraftId: string
+  deletedListed: boolean
+  deletedActive: boolean
+  deletedSelected: boolean
+}
+
 export function canManageSharedDraft (draft: Pick<SharedDraftSummary, 'accessRole'> | null) {
   return draft?.accessRole === 'owner' || draft?.accessRole === 'admin'
 }
@@ -41,6 +52,24 @@ export function hasSharedDraftChanges (currentDraft: WorkspaceDraft, savedDraft:
 
 export function isDraftRevisionConflict (error: ApiErrorInfo | unknown) {
   return typeof error === 'object' && error !== null && 'code' in error && error.code === 'DRAFT_REVISION_CONFLICT'
+}
+
+export function applySharedDraftDeleted<TSummary extends DraftIdentity, TActiveDraft extends DraftIdentity> (
+  state: { drafts: TSummary[], activeDraft: TActiveDraft | null, selectedDraftId: string },
+  draftId: string
+): SharedDraftDeletionResult<TSummary, TActiveDraft> {
+  const deletedListed = state.drafts.some(draft => draft.publicId === draftId)
+  const deletedActive = state.activeDraft?.publicId === draftId
+  const deletedSelected = state.selectedDraftId === draftId
+
+  return {
+    drafts: state.drafts.filter(draft => draft.publicId !== draftId),
+    activeDraft: deletedActive ? null : state.activeDraft,
+    selectedDraftId: deletedSelected ? '' : state.selectedDraftId,
+    deletedListed,
+    deletedActive,
+    deletedSelected
+  }
 }
 
 export function nextReviewStatuses (draft: Pick<SharedDraftSummary, 'accessRole' | 'reviewStatus'> | null): DraftReviewStatus[] {

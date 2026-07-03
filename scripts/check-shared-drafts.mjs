@@ -25,6 +25,7 @@ rmSync(tempRoot, { recursive: true, force: true })
 compileModule('app/domain/drafts/index.ts', 'drafts/index.mjs')
 
 const {
+  applySharedDraftDeleted,
   canCommentOnSharedDraft,
   canEditSharedDraft,
   canManageSharedDraft,
@@ -89,5 +90,42 @@ assert.equal(
 )
 assert.equal(isDraftRevisionConflict({ code: 'VALIDATION_ERROR' }), false, 'unrelated API errors should not be conflicts')
 assert.equal(isDraftRevisionConflict(null), false, 'null errors should not be conflicts')
+
+const activeDeletion = applySharedDraftDeleted(
+  {
+    drafts: [{ publicId: 'draft-active' }, { publicId: 'draft-other' }],
+    activeDraft: { publicId: 'draft-active' },
+    selectedDraftId: 'draft-active'
+  },
+  'draft-active'
+)
+assert.deepEqual(activeDeletion.drafts.map(draft => draft.publicId), ['draft-other'], 'deleted cloud drafts should leave the list')
+assert.equal(activeDeletion.activeDraft, null, 'deleted active cloud drafts should be closed')
+assert.equal(activeDeletion.selectedDraftId, '', 'deleted selected cloud drafts should be cleared')
+assert.equal(activeDeletion.deletedActive, true, 'active deletion should be flagged')
+assert.equal(activeDeletion.deletedSelected, true, 'selected deletion should be flagged')
+
+const selectedDeletion = applySharedDraftDeleted(
+  {
+    drafts: [{ publicId: 'draft-active' }, { publicId: 'draft-selected' }],
+    activeDraft: { publicId: 'draft-active' },
+    selectedDraftId: 'draft-selected'
+  },
+  'draft-selected'
+)
+assert.equal(selectedDeletion.activeDraft.publicId, 'draft-active', 'deleting a selected draft should not close a different active draft')
+assert.equal(selectedDeletion.selectedDraftId, '', 'deleting the selected draft should clear the stale selection')
+
+const workspaceSource = readFileSync(join(root, 'app/components/QuestionWorkspace.vue'), 'utf8')
+assert.match(
+  workspaceSource,
+  /onRealtimeEvent\('draft\.deleted', handleDraftDeletedRealtimeEvent\)/,
+  'workspace should subscribe to shared draft deletion events'
+)
+assert.match(
+  workspaceSource,
+  /removeDeletedCloudDraft\(draftId\)/,
+  'workspace should clear stale active or selected cloud draft state when a deletion event arrives'
+)
 
 console.log('[shared-drafts] OK')

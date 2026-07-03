@@ -345,7 +345,7 @@ Shared drafts persist collaborative paper workspace state in the cloud. They are
 | `POST` | `/api/v1/drafts` | `papers:write` | Creates a shared draft, returns `201 PaperDraftDetail`, broadcasts `draft.updated` |
 | `GET` | `/api/v1/drafts/{draft_public_id}` | `papers:read` | Reads a draft detail if the user has draft access |
 | `PATCH` | `/api/v1/drafts/{draft_public_id}` | `papers:read` plus draft edit role | Updates draft name, state, or review status with optimistic revision checking |
-| `DELETE` | `/api/v1/drafts/{draft_public_id}` | `papers:read` plus owner/admin draft role | Deletes a shared draft, returns `204` |
+| `DELETE` | `/api/v1/drafts/{draft_public_id}` | `papers:read` plus owner/admin draft role | Deletes a shared draft, returns `204`, broadcasts `draft.deleted` |
 
 `PaperDraftCreate`:
 
@@ -473,6 +473,7 @@ Broadcast events:
 | `paper.question.removed` | Question removed from paper |
 | `paper.questions.reordered` | Paper question order changed |
 | `draft.updated` | Shared draft created, content changed, collaborator changed, or draft metadata changed |
+| `draft.deleted` | Shared draft deleted |
 | `draft.review.updated` | Shared draft review status changed |
 | `draft.comment.created` | Shared draft comment added |
 | `draft.comment.updated` | Shared draft comment edited or resolved |
