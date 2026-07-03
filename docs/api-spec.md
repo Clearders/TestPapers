@@ -3,7 +3,7 @@
 > Version: v10  
 > Backend: FastAPI 0.136 / Python 3.14+  
 > Frontend: Nuxt 4.4 / TypeScript  
-> Last updated: 2026-06-28
+> Last updated: 2026-07-02
 
 This document reflects the current FastAPI implementation in `TestPaper-backend/testpaper_backend/api/routes` and the Pydantic schemas in `testpaper_backend/schemas`.
 
@@ -54,6 +54,8 @@ Errors use the same envelope shape:
 | `viewer` | `questions:read`, `papers:read` |
 
 `answers:read` controls whether answers are included in question, paper, revision, export preview, and DOCX responses. Passing `includeAnswer=true` does not override this permission.
+
+Shared paper drafts use the existing paper permissions plus draft-level access roles. Creating a shared draft requires `papers:write`; listing, reading, commenting on, and downloading accessible drafts require `papers:read`. Draft owners and admins can rename, delete, and manage collaborators. Draft editors can update draft content and move a draft to `in_review`; draft viewers can read and comment only. Admins can access all shared drafts.
 
 ## Pagination
 
@@ -331,6 +333,89 @@ Draft download body:
 
 Response headers include `Content-Disposition`, `X-Export-Format`, `X-Layout-Density`, and `X-Draft-Export: true`.
 
+## Shared Drafts
+
+Shared drafts persist collaborative paper workspace state in the cloud. They are separate from saved papers: saving or downloading a draft does not create or update a `paper` row unless the client explicitly calls the paper endpoints.
+
+### List, Create, Read, Update, Delete
+
+| Method | Path | Permission | Description |
+| --- | --- | --- | --- |
+| `GET` | `/api/v1/drafts` | `papers:read` | Lists drafts owned by or shared with the current user; admins see all drafts |
+| `POST` | `/api/v1/drafts` | `papers:write` | Creates a shared draft, returns `201 PaperDraftDetail`, broadcasts `draft.updated` |
+| `GET` | `/api/v1/drafts/{draft_public_id}` | `papers:read` | Reads a draft detail if the user has draft access |
+| `PATCH` | `/api/v1/drafts/{draft_public_id}` | `papers:read` plus draft edit role | Updates draft name, state, or review status with optimistic revision checking |
+| `DELETE` | `/api/v1/drafts/{draft_public_id}` | `papers:read` plus owner/admin draft role | Deletes a shared draft, returns `204` |
+
+`PaperDraftCreate`:
+
+| Field | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `name` | string | yes | Trimmed, 1 to 120 chars |
+| `state` | object | yes | Workspace draft state; must include `state.paper` |
+| `reviewStatus` | `draft` / `in_review` / `changes_requested` / `approved` | no | Defaults to `draft` |
+
+`PaperDraftUpdate`:
+
+| Field | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `baseRevision` | integer | yes | Must equal the current draft `revision`; conflicts return `409 DRAFT_REVISION_CONFLICT` with `currentRevision` |
+| `name` | string | no | Owner/admin only |
+| `state` | object | no | Full workspace draft state replacement |
+| `reviewStatus` | `draft` / `in_review` / `changes_requested` / `approved` | no | Owner/admin can set any status; editors can only set `in_review` |
+
+`state.paper` may contain `title`, `subject`, `duration`, `totalMarks`, and `questions`. Question entries must be objects. If a question includes `publicId` or `text`, those values must be strings. Draft detail responses redact `answer` and `originalQuestion.answer` from `state.paper.questions` unless the caller has `answers:read`.
+
+### Collaborators
+
+| Method | Path | Permission | Description |
+| --- | --- | --- | --- |
+| `POST` | `/api/v1/drafts/{draft_public_id}/collaborators` | owner/admin draft role | Adds or updates a collaborator by username, broadcasts `draft.updated` |
+| `PATCH` | `/api/v1/drafts/{draft_public_id}/collaborators/{user_public_id}` | owner/admin draft role | Updates a collaborator role, broadcasts `draft.updated` |
+| `DELETE` | `/api/v1/drafts/{draft_public_id}/collaborators/{user_public_id}` | owner/admin draft role | Removes a collaborator, broadcasts `draft.updated` |
+
+Collaborator create body:
+
+```json
+{
+  "username": "teacher2",
+  "role": "editor"
+}
+```
+
+Collaborator roles are `viewer` and `editor`. The draft owner cannot be added as a collaborator. Unknown, inactive, or removed users return `USER_NOT_FOUND`.
+
+### Comments
+
+| Method | Path | Permission | Description |
+| --- | --- | --- | --- |
+| `POST` | `/api/v1/drafts/{draft_public_id}/comments` | `papers:read` plus draft access | Adds a comment, broadcasts `draft.comment.created` |
+| `PATCH` | `/api/v1/drafts/{draft_public_id}/comments/{comment_public_id}` | draft access plus author/editor/owner/admin rule | Updates comment text or status, broadcasts `draft.comment.updated` |
+
+Comment create body:
+
+```json
+{
+  "questionPublicId": "550e8400-e29b-41d4-a716-446655440000",
+  "message": "Check this mark allocation."
+}
+```
+
+`questionPublicId` is optional. Comment statuses are `open` and `resolved`. Comment messages are trimmed and limited to 1000 characters.
+
+### Cloud Draft Download
+
+`GET /api/v1/drafts/{draft_public_id}/download` requires `papers:read`, checks normal draft access, and returns a DOCX binary directly. It does not use the JSON envelope and does not mutate the draft or create a saved paper.
+
+The download is built from the stored draft state:
+
+- Paper metadata comes from `state.paper.title`, `subject`, `duration`, and `totalMarks`; missing values fall back to the draft name, empty subject, 60 minutes, and 100 marks.
+- Questions come from `state.paper.questions`, so temporary question edits in the shared draft are reflected in the DOCX.
+- Question ordering uses `state.exportMode` (`paper` or `categorized`) and layout uses `state.layoutDensity` (`auto`, `normal`, `compact`, or `dense`).
+- Answers are included only when `state.includeAnswersInExport` is truthy and the caller has `answers:read`.
+
+Response headers include `Content-Disposition`, `X-Export-Format: docx`, `X-Layout-Density`, and `X-Cloud-Draft-Export: true`.
+
 ## Metadata and Images
 
 | Method | Path | Permission | Description |
@@ -387,6 +472,10 @@ Broadcast events:
 | `paper.questions.added` | Questions added to paper |
 | `paper.question.removed` | Question removed from paper |
 | `paper.questions.reordered` | Paper question order changed |
+| `draft.updated` | Shared draft created, content changed, collaborator changed, or draft metadata changed |
+| `draft.review.updated` | Shared draft review status changed |
+| `draft.comment.created` | Shared draft comment added |
+| `draft.comment.updated` | Shared draft comment edited or resolved |
 
 ## Health and Root
 
@@ -473,6 +562,57 @@ interface ImageUploadResponse {
   filename: string
   mimeType: string
 }
+
+type DraftAccessRole = 'owner' | 'admin' | 'editor' | 'viewer'
+type DraftCollaboratorRole = 'viewer' | 'editor'
+type DraftCommentStatus = 'open' | 'resolved'
+type DraftReviewStatus = 'draft' | 'in_review' | 'changes_requested' | 'approved'
+
+interface DraftUserRef {
+  publicId: string
+  username: string
+  displayName: string
+}
+
+interface PaperDraftCollaboratorEntity {
+  user: DraftUserRef
+  role: DraftCollaboratorRole
+  createdAt: string
+  updatedAt: string
+}
+
+interface PaperDraftCommentEntity {
+  id: number
+  publicId: string
+  questionPublicId?: string | null
+  message: string
+  status: DraftCommentStatus
+  author?: DraftUserRef | null
+  createdAt: string
+  updatedAt: string
+}
+
+interface PaperDraftSummary {
+  id: number
+  publicId: string
+  name: string
+  owner: DraftUserRef | null
+  accessRole: DraftAccessRole
+  reviewStatus: DraftReviewStatus
+  revision: number
+  collaboratorCount: number
+  commentCount: number
+  openCommentCount: number
+  updatedBy: DraftUserRef | null
+  createdAt: string
+  updatedAt: string
+}
+
+interface PaperDraftDetail extends PaperDraftSummary {
+  state: Record<string, unknown>
+  collaborators: PaperDraftCollaboratorEntity[]
+  comments: PaperDraftCommentEntity[]
+}
 ```
 
 ## Common Error Codes
@@ -494,7 +634,11 @@ interface ImageUploadResponse {
 | 404 | `USER_NOT_FOUND` | User does not exist |
 | 404 | `CORRECTION_NOT_FOUND` | Correction does not exist |
 | 404 | `REVISION_NOT_FOUND` | Revision does not exist |
+| 404 | `DRAFT_NOT_FOUND` | Draft does not exist or is not accessible |
+| 404 | `COLLABORATOR_NOT_FOUND` | Draft collaborator does not exist |
+| 404 | `COMMENT_NOT_FOUND` | Draft comment does not exist |
 | 409 | `QUESTION_ALREADY_IN_PAPER` | Question already belongs to the paper |
+| 409 | `DRAFT_REVISION_CONFLICT` | Shared draft `baseRevision` is stale |
 | 409 | `USER_ALREADY_EXISTS` | Username already exists |
 | 413 | `PAYLOAD_TOO_LARGE` | Upload exceeds size limit |
 | 422 | `VALIDATION_ERROR` | Request validation failed |
@@ -547,6 +691,17 @@ interface ImageUploadResponse {
 | `POST` | `/api/v1/papers/{paper_public_id}/export-preview` | `papers:read` | Export preview |
 | `GET` | `/api/v1/papers/{paper_public_id}/download` | `papers:read` | Download DOCX |
 | `POST` | `/api/v1/papers/draft-download` | `papers:read` | Download DOCX from an unsaved draft |
+| `GET` | `/api/v1/drafts` | `papers:read` | List shared drafts |
+| `POST` | `/api/v1/drafts` | `papers:write` | Create shared draft |
+| `GET` | `/api/v1/drafts/{draft_public_id}` | `papers:read` | Shared draft detail |
+| `PATCH` | `/api/v1/drafts/{draft_public_id}` | draft access | Update shared draft |
+| `DELETE` | `/api/v1/drafts/{draft_public_id}` | owner/admin draft role | Delete shared draft |
+| `POST` | `/api/v1/drafts/{draft_public_id}/collaborators` | owner/admin draft role | Add or update draft collaborator |
+| `PATCH` | `/api/v1/drafts/{draft_public_id}/collaborators/{user_public_id}` | owner/admin draft role | Update draft collaborator |
+| `DELETE` | `/api/v1/drafts/{draft_public_id}/collaborators/{user_public_id}` | owner/admin draft role | Remove draft collaborator |
+| `POST` | `/api/v1/drafts/{draft_public_id}/comments` | draft access | Add draft comment |
+| `PATCH` | `/api/v1/drafts/{draft_public_id}/comments/{comment_public_id}` | draft access | Update draft comment |
+| `GET` | `/api/v1/drafts/{draft_public_id}/download` | `papers:read` | Download DOCX from a cloud draft |
 | `POST` | `/api/v1/tasks/ping` | `questions:read` | Worker check |
 | `GET` | `/api/v1/tasks/{task_id}` | `questions:read` | Task status |
 | `POST` | `/api/v1/tasks/export-paper/{paper_public_id}` | `papers:read` | Async export |

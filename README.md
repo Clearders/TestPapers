@@ -2,9 +2,9 @@
 
 > Version: 0.1.0 (Nuxt 4.4 / Vue 3.5)  
 > Dependency source: `package.json`  
-> Last updated: 2026-06-28
+> Last updated: 2026-07-02
 
-Nuxt 4 frontend for creating, managing, generating, previewing, and exporting test papers. It integrates with the FastAPI backend through cookie-based authentication, CSRF-protected mutations, realtime WebSocket updates, LaTeX rendering, and DOCX export controls.
+Nuxt 4 frontend for creating, managing, generating, previewing, collaboratively drafting, and exporting test papers. It integrates with the FastAPI backend through cookie-based authentication, CSRF-protected mutations, realtime WebSocket updates, LaTeX rendering, cloud shared drafts, and DOCX export controls.
 
 ## Tech Stack
 
@@ -30,6 +30,9 @@ TestPapers/
     components/
       AppIcon.vue
       AvatarCropper.vue
+      CloudDraftPanel.vue
+      DraftCommentsDrawer.vue
+      ExamDraftPanel.vue
       LatexRenderer.vue
       PaperBuilderPanel.vue
       PaperExportPanel.vue
@@ -39,6 +42,9 @@ TestPapers/
       QuestionCardList.vue
       QuestionWorkspace.vue
       UserDropdown.vue
+      WorkspaceEditorToolbar.vue
+      WorkspaceHeading.vue
+      WorkspaceSectionTabs.vue
       questions/
         AddProblemPreview.vue
         EditQuestionModal.vue
@@ -58,9 +64,11 @@ TestPapers/
       usePaperExport.ts
       useQuestionBank.ts
       useRealtime.ts
+      useSharedDrafts.ts
       useTheme.ts
       useWorkspaceDraft.ts
     domain/
+      drafts/
       papers/
       questions/
     layouts/default.vue
@@ -82,6 +90,7 @@ TestPapers/
     types/
       api.ts
       auth.ts
+      draft.ts
       generation.ts
       index.ts
       question.ts
@@ -123,9 +132,13 @@ Additional checks:
 npm run check:auth-ssr-state
 npm run check:csp-hardening
 npm run check:paper-domain
+npm run check:shared-drafts
+node scripts/check-paper-persistence-flow.mjs
 npm run check:realtime-backoff
 npm run smoke:workspace
 ```
+
+`npm run check` now runs the SSR auth, CSP, paper domain, shared draft, paper persistence, realtime backoff, and Nuxt build checks. `npm run verify` remains the full frontend gate: lint, typecheck, then `check`.
 
 ## Runtime Configuration
 
@@ -177,13 +190,16 @@ For production, prefer the same-origin Nginx layout:
 - Genetic algorithm paper generation with multi-type targets, multi-subject filtering, difficulty coefficient, required/preferred tags, and own-questions-only mode.
 - Live paper preview and export preview.
 - DOCX download with question images, Word-compatible math, answer visibility controls, question ordering mode, and layout density controls.
+- Cloud shared drafts for collaborative paper workspace state, collaborator management, review statuses, comments, and DOCX download from the shared draft state.
+
+Shared drafts are saved through `/api/v1/drafts` and keep the current workspace state separate from persisted papers. A cloud draft download uses the draft's stored question snapshots, export mode, layout density, and answer-export setting, so temporary question edits in the collaborative draft appear in the downloaded DOCX without creating or updating a saved paper.
 
 ### Realtime Updates
 
 - WebSocket connection managed by `useRealtime.ts`.
 - Auth via HttpOnly Cookie or Bearer token; tokens are not accepted in URLs.
 - Heartbeat ping/pong and exponential backoff reconnection.
-- Broadcast events include question and paper create/update/delete/order changes.
+- Broadcast events include question and paper create/update/delete/order changes plus shared draft update, comment, and review changes.
 
 ### Theme
 
@@ -216,6 +232,13 @@ For production, prefer the same-origin Nginx layout:
 - Heartbeat and reconnect lifecycle.
 - Event subscription through `on(event, handler)`.
 
+`app/composables/useSharedDrafts.ts` manages:
+
+- Listing, creating, loading, saving, deleting, and downloading cloud drafts.
+- Collaborator add/update/remove flows for `viewer` and `editor` draft roles.
+- Draft comments and review status changes.
+- `409 DRAFT_REVISION_CONFLICT` detection through `baseRevision` optimistic locking.
+
 For the full backend contract, see [docs/api-spec.md](docs/api-spec.md).
 
 ## Backend Contract Summary
@@ -228,6 +251,7 @@ All application APIs are under `/api/v1`. Important backend surfaces:
 | Users | `/api/v1/users` | Admin-only user management |
 | Questions | `/api/v1/questions` | Search, CRUD, personal bank, revisions, corrections |
 | Papers | `/api/v1/papers` | Manual paper creation, generation, question ordering, export preview, DOCX download |
+| Drafts | `/api/v1/drafts` | Cloud shared paper drafts, collaborators, comments, review status, DOCX download |
 | Images | `/api/v1/images` | PNG question image upload |
 | Meta | `/api/v1/meta` | Subject and tag metadata |
 | Tasks | `/api/v1/tasks` | Celery task dispatch and polling |
@@ -245,3 +269,4 @@ Key production requirements:
 - Keep frontend API calls same-origin where possible.
 - Configure backend `CORS_ORIGINS` and `TRUSTED_HOSTS`; production rejects missing values and `*`.
 - Set `AUTH_COOKIE_SECURE=true` for HTTPS deployments.
+- Run the backend July 2 migration before enabling collaborative drafts; the frontend expects the `/api/v1/drafts` routes and the `paper_drafts`, `paper_draft_collaborators`, and `paper_draft_comments` tables.
