@@ -247,15 +247,20 @@
 <script setup lang="ts">
 import AddProblemPreview from '~/components/questions/AddProblemPreview.vue'
 import QuestionImageUploader from '~/components/questions/QuestionImageUploader.vue'
-import type { QuestionDifficulty, QuestionImage, QuestionType } from '~/types/question'
+import type { QuestionCreateFormState } from '~/domain/questions'
 import {
-  DEFAULT_ESSAY_BLANK_SPACE,
   DIFFICULTY_OPTIONS,
   LATEX_QUICK_REFERENCE,
   QUESTION_TYPE_OPTIONS,
-  clampScoreWeight,
+  addUniqueTrimmedValue,
+  buildQuestionCreatePayload,
+  createDefaultQuestionFormState,
   getEssayBlankHeightPx,
-  isOptionQuestionType
+  isOptionQuestionType,
+  prepareQuestionFormForType,
+  pruneInvalidQuestionFormAnswers,
+  removeValue,
+  resetQuestionFormState
 } from '~/domain/questions'
 import { apiErrorMessage } from '~/utils/apiError'
 
@@ -286,43 +291,21 @@ onMounted(() => {
   void loadMeta()
 })
 
-const form = reactive({
-  type: 'single_choice' as QuestionType,
-  subjects: [] as string[],
-  difficulty: 'medium' as QuestionDifficulty,
-  tags: [] as string[],
-  text: '',
-  options: ['', '', '', ''] as string[],
-  answer: '',
-  answerMultiple: [] as number[],
-  source: '',
-  essayBlankSpace: { ...DEFAULT_ESSAY_BLANK_SPACE },
-  scoreWeight: 1,
-  images: [] as QuestionImage[]
-})
+const form = reactive<QuestionCreateFormState>(createDefaultQuestionFormState())
 
 const usesOptionAnswers = computed(() => isOptionQuestionType(form.type))
 
 const isChoiceType = computed(() => form.type === 'single_choice' || form.type === 'multiple_choice')
 
 watch(() => form.type, () => {
-  form.answer = ''
-  form.answerMultiple = []
-  if (isChoiceType.value && form.options.length !== 4) form.options = ['', '', '', '']
-  if (form.type === 'true_false') form.options = ['True', 'False']
-  if (form.type === 'essay') form.essayBlankSpace = { ...DEFAULT_ESSAY_BLANK_SPACE }
+  prepareQuestionFormForType(form)
 })
 
 watch(
   () => isChoiceType.value ? form.options.join('\0') : null,
   (joined) => {
     if (joined === null) return
-    if (typeof form.answer === 'string' && form.answer && !form.options.includes(form.answer)) {
-      form.answer = ''
-    }
-    form.answerMultiple = form.answerMultiple.filter(index => {
-      return Boolean(form.options[index]?.trim())
-    })
+    pruneInvalidQuestionFormAnswers(form)
   }
 )
 
@@ -331,25 +314,21 @@ const essayBlankHeight = computed(() => {
 })
 
 function addTag () {
-  const tag = tagInput.value.trim()
-  if (tag && !form.tags.includes(tag)) form.tags.push(tag)
+  addUniqueTrimmedValue(form.tags, tagInput.value)
   tagInput.value = ''
 }
 
 function removeTag (tag: string) {
-  const index = form.tags.indexOf(tag)
-  if (index !== -1) form.tags.splice(index, 1)
+  removeValue(form.tags, tag)
 }
 
 function addSubject () {
-  const sub = subjectInput.value.trim()
-  if (sub && !form.subjects.includes(sub)) form.subjects.push(sub)
+  addUniqueTrimmedValue(form.subjects, subjectInput.value)
   subjectInput.value = ''
 }
 
 function removeSubject (sub: string) {
-  const index = form.subjects.indexOf(sub)
-  if (index !== -1) form.subjects.splice(index, 1)
+  removeValue(form.subjects, sub)
 }
 
 async function handleImageSelected (event: Event) {
@@ -385,30 +364,7 @@ async function submitProblem () {
   isSaving.value = true
 
   try {
-    await addQuestion({
-      type: form.type,
-      subjects: [...form.subjects],
-      difficulty: form.difficulty as QuestionDifficulty,
-      tags: [...form.tags],
-      text: form.text.trim(),
-      options: usesOptionAnswers.value
-        ? form.options.map(option => option.trim()).filter(Boolean)
-        : undefined,
-      answer: form.type === 'multiple_choice'
-        ? form.answerMultiple
-            .map(index => form.options[index]?.trim())
-            .filter((option): option is string => Boolean(option))
-        : form.answer.trim(),
-      source: form.source.trim() || undefined,
-      scoreWeight: clampScoreWeight(form.scoreWeight),
-      essayBlankSpace: form.type === 'essay'
-        ? {
-            lines: form.essayBlankSpace.lines,
-            lineHeight: form.essayBlankSpace.lineHeight
-          }
-        : undefined,
-      images: form.images
-    })
+    await addQuestion(buildQuestionCreatePayload(form))
 
     submitted.value = true
     if (submittedTimer.value) clearTimeout(submittedTimer.value)
@@ -422,21 +378,9 @@ async function submitProblem () {
 }
 
 function resetForm (clearBanner = true) {
-  Object.assign(form, {
-    type: 'single_choice',
-    subjects: [],
-    difficulty: 'medium',
-    tags: [],
-    text: '',
-    options: ['', '', '', ''],
-    answer: '',
-    answerMultiple: [],
-    source: '',
-    essayBlankSpace: { ...DEFAULT_ESSAY_BLANK_SPACE },
-    scoreWeight: 1,
-    images: []
-  })
+  resetQuestionFormState(form)
   tagInput.value = ''
+  subjectInput.value = ''
   if (clearBanner) submitted.value = false
 }
 

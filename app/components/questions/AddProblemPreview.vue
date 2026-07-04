@@ -18,10 +18,7 @@
       <div class="preview-section">
         <span class="preview-label">Question</span>
         <div v-if="form.text" class="preview-content">
-          <template v-for="(part, i) in parseLatexParts(form.text)" :key="'q' + i">
-            <LatexRenderer v-if="part.isLatex" :formula="part.content" :block="part.block" />
-            <span v-else>{{ part.content }}</span>
-          </template>
+          <LatexText :text="form.text" />
         </div>
         <span v-else class="placeholder-text">Your question will appear here.</span>
 
@@ -36,12 +33,7 @@
           <div v-for="(opt, index) in form.options" :key="'opt' + index">
             <span v-if="opt.trim()" class="preview-option">
               <strong>{{ String.fromCharCode(65 + index) }}.</strong>
-              <span>
-                <template v-for="(part, i) in parseLatexParts(opt)" :key="'op' + i">
-                  <LatexRenderer v-if="part.isLatex" :formula="part.content" :block="part.block" />
-                  <span v-else>{{ part.content }}</span>
-                </template>
-              </span>
+              <span><LatexText :text="opt" /></span>
             </span>
           </div>
         </div>
@@ -59,10 +51,7 @@
           <template v-if="isOptionQuestionType(form.type)">
             <strong>{{ Array.isArray(form.answer) ? form.answer.join(', ') : form.answer }}</strong>
           </template>
-          <template v-for="(part, i) in parseLatexParts(typeof form.answer === 'string' ? form.answer : '')" v-else :key="'a' + i">
-            <LatexRenderer v-if="part.isLatex" :formula="part.content" :block="part.block" />
-            <span v-else>{{ part.content }}</span>
-          </template>
+          <LatexText v-else :text="typeof form.answer === 'string' ? form.answer : ''" />
         </div>
       </div>
     </div>

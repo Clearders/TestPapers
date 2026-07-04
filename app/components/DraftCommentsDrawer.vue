@@ -86,6 +86,7 @@
 <script setup lang="ts">
 import type { DraftComment, DraftCommentStatus } from '~/types/draft'
 import type { PaperQuestion } from '~/domain/papers'
+import { formatShortTimestamp } from '~/utils/format'
 
 type CommentFilter = 'open' | 'resolved' | 'all'
 
@@ -139,16 +140,7 @@ function targetLabel (questionPublicId?: string | null) {
   return index === -1 ? 'Question' : `Q${index + 1}`
 }
 
-function formatTimestamp (value: string) {
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return 'just now'
-  return date.toLocaleString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
-}
+const formatTimestamp = formatShortTimestamp
 </script>
 
 <style scoped>

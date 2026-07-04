@@ -156,6 +156,7 @@
 <script setup lang="ts">
 import type { DraftCollaboratorRole, DraftReviewStatus, SharedDraft, SharedDraftSummary } from '~/types/draft'
 import { nextReviewStatuses } from '~/domain/drafts'
+import { formatShortTimestamp } from '~/utils/format'
 
 const props = defineProps<{
   drafts: SharedDraftSummary[]
@@ -273,17 +274,7 @@ function accessLabel (value: string) {
   return 'Viewer access'
 }
 
-function formatTimestamp (value: string | null) {
-  if (!value) return 'just now'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return 'just now'
-  return date.toLocaleString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
-}
+const formatTimestamp = formatShortTimestamp
 
 function onCollaboratorRoleChange (userPublicId: string, event: Event) {
   const role = (event.target as HTMLSelectElement).value as DraftCollaboratorRole

@@ -11,6 +11,7 @@ const modules = [
   ['app/domain/questions/constants.ts', 'questions/constants.mjs'],
   ['app/domain/questions/guards.ts', 'questions/guards.mjs'],
   ['app/domain/questions/normalization.ts', 'questions/normalization.mjs'],
+  ['app/domain/questions/form.ts', 'questions/form.mjs'],
   ['app/domain/questions/import.ts', 'questions/import.mjs'],
   ['app/domain/questions/index.ts', 'questions/index.mjs'],
   ['app/domain/papers/index.ts', 'papers/index.mjs']
@@ -27,7 +28,7 @@ function compileModule (sourcePath, outputPath) {
 
   output = output
     .replace(/(from\s+['"])~\/domain\/questions(['"])/g, '$1../questions/index.mjs$2')
-    .replace(/(from\s+['"]\.\/(?:constants|guards|import|normalization))(['"])/g, '$1.mjs$2')
+    .replace(/(from\s+['"]\.\/(?:constants|form|guards|import|normalization))(['"])/g, '$1.mjs$2')
 
   const destination = join(tempRoot, outputPath)
   mkdirSync(dirname(destination), { recursive: true })
@@ -36,6 +37,14 @@ function compileModule (sourcePath, outputPath) {
 
 rmSync(tempRoot, { recursive: true, force: true })
 for (const [sourcePath, outputPath] of modules) compileModule(sourcePath, outputPath)
+
+const {
+  buildQuestionCreatePayload,
+  buildTemporaryQuestionEdit,
+  createDefaultQuestionFormState,
+  createTemporaryQuestionEditFormState,
+  prepareQuestionFormForType
+} = await import(pathToFileURL(join(tempRoot, 'questions/index.mjs')))
 
 const {
   buildExamDraftSummary,
@@ -65,6 +74,57 @@ const sampleQuestion = {
   scoreWeight: 1,
   marks: 2.6
 }
+
+const questionForm = createDefaultQuestionFormState()
+Object.assign(questionForm, {
+  subjects: ['  Math  '],
+  tags: [' algebra '],
+  text: '  Choose $x$.  ',
+  options: [' x ', ' y ', '', ''],
+  answer: ' y ',
+  source: '  Chapter 1 ',
+  scoreWeight: '2.5'
+})
+assert.deepEqual(
+  buildQuestionCreatePayload(questionForm),
+  {
+    type: 'single_choice',
+    subjects: ['Math'],
+    difficulty: 'medium',
+    tags: ['algebra'],
+    text: 'Choose $x$.',
+    options: ['x', 'y'],
+    answer: 'y',
+    source: 'Chapter 1',
+    scoreWeight: 2.5,
+    essayBlankSpace: undefined,
+    images: []
+  },
+  'question create payloads should trim lists, text, answers, source, and options'
+)
+
+questionForm.type = 'true_false'
+questionForm.options = []
+prepareQuestionFormForType(questionForm)
+assert.deepEqual(questionForm.options, ['True', 'False'], 'true/false create forms should reset to canonical options')
+
+const temporaryEditForm = createTemporaryQuestionEditFormState(sampleQuestion)
+Object.assign(temporaryEditForm, {
+  type: 'multiple_choice',
+  subjectsText: 'Math, Algebra',
+  tagsText: 'Proof, Review',
+  options: ['A', 'B', ''],
+  answerText: 'A, B',
+  text: 'Pick both values: $x$',
+  marks: '3.2'
+})
+const editedQuestion = buildTemporaryQuestionEdit(sampleQuestion, temporaryEditForm)
+assert.deepEqual(editedQuestion.subjects, ['Math', 'Algebra'], 'draft edits should parse subject lists')
+assert.deepEqual(editedQuestion.tags, ['proof', 'review'], 'draft edits should normalize tag lists')
+assert.deepEqual(editedQuestion.options, ['A', 'B'], 'draft edits should trim option lists')
+assert.deepEqual(editedQuestion.answer, ['A', 'B'], 'draft edits should parse multiple-choice answers')
+assert.equal(editedQuestion.marks, 3, 'draft edits should normalize marks')
+assert.equal(editedQuestion.hasLatex, true, 'draft edits should detect LaTeX in changed fields')
 
 const paper = {
   ...createDefaultPaper(),

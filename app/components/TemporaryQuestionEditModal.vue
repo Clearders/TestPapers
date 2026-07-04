@@ -132,15 +132,16 @@
 
 <script setup lang="ts">
 import type { PaperQuestion } from '~/domain/papers'
-import type { Question, QuestionDifficulty, QuestionType } from '~/types/question'
+import type { TemporaryQuestionEditFormState } from '~/domain/questions'
 import {
-  DEFAULT_ESSAY_BLANK_SPACE,
   DIFFICULTY_OPTIONS,
   QUESTION_TYPE_OPTIONS,
-  clampScoreWeight,
+  buildTemporaryQuestionEdit,
+  createTemporaryQuestionEditFormState,
   isOptionQuestionType,
-  normalizeEssayBlankSpace,
-  optionalPositiveInteger
+  normalizeDraftQuestionTextFields,
+  prepareTemporaryQuestionFormForType,
+  resetTemporaryQuestionEditFormState
 } from '~/domain/questions'
 
 const props = defineProps<{
@@ -154,20 +155,7 @@ const emit = defineEmits<{
   reset: [id: number]
 }>()
 
-const form = reactive({
-  type: props.question.type as QuestionType,
-  difficulty: props.question.difficulty as QuestionDifficulty,
-  scoreWeight: props.question.scoreWeight,
-  marks: (props.question.marks || undefined) as number | undefined,
-  subjectsText: props.question.subjects.join(', '),
-  tagsText: props.question.tags.join(', '),
-  text: props.question.text,
-  options: [...(props.question.options || ['True', 'False'])],
-  answerText: Array.isArray(props.question.answer) ? props.question.answer.join(', ') : String(props.question.answer || ''),
-  source: props.question.source || '',
-  essayLines: props.question.essayBlankSpace?.lines || DEFAULT_ESSAY_BLANK_SPACE.lines,
-  essayLineHeight: props.question.essayBlankSpace?.lineHeight || DEFAULT_ESSAY_BLANK_SPACE.lineHeight
-})
+const form = reactive<TemporaryQuestionEditFormState>(createTemporaryQuestionEditFormState(props.question))
 const errorMsg = ref('')
 
 const isOptionType = computed(() => isOptionQuestionType(form.type))
@@ -176,52 +164,17 @@ watch(() => props.visible, (visible) => {
   if (visible) resetForm()
 })
 
-watch(() => form.type, (type) => {
-  if (type === 'true_false' && !form.options.some(option => option.trim())) {
-    form.options = ['True', 'False']
-  } else if (isOptionQuestionType(type) && form.options.length < 2) {
-    form.options = [...form.options, ...Array(2 - form.options.length).fill('')]
-  }
+watch(() => form.type, () => {
+  prepareTemporaryQuestionFormForType(form)
 })
 
 function resetForm () {
-  form.type = props.question.type
-  form.difficulty = props.question.difficulty
-  form.scoreWeight = props.question.scoreWeight
-  form.marks = props.question.marks
-  form.subjectsText = props.question.subjects.join(', ')
-  form.tagsText = props.question.tags.join(', ')
-  form.text = props.question.text
-  form.options = [...(props.question.options || (props.question.type === 'true_false' ? ['True', 'False'] : ['', '', '', '']))]
-  form.answerText = Array.isArray(props.question.answer) ? props.question.answer.join(', ') : String(props.question.answer || '')
-  form.source = props.question.source || ''
-  form.essayLines = props.question.essayBlankSpace?.lines || DEFAULT_ESSAY_BLANK_SPACE.lines
-  form.essayLineHeight = props.question.essayBlankSpace?.lineHeight || DEFAULT_ESSAY_BLANK_SPACE.lineHeight
+  resetTemporaryQuestionEditFormState(form, props.question)
   errorMsg.value = ''
 }
 
-function splitList (value: string) {
-  return value
-    .split(',')
-    .map(item => item.trim())
-    .filter(Boolean)
-}
-
-function splitAnswerList (value: string) {
-  return value
-    .split(/[\n,]+/)
-    .map(item => item.trim())
-    .filter(Boolean)
-}
-
 function normalizeText () {
-  form.text = form.text
-    .replace(/\r\n/g, '\n')
-    .replace(/[ \t]+/g, ' ')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim()
-  form.options = form.options.map(option => option.replace(/[ \t]+/g, ' ').trim())
-  form.answerText = form.answerText.replace(/[ \t]+/g, ' ').trim()
+  normalizeDraftQuestionTextFields(form)
 }
 
 function addOption () {
@@ -231,31 +184,6 @@ function addOption () {
 function removeOption (index: number) {
   if (form.options.length <= 2) return
   form.options.splice(index, 1)
-}
-
-function detectLatex (question: Pick<Question, 'text' | 'answer'> & { options?: string[] }) {
-  const answer = Array.isArray(question.answer) ? question.answer.join(' ') : question.answer
-  return /\$\$?[^$]+\$\$?/.test([question.text, answer, ...(question.options || [])].join(' '))
-}
-
-function originalQuestionSnapshot (question: PaperQuestion): Question {
-  return {
-    id: question.id,
-    publicId: question.publicId,
-    type: question.type,
-    subjects: [...question.subjects],
-    difficulty: question.difficulty,
-    tags: [...question.tags],
-    text: question.text,
-    ...(question.options?.length ? { options: [...question.options] } : {}),
-    answer: Array.isArray(question.answer) ? [...question.answer] : question.answer,
-    hasLatex: question.hasLatex,
-    ...(question.source ? { source: question.source } : {}),
-    ...(question.essayBlankSpace ? { essayBlankSpace: { ...question.essayBlankSpace } } : {}),
-    ...(question.images?.length ? { images: question.images.map(image => ({ ...image })) } : {}),
-    scoreWeight: question.scoreWeight,
-    ...(typeof question.ownerId === 'number' || question.ownerId === null ? { ownerId: question.ownerId } : {})
-  }
 }
 
 function handleSubmit () {
@@ -272,30 +200,7 @@ function handleSubmit () {
     return
   }
 
-  const answer = form.type === 'multiple_choice'
-    ? splitAnswerList(form.answerText)
-    : form.answerText.trim()
-  const nextQuestion: PaperQuestion = {
-    ...props.question,
-    type: form.type,
-    difficulty: form.difficulty,
-    scoreWeight: clampScoreWeight(form.scoreWeight),
-    marks: optionalPositiveInteger(form.marks),
-    subjects: splitList(form.subjectsText),
-    tags: splitList(form.tagsText).map(tag => tag.toLowerCase()),
-    text,
-    answer,
-    hasLatex: detectLatex({ text, answer, options }),
-    source: form.source.trim() || undefined,
-    options,
-    essayBlankSpace: form.type === 'essay'
-      ? normalizeEssayBlankSpace({ lines: form.essayLines, lineHeight: form.essayLineHeight })
-      : undefined,
-    isTemporaryEdit: true,
-    originalQuestion: props.question.originalQuestion || originalQuestionSnapshot(props.question)
-  }
-
-  emit('save', nextQuestion)
+  emit('save', buildTemporaryQuestionEdit(props.question, form))
 }
 </script>
 

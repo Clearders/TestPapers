@@ -88,6 +88,7 @@
 
 <script setup lang="ts">
 import { apiErrorMessage } from '~/utils/apiError'
+import { runWhenIdle } from '~/utils/browser'
 import type { PaginatedData } from '~/types/api'
 import type { QuestionEntity } from '~/types/question'
 
@@ -122,19 +123,6 @@ const scoreWeightTotalDisplay = computed(() => {
 })
 
 const scoreWeightLabel = computed(() => canReadQuestionStats.value ? 'score weight indexed' : 'sign in for bank stats')
-
-function runWhenIdle (callback: () => void) {
-  const idleWindow = window as Window & {
-    requestIdleCallback?: (callback: IdleRequestCallback, options?: IdleRequestOptions) => number
-  }
-
-  if (typeof idleWindow.requestIdleCallback === 'function') {
-    idleWindow.requestIdleCallback(() => callback(), { timeout: 2_000 })
-    return
-  }
-
-  window.setTimeout(callback, 0)
-}
 
 function resetHeroStats () {
   questionTotal.value = null

@@ -59,21 +59,13 @@
               {{ commentCountForQuestion(q) }} open comment{{ commentCountForQuestion(q) === 1 ? '' : 's' }}
             </button>
             <div class="export-q-text">
-              <template v-for="(part, i) in parseLatexParts(q.text)" :key="i">
-                <LatexRenderer v-if="part.isLatex" :formula="part.content" :block="part.block" />
-                <span v-else>{{ part.content }}</span>
-              </template>
+              <LatexText :text="q.text" />
             </div>
 
             <div v-if="isOptionQuestionType(q.type) && q.options?.length" class="export-options">
               <div v-for="(opt, idx) in q.options" :key="idx" class="export-option">
                 <span class="q-option-label">{{ String.fromCharCode(65 + idx) }}.</span>
-                <span>
-                  <template v-for="(part, i) in parseLatexParts(opt)" :key="i">
-                    <LatexRenderer v-if="part.isLatex" :formula="part.content" />
-                    <span v-else>{{ part.content }}</span>
-                  </template>
-                </span>
+                <span><LatexText :text="opt" :block-latex="false" /></span>
               </div>
             </div>
 
@@ -103,10 +95,7 @@
               <template v-if="Array.isArray(q.answer)">
                 {{ q.answer.join(', ') }}
               </template>
-              <template v-for="(part, i) in parseLatexParts(q.answer)" v-else :key="i">
-                <LatexRenderer v-if="part.isLatex" :formula="part.content" />
-                <span v-else>{{ part.content }}</span>
-              </template>
+              <LatexText v-else :text="q.answer" :block-latex="false" />
             </div>
           </li>
         </ol>

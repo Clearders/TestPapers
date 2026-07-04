@@ -61,6 +61,7 @@
 
 <script setup lang="ts">
 import type { ExamDraftSummary } from '~/domain/papers'
+import { formatShortTimestamp } from '~/utils/format'
 
 const props = defineProps<{
   draftName: string
@@ -94,17 +95,7 @@ const selectedDraftIdModel = computed({
 
 const draftList = computed(() => Array.isArray(props.drafts) ? props.drafts : [])
 
-function formatDraftTimestamp (value: string | null) {
-  if (!value) return 'just now'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return 'just now'
-  return date.toLocaleString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
-}
+const formatDraftTimestamp = formatShortTimestamp
 </script>
 
 <style scoped>

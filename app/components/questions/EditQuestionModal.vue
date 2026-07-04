@@ -103,7 +103,16 @@
 
 <script setup lang="ts">
 import type { Question } from '~/types/question'
-import { DIFFICULTY_OPTIONS, QUESTION_TYPE_OPTIONS, clampScoreWeight } from '~/domain/questions'
+import type { QuestionEditFormState } from '~/domain/questions'
+import {
+  DIFFICULTY_OPTIONS,
+  QUESTION_TYPE_OPTIONS,
+  buildQuestionPatch,
+  createQuestionEditFormState,
+  isOptionQuestionType,
+  prepareQuestionEditFormForType,
+  resetQuestionEditFormState
+} from '~/domain/questions'
 import { apiErrorMessage } from '~/utils/apiError'
 
 const props = defineProps<{
@@ -120,61 +129,26 @@ const { updateQuestion } = useQuestionBank()
 const isSaving = ref(false)
 const errorMsg = ref('')
 
-const isChoiceType = computed(() => {
-  return form.type === 'single_choice' || form.type === 'multiple_choice' || form.type === 'true_false'
-})
+const form = reactive<QuestionEditFormState>(createQuestionEditFormState(props.question))
 
-const form = reactive({
-  type: props.question.type,
-  difficulty: props.question.difficulty,
-  scoreWeight: props.question.scoreWeight,
-  text: props.question.text,
-  options: [...(props.question.options || ['', '', '', ''])],
-  answer: typeof props.question.answer === 'string' ? props.question.answer : props.question.answer.join(', '),
-  source: props.question.source || ''
-})
+const isChoiceType = computed(() => isOptionQuestionType(form.type))
 
 watch(() => props.visible, (val) => {
   if (val) {
-    form.type = props.question.type
-    form.difficulty = props.question.difficulty
-    form.scoreWeight = props.question.scoreWeight
-    form.text = props.question.text
-    form.options = [...(props.question.options || ['', '', '', ''])]
-    form.answer = typeof props.question.answer === 'string' ? props.question.answer : props.question.answer.join(', ')
-    form.source = props.question.source || ''
+    resetQuestionEditFormState(form, props.question)
     errorMsg.value = ''
   }
 })
 
-watch(() => form.type, (newType) => {
-  const choiceTypes = new Set(['single_choice', 'multiple_choice', 'true_false'])
-  if (choiceTypes.has(newType)) {
-    if (!form.options.length || form.options.length < 4) {
-      form.options = [...form.options, ...Array(4 - form.options.length).fill('')].slice(0, 4)
-    }
-  }
+watch(() => form.type, () => {
+  prepareQuestionEditFormForType(form)
 })
 
 async function handleSubmit () {
   errorMsg.value = ''
   isSaving.value = true
   try {
-    const patch: Partial<Omit<Question, 'id'>> = {
-      type: form.type as Question['type'],
-      difficulty: form.difficulty as Question['difficulty'],
-      scoreWeight: clampScoreWeight(form.scoreWeight),
-      text: form.text.trim(),
-      source: form.source.trim() || undefined
-    }
-    if (isChoiceType.value) {
-      patch.options = form.options.map(o => o.trim()).filter(Boolean)
-      patch.answer = form.answer.trim()
-    } else {
-      patch.options = undefined
-      patch.answer = form.answer.trim()
-    }
-    const updated = await updateQuestion(props.question.publicId, patch)
+    const updated = await updateQuestion(props.question.publicId, buildQuestionPatch(form))
     emit('saved', updated)
     emit('close')
   } catch (err) {

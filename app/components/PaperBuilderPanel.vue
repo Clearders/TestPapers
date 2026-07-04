@@ -70,10 +70,7 @@
                 </span>
               </div>
               <div class="q-text-wrap">
-                <template v-for="(part, i) in paperQuestionLatexParts.get(q.id) || []" :key="i">
-                  <LatexRenderer v-if="part.isLatex" :formula="part.content" :block="part.block" />
-                  <span v-else>{{ part.content }}</span>
-                </template>
+                <LatexText :text="q.text" />
               </div>
             </div>
           </div>
@@ -190,7 +187,6 @@ import type { ExportMode, ExportReadinessItem, ExportReadinessLevel, GenerationD
 import type { GenerationFormState, PaperQuestion, PaperState } from '~/domain/papers'
 import { createDefaultGenerationForm, createDefaultPaper } from '~/domain/papers'
 import { formatScoreWeight } from '~/utils/format'
-import { parseLatexParts } from '~/composables/useLatexParts'
 
 const props = defineProps<{
   paper: PaperState
@@ -286,12 +282,6 @@ const includeAnswersModel = computed({
 const canSavePaper = computed(() => {
   if (props.isSavingPaper) return false
   return Boolean(paperQuestions.value.length && paperState.value.title.trim() && paperState.value.subject.trim())
-})
-
-const paperQuestionLatexParts = computed(() => {
-  const map = new Map<number, ReturnType<typeof parseLatexParts>>()
-  for (const q of paperQuestions.value) map.set(q.id, parseLatexParts(q.text))
-  return map
 })
 
 const exportReadinessItems = computed(() => props.exportReadinessItems || [])

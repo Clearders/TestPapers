@@ -13,19 +13,13 @@
     <div class="q-body">
       <div class="q-text">
         <span class="q-type-tag">{{ typeLabel(question.type) }}</span>
-        <template v-for="(part, i) in parseLatexParts(question.text)" :key="i">
-          <LatexRenderer v-if="part.isLatex" :formula="part.content" :block="part.block" />
-          <span v-else>{{ part.content }}</span>
-        </template>
+        <LatexText :text="question.text" />
       </div>
 
       <div v-if="isOptionQuestionType(question.type) && question.options?.length" class="q-options">
         <div v-for="(opt, idx) in question.options" :key="idx" class="q-option">
           <span class="q-option-label">{{ String.fromCharCode(65 + idx) }}.</span>
-          <template v-for="(part, i) in parseLatexParts(opt)" :key="i">
-            <LatexRenderer v-if="part.isLatex" :formula="part.content" />
-            <span v-else>{{ part.content }}</span>
-          </template>
+          <LatexText :text="opt" :block-latex="false" />
         </div>
       </div>
 
@@ -137,10 +131,7 @@
           <template v-if="Array.isArray(question.answer)">
             {{ question.answer.join(', ') }}
           </template>
-          <template v-for="(part, i) in parseLatexParts(question.answer)" v-else :key="i">
-            <LatexRenderer v-if="part.isLatex" :formula="part.content" />
-            <span v-else>{{ part.content }}</span>
-          </template>
+          <LatexText v-else :text="question.answer" :block-latex="false" />
         </div>
       </div>
     </div>

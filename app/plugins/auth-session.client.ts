@@ -1,4 +1,5 @@
 import type { QuestionEntity } from '~/types/question'
+import { runWhenIdle } from '~/utils/browser'
 
 interface RealtimePayload {
   question?: QuestionEntity
@@ -16,19 +17,6 @@ export default defineNuxtPlugin(() => {
   const { user } = auth
   const realtime = useRealtime()
   const questionBank = useQuestionBank()
-
-  function runWhenIdle (callback: () => void) {
-    const idleWindow = window as Window & {
-      requestIdleCallback?: (callback: IdleRequestCallback, options?: IdleRequestOptions) => number
-    }
-
-    if (typeof idleWindow.requestIdleCallback === 'function') {
-      idleWindow.requestIdleCallback(() => callback(), { timeout: 2_000 })
-      return
-    }
-
-    window.setTimeout(callback, 0)
-  }
 
   const reloadQuestionBank = () => {
     if (!auth.hasPermission('questions:read')) return

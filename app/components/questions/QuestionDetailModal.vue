@@ -19,12 +19,7 @@
 
         <section class="detail-section">
           <h3>Prompt</h3>
-          <p class="detail-text">
-            <template v-for="(part, index) in parseLatexParts(question.text)" :key="index">
-              <LatexRenderer v-if="part.isLatex" :formula="part.content" :block="part.block" />
-              <span v-else>{{ part.content }}</span>
-            </template>
-          </p>
+          <p class="detail-text"><LatexText :text="question.text" /></p>
         </section>
 
         <section v-if="isOptionQuestionType(question.type) && question.options?.length" class="detail-section">
@@ -32,12 +27,7 @@
           <div class="detail-options">
             <div v-for="(option, index) in question.options" :key="index" class="detail-option">
               <strong>{{ String.fromCharCode(65 + index) }}.</strong>
-              <span>
-                <template v-for="(part, partIndex) in parseLatexParts(option)" :key="partIndex">
-                  <LatexRenderer v-if="part.isLatex" :formula="part.content" />
-                  <span v-else>{{ part.content }}</span>
-                </template>
-              </span>
+              <span><LatexText :text="option" :block-latex="false" /></span>
             </div>
           </div>
         </section>
@@ -62,10 +52,7 @@
             <template v-if="Array.isArray(question.answer)">
               {{ question.answer.join(', ') }}
             </template>
-            <template v-for="(part, index) in parseLatexParts(question.answer)" v-else :key="index">
-              <LatexRenderer v-if="part.isLatex" :formula="part.content" />
-              <span v-else>{{ part.content }}</span>
-            </template>
+            <LatexText v-else :text="question.answer" :block-latex="false" />
           </p>
         </section>
       </div>
@@ -76,7 +63,6 @@
 <script setup lang="ts">
 import type { Question } from '~/types/question'
 import { QUESTION_TYPE_LABELS, isOptionQuestionType } from '~/domain/questions'
-import { parseLatexParts } from '~/composables/useLatexParts'
 import { formatScoreWeight } from '~/utils/format'
 
 const props = defineProps<{
