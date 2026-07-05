@@ -2,7 +2,7 @@
 
 > Version: 0.1.0 (Nuxt 4.4 / Vue 3.5)  
 > Dependency source: `package.json`  
-> Last updated: 2026-07-02
+> Last updated: 2026-07-05
 
 Nuxt 4 frontend for creating, managing, generating, previewing, collaboratively drafting, and exporting test papers. It integrates with the FastAPI backend through cookie-based authentication, CSRF-protected mutations, realtime WebSocket updates, LaTeX rendering, cloud shared drafts, and DOCX export controls.
 
@@ -252,7 +252,7 @@ All application APIs are under `/api/v1`. Important backend surfaces:
 | Auth | `/api/v1/auth` | Login, register, refresh, logout, current user, profile, password, avatar, account deletion |
 | Users | `/api/v1/users` | Admin-only user management |
 | Questions | `/api/v1/questions` | Search, CRUD, personal bank, revisions, corrections |
-| Papers | `/api/v1/papers` | Manual paper creation, generation, question ordering, export preview, DOCX download |
+| Papers | `/api/v1/papers` | Manual paper creation, generation, question add/remove/reorder/replace, export preview, DOCX download |
 | Drafts | `/api/v1/drafts` | Cloud shared paper drafts, collaborators, comments, review status, DOCX download |
 | Images | `/api/v1/images` | PNG question image upload |
 | Meta | `/api/v1/meta` | Subject and tag metadata |

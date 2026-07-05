@@ -1,9 +1,9 @@
 # TestPapers API Reference
 
-> Version: v10  
-> Backend: FastAPI 0.136 / Python 3.14+  
+> Version: v11  
+> Backend: FastAPI 0.136 / Python 3.13+  
 > Frontend: Nuxt 4.4 / TypeScript  
-> Last updated: 2026-07-02
+> Last updated: 2026-07-05
 
 This document reflects the current FastAPI implementation in `TestPaper-backend/testpaper_backend/api/routes` and the Pydantic schemas in `testpaper_backend/schemas`.
 
@@ -280,6 +280,7 @@ Response data:
 | `POST` | `/api/v1/papers/{paper_public_id}/questions` | `papers:write` | Owner or admin adds `QuestionRef[]`, broadcasts `paper.questions.added` |
 | `DELETE` | `/api/v1/papers/{paper_public_id}/questions/{question_public_id}` | `papers:write` | Owner or admin removes a question, broadcasts `paper.question.removed` |
 | `PUT` | `/api/v1/papers/{paper_public_id}/questions/order` | `papers:write` | Owner or admin updates order, broadcasts `paper.questions.reordered` |
+| `PUT` | `/api/v1/papers/{paper_public_id}/questions` | `papers:write` | Owner or admin replaces the full `QuestionRef[]` list, broadcasts `paper.questions.reordered` |
 
 `PaperUpdate` supports `title`, `subject`, `duration`, `totalMarks`, and `status`. `status` is `draft` or `published`; explicit `null` values are rejected.
 
@@ -292,6 +293,16 @@ Question order body:
   ]
 }
 ```
+
+Full question-list replacement body:
+
+```json
+[
+  { "questionPublicId": "550e8400-e29b-41d4-a716-446655440000", "orderNo": 1, "marks": 5 }
+]
+```
+
+The replacement endpoint rejects duplicate question refs and returns `PaperExpandedEntity`.
 
 ### Export
 
@@ -690,6 +701,7 @@ interface PaperDraftDetail extends PaperDraftSummary {
 | `POST` | `/api/v1/papers/{paper_public_id}/questions` | `papers:write` | Add questions |
 | `DELETE` | `/api/v1/papers/{paper_public_id}/questions/{question_public_id}` | `papers:write` | Remove question |
 | `PUT` | `/api/v1/papers/{paper_public_id}/questions/order` | `papers:write` | Reorder questions |
+| `PUT` | `/api/v1/papers/{paper_public_id}/questions` | `papers:write` | Replace all paper questions |
 | `POST` | `/api/v1/papers/{paper_public_id}/export-preview` | `papers:read` | Export preview |
 | `GET` | `/api/v1/papers/{paper_public_id}/download` | `papers:read` | Download DOCX |
 | `POST` | `/api/v1/papers/draft-download` | `papers:read` | Download DOCX from an unsaved draft |
