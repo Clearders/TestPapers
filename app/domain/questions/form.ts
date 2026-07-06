@@ -28,6 +28,7 @@ export interface QuestionEditFormState {
   text: string
   options: string[]
   answer: string
+  answerMultiple: number[]
   source: string
 }
 
@@ -108,13 +109,20 @@ export function buildQuestionCreatePayload (form: QuestionCreateFormState): Ques
 }
 
 export function createQuestionEditFormState (question: Question): QuestionEditFormState {
+  const options = optionsForQuestionType(question.type, [...(question.options || defaultChoiceOptions())], {
+    minOptions: question.type === 'true_false' ? 2 : 4,
+    forceTrueFalse: question.type === 'true_false'
+  })
   return {
     type: question.type,
     difficulty: question.difficulty,
     scoreWeight: question.scoreWeight,
     text: question.text,
-    options: [...(question.options || defaultChoiceOptions())],
-    answer: answerToText(question.answer),
+    options,
+    answer: firstAnswerToText(question.answer),
+    answerMultiple: question.type === 'multiple_choice'
+      ? answerValuesToIndexes(answerValuesForQuestion(question), options)
+      : [],
     source: question.source || ''
   }
 }
@@ -124,7 +132,33 @@ export function resetQuestionEditFormState (form: QuestionEditFormState, questio
 }
 
 export function prepareQuestionEditFormForType (form: QuestionEditFormState) {
-  form.options = optionsForQuestionType(form.type, form.options, { minOptions: 4 })
+  const selectedAnswers = selectedEditAnswerValues(form)
+  form.options = optionsForQuestionType(form.type, form.options, {
+    minOptions: form.type === 'true_false' ? 2 : 4,
+    forceTrueFalse: form.type === 'true_false'
+  })
+  if (form.type === 'multiple_choice') {
+    form.answerMultiple = answerValuesToIndexes(selectedAnswers, form.options)
+    form.answer = selectedAnswers[0] || ''
+    return
+  }
+
+  form.answerMultiple = []
+  form.answer = isOptionQuestionType(form.type)
+    ? selectedAnswers[0] || ''
+    : selectedAnswers.join(', ')
+  pruneInvalidQuestionEditFormAnswers(form)
+}
+
+export function pruneInvalidQuestionEditFormAnswers (form: QuestionEditFormState) {
+  if (!isOptionQuestionType(form.type)) return
+  if (form.type === 'multiple_choice') {
+    form.answerMultiple = form.answerMultiple.filter(index => Boolean(form.options[index]?.trim()))
+    return
+  }
+  if (form.answer && !form.options.some(option => option.trim() === form.answer.trim())) {
+    form.answer = ''
+  }
 }
 
 export function buildQuestionPatch (form: QuestionEditFormState): Partial<Omit<Question, 'id'>> {
@@ -137,7 +171,11 @@ export function buildQuestionPatch (form: QuestionEditFormState): Partial<Omit<Q
   }
   if (isOptionQuestionType(form.type)) {
     patch.options = cleanList(form.options)
-    patch.answer = form.answer.trim()
+    patch.answer = form.type === 'multiple_choice'
+      ? form.answerMultiple
+          .map(index => form.options[index]?.trim())
+          .filter((option): option is string => Boolean(option))
+      : form.answer.trim()
   } else {
     patch.options = undefined
     patch.answer = form.answer.trim()
@@ -269,6 +307,32 @@ function cleanList (items: string[]) {
 
 function answerToText (answer: Question['answer']) {
   return Array.isArray(answer) ? answer.join(', ') : String(answer || '')
+}
+
+function firstAnswerToText (answer: Question['answer']) {
+  return Array.isArray(answer) ? String(answer[0] || '') : String(answer || '')
+}
+
+function answerValuesForQuestion (question: Pick<Question, 'type' | 'answer'>) {
+  if (Array.isArray(question.answer)) return cleanList(question.answer)
+  const answer = String(question.answer || '').trim()
+  if (!answer) return []
+  return question.type === 'multiple_choice' ? splitAnswerList(answer) : [answer]
+}
+
+function selectedEditAnswerValues (form: QuestionEditFormState) {
+  const selectedOptions = form.answerMultiple
+    .map(index => form.options[index]?.trim())
+    .filter((option): option is string => Boolean(option))
+  const answer = form.answer.trim()
+  return [...new Set([...selectedOptions, ...(answer ? [answer] : [])])]
+}
+
+function answerValuesToIndexes (answers: string[], options: string[]) {
+  const indexes = answers
+    .map(answer => options.findIndex(option => option.trim() === answer.trim()))
+    .filter(index => index >= 0)
+  return [...new Set(indexes)]
 }
 
 function normalizeLooseText (value: string) {

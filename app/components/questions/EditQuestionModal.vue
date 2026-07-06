@@ -54,24 +54,44 @@
               <div v-if="isChoiceType" class="form-group">
                 <label id="edit-options-label" class="form-label">Options</label>
                 <div role="group" aria-labelledby="edit-options-label">
-                <div v-for="(opt, index) in form.options" :key="index" class="option-row">
-                  <span class="option-label">{{ String.fromCharCode(65 + index) }}.</span>
-                  <input v-model="form.options[index]" class="form-input" name="editOption" autocomplete="off" required >
-                </div>
+                  <div v-for="(opt, index) in form.options" :key="index" class="option-row">
+                    <span class="option-label">{{ String.fromCharCode(65 + index) }}.</span>
+                    <input v-model="form.options[index]" class="form-input" name="editOption" autocomplete="off" required >
+                  </div>
                 </div>
               </div>
 
               <div class="form-group">
-                <label class="form-label" for="edit-answer">Answer</label>
+                <label id="edit-answer-label" class="form-label">Answer</label>
                 <textarea
-                  v-if="!isChoiceType"
+                  v-if="!usesOptionAnswers"
                   id="edit-answer"
                   v-model="form.answer"
                   class="form-input form-textarea form-textarea--short"
+                  aria-labelledby="edit-answer-label"
                   required
                 />
-                <select v-else id="edit-answer" v-model="form.answer" class="form-input" required>
+                <select v-else-if="form.type === 'single_choice'" id="edit-answer" v-model="form.answer" class="form-input" aria-labelledby="edit-answer-label" required>
                   <option value="">Select Correct Option</option>
+                  <option v-for="(opt, index) in form.options" :key="index" :value="opt.trim()">
+                    {{ String.fromCharCode(65 + index) }}. {{ opt.trim() }}
+                  </option>
+                </select>
+                <div v-else-if="form.type === 'multiple_choice'" id="edit-answer" class="checkbox-list" role="group" aria-labelledby="edit-answer-label">
+                  <div v-for="(opt, index) in form.options" :key="index" class="option-row">
+                    <label class="checkbox-option">
+                      <input
+                        v-model="form.answerMultiple"
+                        type="checkbox"
+                        :value="index"
+                        :disabled="!opt.trim()"
+                      >
+                      <span>{{ String.fromCharCode(65 + index) }}. {{ opt.trim() }}</span>
+                    </label>
+                  </div>
+                </div>
+                <select v-else id="edit-answer" v-model="form.answer" class="form-input" aria-labelledby="edit-answer-label" required>
+                  <option value="">Select Correct Answer</option>
                   <option v-for="(opt, index) in form.options" :key="index" :value="opt.trim()">
                     {{ String.fromCharCode(65 + index) }}. {{ opt.trim() }}
                   </option>
@@ -85,7 +105,7 @@
 
               <div class="form-actions">
                 <button type="submit" class="btn btn-primary" :disabled="isSaving">
-                  {{ isSaving ? 'Saving…' : 'Save Changes' }}
+                  {{ isSaving ? 'Saving...' : 'Save Changes' }}
                 </button>
                 <button type="button" class="btn btn-outline" @click="$emit('close')">Cancel</button>
               </div>
@@ -111,6 +131,7 @@ import {
   createQuestionEditFormState,
   isOptionQuestionType,
   prepareQuestionEditFormForType,
+  pruneInvalidQuestionEditFormAnswers,
   resetQuestionEditFormState
 } from '~/domain/questions'
 import { apiErrorMessage } from '~/utils/apiError'
@@ -131,7 +152,8 @@ const errorMsg = ref('')
 
 const form = reactive<QuestionEditFormState>(createQuestionEditFormState(props.question))
 
-const isChoiceType = computed(() => isOptionQuestionType(form.type))
+const usesOptionAnswers = computed(() => isOptionQuestionType(form.type))
+const isChoiceType = computed(() => form.type === 'single_choice' || form.type === 'multiple_choice')
 
 watch(() => props.visible, (val) => {
   if (val) {
@@ -144,8 +166,20 @@ watch(() => form.type, () => {
   prepareQuestionEditFormForType(form)
 })
 
+watch(
+  () => isChoiceType.value ? form.options.join('\0') : null,
+  (joined) => {
+    if (joined === null) return
+    pruneInvalidQuestionEditFormAnswers(form)
+  }
+)
+
 async function handleSubmit () {
   errorMsg.value = ''
+  if (form.type === 'multiple_choice' && !form.answerMultiple.some(index => form.options[index]?.trim())) {
+    errorMsg.value = 'Select at least one correct option.'
+    return
+  }
   isSaving.value = true
   try {
     const updated = await updateQuestion(props.question.publicId, buildQuestionPatch(form))
@@ -240,6 +274,21 @@ async function handleSubmit () {
   width: 24px;
   font-weight: 700;
   color: var(--color-primary);
+}
+.checkbox-list {
+  display: flex;
+  flex-direction: column;
+}
+.checkbox-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  color: var(--color-text);
+  cursor: pointer;
+}
+.checkbox-option input:disabled + span {
+  color: var(--color-muted);
 }
 .form-actions {
   display: flex;

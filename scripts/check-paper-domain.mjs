@@ -40,10 +40,14 @@ for (const [sourcePath, outputPath] of modules) compileModule(sourcePath, output
 
 const {
   buildQuestionCreatePayload,
+  buildQuestionPatch,
   buildTemporaryQuestionEdit,
   createDefaultQuestionFormState,
+  createQuestionEditFormState,
   createTemporaryQuestionEditFormState,
-  prepareQuestionFormForType
+  prepareQuestionEditFormForType,
+  prepareQuestionFormForType,
+  pruneInvalidQuestionEditFormAnswers
 } = await import(pathToFileURL(join(tempRoot, 'questions/index.mjs')))
 
 const {
@@ -107,6 +111,74 @@ questionForm.type = 'true_false'
 questionForm.options = []
 prepareQuestionFormForType(questionForm)
 assert.deepEqual(questionForm.options, ['True', 'False'], 'true/false create forms should reset to canonical options')
+
+const multipleChoiceQuestion = {
+  ...sampleQuestion,
+  type: 'multiple_choice',
+  options: ['Alpha', 'Beta', 'Gamma', 'Delta'],
+  answer: ['Alpha', 'Gamma']
+}
+const multipleChoiceEditForm = createQuestionEditFormState(multipleChoiceQuestion)
+assert.deepEqual(
+  multipleChoiceEditForm.answerMultiple,
+  [0, 2],
+  'multiple-choice edit forms should hydrate selected answer indexes from answer arrays'
+)
+multipleChoiceEditForm.options[2] = ' Gamma updated '
+assert.deepEqual(
+  buildQuestionPatch(multipleChoiceEditForm).answer,
+  ['Alpha', 'Gamma updated'],
+  'multiple-choice edit patches should send an answer array of selected option text'
+)
+multipleChoiceEditForm.options[0] = ''
+pruneInvalidQuestionEditFormAnswers(multipleChoiceEditForm)
+assert.deepEqual(
+  multipleChoiceEditForm.answerMultiple,
+  [2],
+  'multiple-choice edit forms should drop selected answers whose option text was cleared'
+)
+
+const legacyMultipleChoiceEditForm = createQuestionEditFormState({
+  ...multipleChoiceQuestion,
+  answer: 'Alpha, Delta'
+})
+assert.deepEqual(
+  legacyMultipleChoiceEditForm.answerMultiple,
+  [0, 3],
+  'multiple-choice edit forms should tolerate legacy comma-delimited answer strings'
+)
+
+const convertedChoiceEditForm = createQuestionEditFormState(sampleQuestion)
+convertedChoiceEditForm.type = 'multiple_choice'
+prepareQuestionEditFormForType(convertedChoiceEditForm)
+assert.deepEqual(
+  convertedChoiceEditForm.answerMultiple,
+  [1],
+  'changing a single-choice edit form to multiple-choice should preserve the selected answer'
+)
+
+const trueFalseEditForm = createQuestionEditFormState({
+  ...sampleQuestion,
+  type: 'true_false',
+  options: undefined,
+  answer: 'True'
+})
+assert.deepEqual(
+  trueFalseEditForm.options,
+  ['True', 'False'],
+  'true/false edit forms should not depend on blank hidden choice options'
+)
+
+const editQuestionModal = readFileSync(join(root, 'app/components/questions/EditQuestionModal.vue'), 'utf8')
+assert.ok(
+  editQuestionModal.includes("v-else-if=\"form.type === 'multiple_choice'\"") &&
+    editQuestionModal.includes('v-model="form.answerMultiple"'),
+  'edit modal should render a checkbox answer UI for multiple-choice questions'
+)
+assert.ok(
+  editQuestionModal.includes("form.type === 'multiple_choice' && !form.answerMultiple.some(index => form.options[index]?.trim())"),
+  'edit modal should validate that multiple-choice edits keep at least one non-empty selected answer'
+)
 
 const temporaryEditForm = createTemporaryQuestionEditFormState(sampleQuestion)
 Object.assign(temporaryEditForm, {
