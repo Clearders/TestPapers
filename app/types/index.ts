@@ -1,5 +1,6 @@
 export type * from './api'
 export type * from './auth'
+export type * from './cloud-api'
 export type * from './question'
 export type * from './generation'
 export type * from './draft'

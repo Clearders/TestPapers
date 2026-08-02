@@ -17,7 +17,7 @@ export interface AuthUser {
   role: UserRole
   permissions: Permission[]
   isActive: boolean
-  avatarUrl?: string
+  avatarUrl?: string | null
   createdAt: string
   updatedAt: string
 }
