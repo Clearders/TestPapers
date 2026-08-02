@@ -1,4 +1,4 @@
-import { DEFAULT_API_BASE, DEFAULT_SERVER_API_BASE } from './app/utils/apiEndpoint'
+import { resolveRuntimeConfig } from './scripts/runtime-config.mjs'
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 const env = (globalThis as typeof globalThis & {
@@ -6,9 +6,10 @@ const env = (globalThis as typeof globalThis & {
     env?: Record<string, string | undefined>
   }
 }).process?.env ?? {}
-const serverApiBase = (env.NUXT_API_BASE || env.NUXT_SERVER_API_BASE || DEFAULT_SERVER_API_BASE).replace(/\/+$/, '')
-const publicApiBase = (env.NUXT_PUBLIC_API_BASE || DEFAULT_API_BASE).replace(/\/+$/, '')
-const publicDirectApiBase = (env.NUXT_PUBLIC_DIRECT_API_BASE || publicApiBase).replace(/\/+$/, '')
+const runtimeEndpoints = resolveRuntimeConfig(env)
+const serverApiBase = runtimeEndpoints.serverApiBase
+const publicApiBase = runtimeEndpoints.publicApiBase
+const publicDirectApiBase = runtimeEndpoints.publicDirectApiBase
 const apiRouteRules = publicApiBase.startsWith('/')
   ? {
       [`${publicApiBase}/**`]: {
@@ -17,7 +18,7 @@ const apiRouteRules = publicApiBase.startsWith('/')
     }
   : {}
 const connectSources = ["'self'"]
-for (const endpoint of [publicApiBase, publicDirectApiBase, env.NUXT_PUBLIC_WS_BASE || '']) {
+for (const endpoint of [publicApiBase, publicDirectApiBase, runtimeEndpoints.wsBase]) {
   if (/^(https?|wss?):\/\//.test(endpoint)) connectSources.push(new URL(endpoint).origin)
 }
 const commonHeaders = {
@@ -87,7 +88,7 @@ export default defineNuxtConfig({
     public: {
       apiBase: publicApiBase,
       directApiBase: publicDirectApiBase,
-      wsBase: env.NUXT_PUBLIC_WS_BASE || ''
+      wsBase: runtimeEndpoints.wsBase
     }
   },
 
