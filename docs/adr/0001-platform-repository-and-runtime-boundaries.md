@@ -1,6 +1,6 @@
 # ADR-0001: Platform Repository and Runtime Boundaries
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-08-02
 - Decision owners: TestPapers maintainers
 - Linear: [CLE-13](https://linear.app/clearders/issue/CLE-13)
@@ -191,7 +191,7 @@ flowchart TB
 | Vue components suitable for Desktop | Copy/port intentionally with provenance and platform adaptations | Reuse behavior and design without coupling releases |
 | FastAPI routes, services, repositories, auth, collaboration, and WebSocket | Keep in `TestPaper-backend` | These are Cloud responsibilities |
 | SQLAlchemy models and Alembic history | Keep Cloud-private | PostgreSQL schema is not a client model |
-| Generic paper generation and DOCX/TeX export behavior | Specify with fixtures and port behind Rust interfaces for Desktop | Offline Desktop cannot require Python or Cloud availability |
+| Genetic-algorithm-based paper generation and DOCX/TeX export behavior | Specify with fixtures and port behind Rust interfaces for Desktop | Offline Desktop cannot require Python or Cloud availability |
 | Redis/Celery tasks | Keep optional and Cloud-only; audit under `CLE-43` | They are scaling/latency infrastructure, not product contracts |
 | Current hand-maintained API documentation and TypeScript response types | Preserve until `CLE-14` replaces duplication safely | Avoid an incompatible cutover |
 
