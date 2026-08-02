@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "build": "node scripts/run-nuxi.mjs build",
-    "check": "node scripts/check-auth-ssr-state.mjs && node scripts/check-csp-hardening.mjs && node scripts/check-paper-domain.mjs && node scripts/check-shared-drafts.mjs && node scripts/check-paper-persistence-flow.mjs && node scripts/check-realtime-backoff.mjs && node scripts/run-nuxi.mjs build",
+    "check": "npm run check:data-model && node scripts/check-auth-ssr-state.mjs && node scripts/check-csp-hardening.mjs && node scripts/check-paper-domain.mjs && node scripts/check-shared-drafts.mjs && node scripts/check-paper-persistence-flow.mjs && node scripts/check-realtime-backoff.mjs && node scripts/run-nuxi.mjs build",
     "verify": "npm run contract:check && npm run lint && npm run typecheck && npm run check",
     "contract:generate": "openapi-typescript contracts/openapi.json --output app/generated/cloud-api.d.ts --alphabetize",
     "contract:check": "npm run contract:check:lock && npm run contract:check:generated",
@@ -15,6 +15,7 @@
     "check:shared-drafts": "node scripts/check-shared-drafts.mjs",
     "check:realtime-backoff": "node scripts/check-realtime-backoff.mjs",
     "check:auth-ssr-state": "node scripts/check-auth-ssr-state.mjs",
+    "check:data-model": "node scripts/check-data-model-contract.mjs",
     "dev": "node scripts/run-nuxi.mjs dev",
     "generate": "node scripts/run-nuxi.mjs generate",
     "lint": "eslint .",
