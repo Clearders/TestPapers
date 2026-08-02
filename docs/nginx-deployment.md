@@ -13,9 +13,15 @@ This frontend is compatible with a same-origin Nginx proxy layout:
 
 ## Runtime Variables
 
+Set `TESTPAPERS_ENV=staging` or `production` and provide both required
+endpoints explicitly. `NUXT_API_BASE` is canonical; `NUXT_SERVER_API_BASE` is
+only a legacy fallback and must not conflict with it. Do not put credentials,
+query strings, fragments, or secrets in frontend endpoint variables.
+
 Use these values when serving the frontend behind Nginx:
 
 ```bash
+TESTPAPERS_ENV=production
 NUXT_PUBLIC_API_BASE=/api/v1
 NUXT_API_BASE=http://127.0.0.1:8000/api/v1
 NUXT_PUBLIC_WS_BASE=
@@ -23,7 +29,11 @@ NITRO_HOST=127.0.0.1
 NITRO_PORT=3000
 ```
 
-The frontend defaults already use `/api/v1` for browser requests. Set `NUXT_API_BASE` when the Nuxt server needs to validate sessions during SSR or route middleware.
+`local` and `development` default to `/api/v1` for browser requests and
+`http://127.0.0.1:8000/api/v1` for server requests. `test`, `staging`, and
+`production` require explicit `NUXT_PUBLIC_API_BASE` and `NUXT_API_BASE`.
+Set `NUXT_API_BASE` when the Nuxt server needs to validate sessions during SSR
+or route middleware.
 
 Nuxt emits the frontend Content Security Policy through `nuxt-security` with
 per-request SSR script nonces. In the same-origin Nginx layout, `connect-src`
@@ -31,6 +41,10 @@ is limited to `'self'`. If you intentionally use a separate browser-visible API
 or WebSocket host, set the corresponding `NUXT_PUBLIC_*` variable to the exact
 `https://...` or `wss://...` origin; do not add scheme-wide `ws:` or `wss:`
 allowances.
+
+Run `npm run check:runtime-config` after changing a deployment profile, then
+run `npm run verify` before release. The workspace smoke test remains optional
+because it needs a locally installed Chrome-compatible browser and CDP.
 
 For HTTPS deployments, configure the backend cookie settings as well:
 

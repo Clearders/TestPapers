@@ -131,6 +131,17 @@ npm run verify
 
 The Nuxt commands run through `scripts/run-nuxi.mjs`, so they work even when `node_modules/.bin` is not directly on `PATH`.
 
+## Shared four-repository toolchain matrix
+
+| Repository | Current pinned toolchain | Lock / ownership boundary |
+| --- | --- | --- |
+| TestPapers Web | Node.js 24.x in CI | `package-lock.json`; `npm run verify` is the repository gate. |
+| TestPaper Backend | CPython 3.13 in CI | `uv.lock`; `python scripts/check.py` is the repository gate. |
+| TestPapers Desktop | Rust 1.94.1 in contract CI; Java 21 in CI | `Cargo.lock` pins the generated client; Python is repository-validation tooling only; the Tauri runtime is deferred to CLE-23. |
+| TestPapers Mobile | Dart 3.12.2 in contract CI; Java 21 in CI | `pubspec.lock` pins the generated client; Python is repository-validation tooling only; the Flutter runtime is deferred to CLE-35. |
+
+Each repository starts and verifies independently; no command relies on a sibling checkout or relative source dependency.
+
 Additional checks:
 
 ```bash
@@ -148,18 +159,31 @@ npm run smoke:workspace
 
 ## Runtime Configuration
 
-```text
-NUXT_PUBLIC_API_BASE=/api/v1
-NUXT_PUBLIC_DIRECT_API_BASE=
-NUXT_API_BASE=http://127.0.0.1:8000/api/v1
-NUXT_SERVER_API_BASE=http://127.0.0.1:8000/api/v1
-NUXT_PUBLIC_WS_BASE=
-```
+Copy [`.env.example`](.env.example) to `.env` for local use. It contains no
+credentials or other secrets. `TESTPAPERS_ENV` is a strict profile selector:
+`local`, `development`, `test`, `staging`, or `production`.
+
+| Profile | Endpoint requirements |
+| --- | --- |
+| `local`, `development` | Safe defaults: public `/api/v1`, internal `http://127.0.0.1:8000/api/v1`. |
+| `test` | Set both `NUXT_API_BASE` and `NUXT_PUBLIC_API_BASE` explicitly. |
+| `staging`, `production` | Set both endpoints explicitly. The public endpoint may be same-origin `/api/v1` or an HTTPS URL; direct browser and WebSocket endpoints, when used, must be HTTPS and WSS. |
+
+`NUXT_API_BASE` is the canonical server-to-server endpoint. `NUXT_SERVER_API_BASE`
+is retained only as a legacy fallback; do not set both to different values. All
+configured URLs reject embedded credentials, query strings, and fragments.
+
+| Command | Uses | Intended gate |
+| --- | --- | --- |
+| `npm run check:runtime-config` | Five-profile configuration contract and negative cases | Fast configuration validation |
+| `npm run check` | Runtime config plus static/domain checks and production build | Required local integration gate |
+| `npm run verify` | Contract lock, lint, typecheck, and `check` | CI-equivalent frontend gate |
+| `npm run smoke:workspace` | Local Chrome/CDP workspace journey | Optional browser smoke test |
 
 For production, prefer the same-origin Nginx layout:
 
 - Keep `NUXT_PUBLIC_API_BASE=/api/v1`.
-- Set `NUXT_API_BASE` and `NUXT_SERVER_API_BASE` to the private backend URL.
+- Set `NUXT_API_BASE` to the private backend URL.
 - Proxy `/api/v1/*` and `/api/v1/ws` from Nginx to FastAPI.
 - Set `NUXT_PUBLIC_DIRECT_API_BASE` only when browsers should call a public backend origin directly and CORS/Cookies are configured for that origin.
 
