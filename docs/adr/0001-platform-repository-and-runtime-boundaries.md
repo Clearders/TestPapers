@@ -15,7 +15,7 @@ TestPapers currently ships as two independently deployed repositories:
 
 The v2 product adds a Tauri Desktop application and a Flutter Mobile companion while preserving the existing Web release. Desktop must work offline without PostgreSQL, Redis, or Celery. Mobile must support offline capture and review. Both native clients eventually synchronize with the cloud without importing cloud persistence code.
 
-The repository topology and runtime boundaries must therefore be stable before API generation, local/cloud data ownership, Desktop scaffolding, or sync protocol work begins.
+The repository topology, repository governance, and runtime boundaries must therefore be stable before API generation, local/cloud data ownership, Desktop scaffolding, or sync protocol work begins.
 
 ## Decision drivers
 
@@ -24,7 +24,7 @@ The repository topology and runtime boundaries must therefore be stable before A
 3. Prevent clients from depending on PostgreSQL, SQLAlchemy, Redis, Celery, or cloud service internals.
 4. Make offline Desktop behavior deterministic and packageable without a Python runtime.
 5. Establish one machine-readable cloud contract across TypeScript, Rust, and Dart.
-6. Avoid a repository reorganization before the architecture and compatibility gates exist.
+6. Establish the new application repositories early without moving or renaming the current Web and Cloud repositories.
 7. Preserve useful behavior without treating implementation-language reuse as a goal in itself.
 
 ## Options considered
@@ -46,7 +46,7 @@ The selected topology is permanent separation by deployable application. Migrati
 | `Clearders/TestPapers-Desktop` | Desktop | Tauri/Vue UI, Rust Local Engine, SQLite, offline authoring, generation, export, backup, sync client | Desktop installer |
 | `Clearders/TestPapers-Mobile` | Mobile | Flutter UI, mobile SQLite cache, capture/OCR drafts, browsing, review, notifications, sync client | Android/iOS application |
 
-The Desktop and Mobile repositories are created by their implementation issues, not by this ADR. Their target top-level structures are:
+`CLE-58` creates `Clearders/TestPapers-Desktop` and `Clearders/TestPapers-Mobile` during the M1 architecture and engineering baseline. That issue establishes repository ownership, default branches, protection rules, contribution and security documents, and code-neutral checks; it does not generate either application framework. `CLE-23` and `CLE-35` later materialize the following target application structures in those existing repositories:
 
 ```text
 TestPapers-Desktop/
@@ -199,14 +199,15 @@ Copying or porting code requires tests that demonstrate behavioral parity. Git h
 
 ## Migration sequence
 
-1. **Architecture baseline (`CLE-13`)**: accept this ADR without changing runtime behavior.
-2. **Contract baseline (`CLE-14`)**: export deterministic OpenAPI, generate consumer code, and gate incompatible diffs while retaining current endpoints.
-3. **Ownership and environment (`CLE-15`, `CLE-16`)**: define local/cloud fields, identifiers, configuration layers, and supported toolchains.
-4. **Regression gate (`CLE-17`)**: capture current Web/Cloud journeys before native clients consume the contract.
-5. **Desktop foundation (`CLE-23`, `CLE-24`, `CLE-25`)**: create the Desktop repository, establish Tauri IPC and the Rust Local Engine, then add SQLite migrations.
-6. **Desktop vertical slices (`CLE-26`–`CLE-28`)**: deliver offline question-bank, generation/export, and backup/restore behavior.
-7. **Synchronization (`CLE-29`–`CLE-34`)**: define the protocol before implementing Cloud logs, client queues, conflicts, attachments, and fault-injection tests.
-8. **Mobile foundation (`CLE-35`, `CLE-36`)**: create the Mobile repository only after sync semantics and failure behavior are stable.
+1. **Architecture decision (`CLE-13`)**: accept this ADR without changing runtime behavior.
+2. **Repository baseline (`CLE-58`)**: create and govern the Desktop and Mobile repositories without moving current source or generating Tauri/Flutter projects.
+3. **Contract baseline (`CLE-14`)**: export deterministic OpenAPI, generate and pin consumer code in the existing application repositories, and gate incompatible diffs while retaining current endpoints.
+4. **Ownership and environment (`CLE-15`, `CLE-16`)**: define local/cloud fields, identifiers, per-repository configuration layers, and supported toolchains.
+5. **Regression gate (`CLE-17`)**: capture current Web/Cloud journeys before native clients consume the contract.
+6. **Desktop foundation (`CLE-23`, `CLE-24`, `CLE-25`)**: scaffold Tauri/Vue in the existing Desktop repository, establish typed IPC and the Rust Local Engine, then add SQLite migrations.
+7. **Desktop vertical slices (`CLE-26`–`CLE-28`)**: deliver offline question-bank, generation/export, and backup/restore behavior.
+8. **Synchronization (`CLE-29`–`CLE-34`)**: define the protocol before implementing Cloud logs, client queues, conflicts, attachments, and fault-injection tests.
+9. **Mobile foundation (`CLE-35`, `CLE-36`)**: scaffold Flutter in the existing Mobile repository after sync semantics and failure behavior are stable, then implement its SQLite cache and sync client.
 
 Every step must be backward-compatible with the current Web deployment. Cross-repository work uses the same Linear issue identifier on each pull request.
 
@@ -254,6 +255,7 @@ A superseding decision must still preserve independent deployability and an expl
 - [x] Web, Desktop, Mobile, Cloud, Local Engine, and Sync Engine responsibilities are explicit.
 - [x] Monorepo, two-repository/shared-source, and permanent separate-repository strategies are compared.
 - [x] Current repositories and target repository structures are documented.
+- [x] M1 creates and governs the Desktop and Mobile repositories separately from later Tauri/Flutter scaffolding.
 - [x] Dependency direction forbids client access to cloud persistence implementations.
 - [x] Component, data-flow, and deployment diagrams are included.
 - [x] Existing code is classified as retained, ported, or temporarily preserved.
