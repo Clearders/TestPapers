@@ -5,7 +5,11 @@
   "scripts": {
     "build": "node scripts/run-nuxi.mjs build",
     "check": "node scripts/check-auth-ssr-state.mjs && node scripts/check-csp-hardening.mjs && node scripts/check-paper-domain.mjs && node scripts/check-shared-drafts.mjs && node scripts/check-paper-persistence-flow.mjs && node scripts/check-realtime-backoff.mjs && node scripts/run-nuxi.mjs build",
-    "verify": "npm run lint && npm run typecheck && npm run check",
+    "verify": "npm run contract:check && npm run lint && npm run typecheck && npm run check",
+    "contract:generate": "openapi-typescript contracts/openapi.json --output app/generated/cloud-api.d.ts --alphabetize",
+    "contract:check": "npm run contract:check:lock && npm run contract:check:generated",
+    "contract:check:generated": "openapi-typescript contracts/openapi.json --output app/generated/cloud-api.d.ts --alphabetize --check",
+    "contract:check:lock": "node scripts/check-contract-lock.mjs",
     "check:csp-hardening": "node scripts/check-csp-hardening.mjs",
     "check:paper-domain": "node scripts/check-paper-domain.mjs",
     "check:shared-drafts": "node scripts/check-shared-drafts.mjs",
@@ -33,6 +37,7 @@
   "devDependencies": {
     "@nuxt/eslint": "^1.16.0",
     "eslint": "^10.5.0",
+    "openapi-typescript": "7.13.0",
     "typescript": "^5.7.0"
   },
   "overrides": {
