@@ -105,6 +105,9 @@ TestPapers/
   docs/
     adr/
       0001-platform-repository-and-runtime-boundaries.md
+      0002-local-cloud-domain-model-and-ownership.md
+    data-model/
+      domain-model.json
     api-spec.md
     nginx-deployment.md
   public/
@@ -133,6 +136,7 @@ Additional checks:
 ```bash
 npm run check:auth-ssr-state
 npm run check:csp-hardening
+npm run check:data-model
 npm run check:paper-domain
 npm run check:shared-drafts
 node scripts/check-paper-persistence-flow.mjs
@@ -140,7 +144,7 @@ npm run check:realtime-backoff
 npm run smoke:workspace
 ```
 
-`npm run check` now runs the SSR auth, CSP, paper domain, shared draft, paper persistence, realtime backoff, and Nuxt build checks. `npm run verify` remains the full frontend gate: lint, typecheck, then `check`.
+`npm run check` now runs the data-model contract, SSR auth, CSP, paper domain, shared draft, paper persistence, realtime backoff, and Nuxt build checks. `npm run verify` remains the full frontend gate: lint, typecheck, then `check`.
 
 ## Runtime Configuration
 
@@ -246,6 +250,8 @@ The workspace shows stale cloud revisions, unsaved cloud-draft changes, open rev
 For the full backend contract, see [docs/api-spec.md](docs/api-spec.md).
 
 The cross-platform repository strategy, runtime ownership, and dependency rules are defined in [ADR-0001](docs/adr/0001-platform-repository-and-runtime-boundaries.md).
+
+The canonical local/cloud field dictionary, stable-ID rules, ownership matrix, and lifecycle/conflict invariants are defined in [ADR-0002](docs/adr/0002-local-cloud-domain-model-and-ownership.md) and the checked [domain-model contract](docs/data-model/domain-model.json).
 
 ## Backend Contract Summary
 
