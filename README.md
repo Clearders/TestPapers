@@ -2,7 +2,7 @@
 
 > Version: 0.1.0 (Nuxt 4.4 / Vue 3.5)  
 > Dependency source: `package.json`  
-> Last updated: 2026-07-05
+> Last updated: 2026-08-02
 
 Nuxt 4 frontend for creating, managing, generating, previewing, collaboratively drafting, and exporting test papers. It integrates with the FastAPI backend through cookie-based authentication, CSRF-protected mutations, realtime WebSocket updates, LaTeX rendering, cloud shared drafts, and DOCX export controls.
 
@@ -103,6 +103,8 @@ TestPapers/
       format.ts
       realtimeBackoff.ts
   docs/
+    adr/
+      0001-platform-repository-and-runtime-boundaries.md
     api-spec.md
     nginx-deployment.md
   public/
@@ -242,6 +244,8 @@ The workspace shows stale cloud revisions, unsaved cloud-draft changes, open rev
 - `409 DRAFT_REVISION_CONFLICT` detection through `baseRevision` optimistic locking.
 
 For the full backend contract, see [docs/api-spec.md](docs/api-spec.md).
+
+The cross-platform repository strategy, runtime ownership, and dependency rules are defined in [ADR-0001](docs/adr/0001-platform-repository-and-runtime-boundaries.md).
 
 ## Backend Contract Summary
 
