@@ -11,9 +11,24 @@ permissions:
 jobs:
   checks:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: testpapers_e2e
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres-ci-only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d testpapers_e2e"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
 
     steps:
-      - name: Checkout
+      - name: Checkout Web
         uses: actions/checkout@v4
 
       - name: Set up Node.js
@@ -22,8 +37,106 @@ jobs:
           node-version: 24
           cache: npm
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Install Web dependencies
+        shell: bash
+        run: |
+          mkdir -p output/playwright
+          set -o pipefail
+          npm ci 2>&1 | tee output/playwright/npm-ci.log
 
-      - name: Run frontend checks
-        run: npm run verify
+      - name: Run fast Web gate
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run verify 2>&1 | tee output/playwright/verify.log
+
+      - name: Audit production dependencies
+        shell: bash
+        run: |
+          set -o pipefail
+          npm audit --omit=dev --audit-level=high --json | tee output/playwright/npm-audit.json
+
+      - name: Verify E2E Backend lock
+        run: node scripts/check-e2e-backend-lock.mjs
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Install uv
+        run: python -m pip install uv==0.11.32
+
+      - name: Checkout locked Backend runtime
+        id: backend
+        shell: bash
+        run: |
+          repository="$(node -p "JSON.parse(require('fs').readFileSync('e2e/backend.lock.json', 'utf8')).repository")"
+          commit="$(node -p "JSON.parse(require('fs').readFileSync('e2e/backend.lock.json', 'utf8')).commit")"
+          runtime="$RUNNER_TEMP/testpaper-backend"
+          git init "$runtime"
+          git -C "$runtime" remote add origin "${repository}.git"
+          git -C "$runtime" fetch --depth=1 origin "$commit"
+          git -C "$runtime" checkout --detach FETCH_HEAD
+          echo "runtime=$runtime" >> "$GITHUB_OUTPUT"
+
+      - name: Prepare and start Backend
+        shell: bash
+        working-directory: ${{ steps.backend.outputs.runtime }}
+        env:
+          TESTPAPERS_ENV: test
+          DATABASE_URL: postgresql+psycopg://postgres:postgres-ci-only@127.0.0.1:5432/testpapers_e2e
+          DATA_DIR: ${{ runner.temp }}/testpapers-e2e-data
+          CORS_ORIGINS: http://127.0.0.1:3000
+          TRUSTED_HOSTS: localhost,127.0.0.1
+          AUTH_COOKIE_SECURE: "false"
+          API_HOST: 127.0.0.1
+          API_PORT: "8001"
+          TESTPAPER_ADMIN_USERNAME: e2e-admin
+          TESTPAPER_ADMIN_DISPLAY_NAME: E2E Admin
+          TESTPAPER_ADMIN_PASSWORD: E2eAdmin123!
+        run: |
+          uv sync --locked --dev
+          uv run --locked alembic upgrade head
+          uv run --locked python scripts/bootstrap_admin.py
+          nohup uv run --locked testpaper-backend > "$GITHUB_WORKSPACE/output/playwright/backend.log" 2>&1 &
+          echo $! > "$GITHUB_WORKSPACE/output/playwright/backend.pid"
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent http://127.0.0.1:8001/api/v1/health/postgres >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          tail -n 200 "$GITHUB_WORKSPACE/output/playwright/backend.log"
+          exit 1
+
+      - name: Run real full-stack regression
+        shell: bash
+        env:
+          E2E_ADMIN_USERNAME: e2e-admin
+          E2E_ADMIN_PASSWORD: E2eAdmin123!
+          NUXT_API_BASE: http://127.0.0.1:8001/api/v1
+        run: |
+          set -o pipefail
+          npm run e2e:fullstack 2>&1 | tee output/playwright/fullstack-e2e.log
+
+      - name: Stop Backend
+        if: always()
+        shell: bash
+        run: |
+          if [[ -f output/playwright/backend.pid ]]; then
+            kill "$(cat output/playwright/backend.pid)" 2>/dev/null || true
+          fi
+
+      - name: Upload quality-gate artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-quality-${{ github.run_id }}
+          path: output/playwright
+          if-no-files-found: error
+          retention-days: 14

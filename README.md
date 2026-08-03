@@ -152,10 +152,14 @@ npm run check:paper-domain
 npm run check:shared-drafts
 node scripts/check-paper-persistence-flow.mjs
 npm run check:realtime-backoff
+npm run check:dependencies
 npm run smoke:workspace
+npm run e2e:fullstack
 ```
 
-`npm run check` now runs the data-model contract, SSR auth, CSP, paper domain, shared draft, paper persistence, realtime backoff, and Nuxt build checks. `npm run verify` remains the full frontend gate: lint, typecheck, then `check`.
+`npm run check` runs the data-model contract, SSR auth, CSP, paper domain, shared draft, paper persistence, realtime backoff, and Nuxt build checks. `npm run verify` is the fast frontend gate. `npm run verify:ci` adds a high-severity production-dependency audit and the required Playwright journey against real Nuxt, FastAPI, PostgreSQL, WebSocket, and DOCX behavior.
+
+The full-stack test pins its public Backend runtime in `e2e/backend.lock.json`; CI checks out that exact commit into temporary runner storage, never as a source dependency. For a local run, start the locked Backend on `127.0.0.1:8001` with its test PostgreSQL database migrated and the documented `e2e-admin` account bootstrapped, then run `npm run e2e:fullstack`. `npm run smoke:workspace` remains an optional deterministic browser diagnostic with intercepted API responses.
 
 ## Runtime Configuration
 
@@ -177,8 +181,11 @@ configured URLs reject embedded credentials, query strings, and fragments.
 | --- | --- | --- |
 | `npm run check:runtime-config` | Five-profile configuration contract and negative cases | Fast configuration validation |
 | `npm run check` | Runtime config plus static/domain checks and production build | Required local integration gate |
-| `npm run verify` | Contract lock, lint, typecheck, and `check` | CI-equivalent frontend gate |
-| `npm run smoke:workspace` | Local Chrome/CDP workspace journey | Optional browser smoke test |
+| `npm run verify` | Contract lock, lint, typecheck, and `check` | Fast frontend gate |
+| `npm run check:dependencies` | Production dependency audit at high severity | Required security gate |
+| `npm run smoke:workspace` | Chrome/CDP workspace journey with deterministic API interception | Optional fast browser diagnostic |
+| `npm run e2e:fullstack` | Playwright auth, question, paper, collaboration, WebSocket, review, and DOCX journey against the real Cloud stack | Required E2E gate |
+| `npm run verify:ci` | Fast gate, production dependency audit, and real full-stack regression | Complete CI-equivalent gate after the Backend test runtime is ready |
 
 For production, prefer the same-origin Nginx layout:
 

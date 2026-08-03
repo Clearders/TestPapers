@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto'
 import { spawn } from 'node:child_process'
-import { existsSync, mkdirSync, rmSync } from 'node:fs'
+import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import http from 'node:http'
 import net from 'node:net'
 import { tmpdir } from 'node:os'
@@ -11,6 +11,7 @@ const APP_PORT = Number(process.env.SMOKE_WORKSPACE_PORT || 4178)
 const DEBUG_PORT = Number(process.env.SMOKE_WORKSPACE_DEBUG_PORT || 9224)
 const BASE_URL = `http://${HOST}:${APP_PORT}`
 const TIMEOUT_MS = 45_000
+const ARTIFACT_DIR = process.env.SMOKE_ARTIFACT_DIR
 const DOCX_CONTENT_TYPE = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
 const ORIGINAL_QUESTION_TEXT = 'Smoke draft restoration question: 2 + 2 = ?'
 const DRAFT_QUESTION_TEXT = 'Smoke temporary draft edit: 2 + 2 should equal 4 in this paper only.'
@@ -386,7 +387,13 @@ function startApp() {
   appProcess = spawn(process.execPath, ['scripts/run-nuxi.mjs', 'dev', '--host', HOST, '--port', String(APP_PORT)], {
     cwd: new URL('..', import.meta.url),
     stdio: ['ignore', 'pipe', 'pipe'],
-    env: { ...process.env, NUXT_PUBLIC_WS_BASE: 'ws://127.0.0.1:9/ws' }
+    env: {
+      ...process.env,
+      TESTPAPERS_ENV: 'test',
+      NUXT_API_BASE: 'http://127.0.0.1:9/api/v1',
+      NUXT_PUBLIC_API_BASE: '/api/v1',
+      NUXT_PUBLIC_WS_BASE: 'wss://127.0.0.1:9/ws'
+    }
   })
   appProcess.stdout.on('data', chunk => {
     const text = chunk.toString()
@@ -404,7 +411,10 @@ function candidateBrowsers() {
     `${process.env.LOCALAPPDATA || ''}\\Google\\Chrome\\Application\\chrome.exe`,
     'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe',
     'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
-    `${process.env.LOCALAPPDATA || ''}\\Microsoft\\Edge\\Application\\msedge.exe`
+    `${process.env.LOCALAPPDATA || ''}\\Microsoft\\Edge\\Application\\msedge.exe`,
+    '/usr/bin/google-chrome',
+    '/usr/bin/chromium',
+    '/usr/bin/chromium-browser'
   ].filter(Boolean))]
 }
 
@@ -1275,6 +1285,30 @@ async function cleanup(cdp) {
   }
 }
 
+async function writeFailureArtifacts(error, client) {
+  if (!ARTIFACT_DIR) return
+
+  mkdirSync(ARTIFACT_DIR, { recursive: true })
+  const diagnostics = {
+    error: error.stack || error.message,
+    apiRequests,
+    protectedRequests,
+    browserExceptions,
+    browserConsole
+  }
+
+  if (client) {
+    try {
+      const screenshot = await client.send('Page.captureScreenshot', { format: 'png' })
+      writeFileSync(join(ARTIFACT_DIR, 'failure.png'), Buffer.from(screenshot.data, 'base64'))
+    } catch (artifactError) {
+      diagnostics.artifactError = artifactError.stack || artifactError.message
+    }
+  }
+
+  writeFileSync(join(ARTIFACT_DIR, 'diagnostics.json'), `${JSON.stringify(diagnostics, null, 2)}\n`)
+}
+
 let cdp
 try {
   startApp()
@@ -1295,10 +1329,9 @@ try {
   log('Workspace flow smoke passed')
 } catch (error) {
   console.error(`[workspace-smoke] ${error.stack || error.message}`)
+  await writeFailureArtifacts(error, cdp)
   process.exitCode = 1
 } finally {
   await cleanup(cdp)
 }
-
-
 
