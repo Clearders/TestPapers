@@ -5,8 +5,15 @@ import { strFromU8, unzipSync } from 'fflate'
 const adminUsername = process.env.E2E_ADMIN_USERNAME || 'e2e-admin'
 const adminPassword = process.env.E2E_ADMIN_PASSWORD || 'E2eAdmin123!'
 
+async function waitForHydration (page: Page) {
+  await page.waitForFunction(() => Boolean(
+    (document.querySelector('#__nuxt') as HTMLElement & { __vue_app__?: unknown } | null)?.__vue_app__
+  ))
+}
+
 async function login (page: Page, username: string, password: string) {
   await page.goto('/login')
+  await waitForHydration(page)
   await page.locator('#login-username').fill(username)
   await page.locator('#login-password').fill(password)
   await page.getByRole('button', { name: 'Sign In' }).click()
@@ -24,6 +31,7 @@ test('critical authoring and collaboration journey uses the real Cloud stack', a
   const registrationContext = await browser.newContext()
   const registrationPage = await registrationContext.newPage()
   await registrationPage.goto('/register')
+  await waitForHydration(registrationPage)
   await registrationPage.locator('#register-username').fill(viewerUsername)
   await registrationPage.locator('#register-displayname').fill(`E2E Viewer ${nonce}`)
   await registrationPage.locator('#register-password').fill(viewerPassword)
@@ -37,6 +45,7 @@ test('critical authoring and collaboration journey uses the real Cloud stack', a
   await login(adminPage, adminUsername, adminPassword)
 
   await adminPage.goto('/add-problem')
+  await waitForHydration(adminPage)
   await adminPage.locator('#problem-type').selectOption('short_answer')
   await adminPage.locator('#problem-subject').fill('Mathematics')
   await adminPage.locator('#problem-subject').press('Enter')
