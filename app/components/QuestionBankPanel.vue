@@ -52,6 +52,7 @@
 </template>
 
 <script setup lang="ts">
+import QuestionBankToolbar from '~/components/questions/QuestionBankToolbar.vue'
 import type { ApiPagination } from '~/types/api'
 import type { Question, QuestionDifficulty, QuestionType } from '~/types/question'
 import type { BankMode } from '~/domain/papers'
