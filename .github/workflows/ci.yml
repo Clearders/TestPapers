@@ -46,6 +46,11 @@ jobs:
 
       - name: Run fast Web gate
         shell: bash
+        env:
+          TESTPAPERS_ENV: test
+          NUXT_API_BASE: http://127.0.0.1:8001/api/v1
+          NUXT_PUBLIC_API_BASE: /api/v1
+          NUXT_PUBLIC_WS_BASE: ws://127.0.0.1:8001/api/v1/ws
         run: |
           set -o pipefail
           npm run verify 2>&1 | tee output/playwright/verify.log
@@ -119,6 +124,7 @@ jobs:
           E2E_ADMIN_USERNAME: e2e-admin
           E2E_ADMIN_PASSWORD: E2eAdmin123!
           NUXT_API_BASE: http://127.0.0.1:8001/api/v1
+          NUXT_PUBLIC_WS_BASE: ws://127.0.0.1:8001/api/v1/ws
         run: |
           set -o pipefail
           npm run e2e:fullstack 2>&1 | tee output/playwright/fullstack-e2e.log

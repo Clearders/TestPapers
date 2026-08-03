@@ -23,8 +23,8 @@ export default defineConfig({
     video: 'retain-on-failure'
   },
   webServer: {
-    command: 'npm run dev -- --host 127.0.0.1 --port 3000',
-    url: `${baseURL}/api/v1/health/postgres`,
+    command: 'node .output/server/index.mjs',
+    url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
     env: {
@@ -32,7 +32,10 @@ export default defineConfig({
       TESTPAPERS_ENV: 'test',
       NUXT_API_BASE: process.env.NUXT_API_BASE || 'http://127.0.0.1:8001/api/v1',
       NUXT_PUBLIC_API_BASE: '/api/v1',
-      NUXT_PUBLIC_DIRECT_API_BASE: ''
+      NUXT_PUBLIC_DIRECT_API_BASE: '',
+      NUXT_PUBLIC_WS_BASE: process.env.NUXT_PUBLIC_WS_BASE || 'ws://127.0.0.1:8001/api/v1/ws',
+      NITRO_HOST: '127.0.0.1',
+      NITRO_PORT: '3000'
     }
   },
   projects: [
