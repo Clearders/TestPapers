@@ -101,7 +101,7 @@ test('critical authoring and collaboration journey uses the real Cloud stack', a
   await viewerPage.getByRole('button', { name: 'Add Comment' }).click()
   await expect(viewerPage.locator('[aria-label="Draft comments"]')).toContainText(commentText)
 
-  await expect(adminPage.getByText('This cloud draft changed elsewhere.')).toBeVisible()
+  await expect(adminPage.locator('.cloud-draft-status')).toContainText('This cloud draft changed elsewhere.')
   await adminPage.getByRole('button', { name: 'Load Latest' }).click()
   await expect(adminPage.locator('.active-cloud-meta')).toContainText('1 open comment')
   const approveButton = adminPage.locator('.review-actions').getByRole('button', { name: 'Approved', exact: true })
@@ -109,7 +109,7 @@ test('critical authoring and collaboration journey uses the real Cloud stack', a
   await expect(approveButton).toHaveAttribute('title', 'Resolve open comments before approval.')
 
   await viewerPage.locator('.comment-item').filter({ hasText: commentText }).getByRole('button', { name: 'Resolve' }).click()
-  await expect(adminPage.getByText('This cloud draft changed elsewhere.')).toBeVisible()
+  await expect(adminPage.locator('.cloud-draft-status')).toContainText('This cloud draft changed elsewhere.')
   await adminPage.getByRole('button', { name: 'Load Latest' }).click()
   await expect(adminPage.locator('.active-cloud-meta')).toContainText('0 open comments')
   await approveButton.click()
