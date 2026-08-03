@@ -52,6 +52,7 @@ test('critical authoring and collaboration journey uses the real Cloud stack', a
   await adminPage.locator('#problem-difficulty').selectOption('medium')
   await adminPage.locator('#problem-text').fill(questionText)
   await adminPage.locator('#problem-answer').fill('42')
+  expect(await adminPage.locator('form').evaluate(form => (form as HTMLFormElement).checkValidity())).toBe(true)
   await adminPage.getByRole('button', { name: 'Save Problem' }).click()
   await expect(adminPage.getByText('Problem saved successfully.')).toBeVisible()
   await adminPage.getByRole('link', { name: 'Open the workspace' }).click()
