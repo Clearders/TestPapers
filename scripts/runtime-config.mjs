@@ -67,7 +67,10 @@ export function resolveRuntimeConfig(sourceEnv = process.env) {
   if (serverApiBase) validateAbsoluteUrl('NUXT_API_BASE', serverApiBase, ['http:', 'https:'], errors)
   if (publicApiBase) validatePublicApiBase(profile, publicApiBase, errors)
   if (value(env, 'NUXT_PUBLIC_DIRECT_API_BASE')) validateAbsoluteUrl('NUXT_PUBLIC_DIRECT_API_BASE', directApiBase, ['https:'], errors)
-  if (wsBase) validateAbsoluteUrl('NUXT_PUBLIC_WS_BASE', wsBase, ['wss:'], errors)
+  if (wsBase) {
+    const websocketProtocols = profile === 'test' ? ['ws:', 'wss:'] : ['wss:']
+    validateAbsoluteUrl('NUXT_PUBLIC_WS_BASE', wsBase, websocketProtocols, errors)
+  }
 
   if (errors.length) throw new RuntimeConfigError(errors)
   return {

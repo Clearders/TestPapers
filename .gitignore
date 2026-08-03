@@ -11,6 +11,8 @@ node_modules
 
 # Logs
 logs
+artifacts
+output
 *.log
 *.pid
 *-job.id

@@ -51,6 +51,12 @@ expectValid('staging public endpoints', {
   NUXT_PUBLIC_WS_BASE: 'wss://api.staging.example/api/v1/ws'
 }, { profile: 'staging' })
 expectValid('legacy fallback', { TESTPAPERS_ENV: 'test', NUXT_SERVER_API_BASE: 'http://test-api.internal/api/v1', NUXT_PUBLIC_API_BASE: '/api/v1' }, { serverApiBase: 'http://test-api.internal/api/v1' })
+expectValid('test websocket endpoint', {
+  TESTPAPERS_ENV: 'test',
+  NUXT_API_BASE: 'http://127.0.0.1:8001/api/v1',
+  NUXT_PUBLIC_API_BASE: '/api/v1',
+  NUXT_PUBLIC_WS_BASE: 'ws://127.0.0.1:8001/api/v1/ws'
+}, { profile: 'test', wsBase: 'ws://127.0.0.1:8001/api/v1/ws' })
 
 expectInvalid('unknown profile', { TESTPAPERS_ENV: 'demo' }, 'TESTPAPERS_ENV must be one of')
 expectInvalid('test requires explicit endpoints', { TESTPAPERS_ENV: 'test' }, 'NUXT_API_BASE is required')

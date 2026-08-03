@@ -4,8 +4,9 @@
   "private": true,
   "scripts": {
     "build": "node scripts/run-nuxi.mjs build",
-    "check": "npm run check:runtime-config && npm run check:data-model && node scripts/check-auth-ssr-state.mjs && node scripts/check-csp-hardening.mjs && node scripts/check-paper-domain.mjs && node scripts/check-shared-drafts.mjs && node scripts/check-paper-persistence-flow.mjs && node scripts/check-realtime-backoff.mjs && node scripts/run-nuxi.mjs build",
+    "check": "npm run check:runtime-config && npm run check:data-model && npm run check:e2e-lock && node scripts/check-auth-ssr-state.mjs && node scripts/check-csp-hardening.mjs && node scripts/check-paper-domain.mjs && node scripts/check-shared-drafts.mjs && node scripts/check-paper-persistence-flow.mjs && node scripts/check-realtime-backoff.mjs && node scripts/run-nuxi.mjs build",
     "verify": "npm run contract:check && npm run lint && npm run typecheck && npm run check",
+    "verify:ci": "npm run verify && npm run check:dependencies && npm run e2e:fullstack",
     "contract:generate": "openapi-typescript contracts/openapi.json --output app/generated/cloud-api.d.ts --alphabetize",
     "contract:check": "npm run contract:check:lock && npm run contract:check:generated",
     "contract:check:generated": "openapi-typescript contracts/openapi.json --output app/generated/cloud-api.d.ts --alphabetize --check",
@@ -16,7 +17,11 @@
     "check:realtime-backoff": "node scripts/check-realtime-backoff.mjs",
     "check:auth-ssr-state": "node scripts/check-auth-ssr-state.mjs",
     "check:data-model": "node scripts/check-data-model-contract.mjs",
+    "check:e2e-lock": "node scripts/check-e2e-backend-lock.mjs",
     "check:runtime-config": "node scripts/check-runtime-config.mjs",
+    "check:dependencies": "npm audit --omit=dev --audit-level=high",
+    "check:e2e": "npm run e2e:fullstack",
+    "e2e:fullstack": "playwright test",
     "dev": "node scripts/run-nuxi.mjs dev",
     "generate": "node scripts/run-nuxi.mjs generate",
     "lint": "eslint .",
@@ -38,7 +43,9 @@
   },
   "devDependencies": {
     "@nuxt/eslint": "^1.16.0",
+    "@playwright/test": "1.62.1",
     "eslint": "^10.5.0",
+    "fflate": "0.8.3",
     "openapi-typescript": "7.13.0",
     "typescript": "^5.7.0"
   },
