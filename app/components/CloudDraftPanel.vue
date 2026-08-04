@@ -30,6 +30,10 @@
         <AppIcon name="download" />
         {{ isDownloading ? 'Preparing...' : 'Download Saved Draft' }}
       </button>
+      <button type="button" class="btn btn-outline draft-action" :disabled="!activeDraft || isDownloading" @click="emit('download-tex')">
+        <AppIcon name="download" />
+        {{ isDownloading ? 'Preparing...' : 'Download Saved TeX' }}
+      </button>
       <button
         v-if="activeDraft && canEditActive"
         type="button"
@@ -187,6 +191,7 @@ const emit = defineEmits<{
   'delete-draft': []
   reload: []
   download: []
+  'download-tex': []
   'set-review-status': [value: DraftReviewStatus]
   'load-latest': []
   'save-as-new': []

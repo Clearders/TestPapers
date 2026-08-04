@@ -10,6 +10,7 @@ import type {
 import type { WorkspaceDraft } from '~/domain/papers'
 import {
   DOCX_CONTENT_TYPE,
+  TEX_CONTENT_TYPE,
   filenameFromDisposition,
   validateWorkspaceDraft
 } from '~/domain/papers'
@@ -332,19 +333,23 @@ export function useSharedDrafts (params: UseSharedDraftsParams) {
     }
   }
 
-  async function downloadCloudDraftDocx () {
+  async function downloadCloudDraft (format: 'docx' | 'tex') {
     if (!activeCloudDraft.value || isDownloadingCloudDraft.value) return false
     resetCloudDraftStatus()
     isDownloadingCloudDraft.value = true
     try {
-      const response = await apiFetchRaw(`/drafts/${activeCloudDraft.value.publicId}/download`, { method: 'GET' })
+      const response = await apiFetchRaw(`/drafts/${activeCloudDraft.value.publicId}/download`, {
+        method: 'GET',
+        query: { format }
+      })
       const contentType = response.headers.get('Content-Type')?.split(';', 1)[0]?.toLowerCase()
-      if (contentType !== DOCX_CONTENT_TYPE) throw new Error('The cloud draft download did not return a DOCX file.')
+      const expectedContentType = format === 'docx' ? DOCX_CONTENT_TYPE : TEX_CONTENT_TYPE
+      if (contentType !== expectedContentType) throw new Error(`The cloud draft download did not return a ${format.toUpperCase()} file.`)
       const blob = await response.blob()
       const objectUrl = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = objectUrl
-      link.download = filenameFromDisposition(response.headers.get('Content-Disposition'), activeCloudDraft.value.name)
+      link.download = filenameFromDisposition(response.headers.get('Content-Disposition'), activeCloudDraft.value.name, format)
       document.body.appendChild(link)
       link.click()
       link.remove()
@@ -356,6 +361,14 @@ export function useSharedDrafts (params: UseSharedDraftsParams) {
     } finally {
       isDownloadingCloudDraft.value = false
     }
+  }
+
+  async function downloadCloudDraftDocx () {
+    return await downloadCloudDraft('docx')
+  }
+
+  async function downloadCloudDraftTex () {
+    return await downloadCloudDraft('tex')
   }
 
   return {
@@ -388,6 +401,7 @@ export function useSharedDrafts (params: UseSharedDraftsParams) {
     removeCloudDraftCollaborator,
     addCloudDraftComment,
     updateCloudDraftComment,
-    downloadCloudDraftDocx
+    downloadCloudDraftDocx,
+    downloadCloudDraftTex
   }
 }

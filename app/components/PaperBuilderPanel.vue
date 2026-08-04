@@ -120,6 +120,10 @@
         <AppIcon name="download" />
         {{ isDownloadingDocx ? 'Preparing DOCX...' : 'Download DOCX' }}
       </button>
+      <button class="btn btn-outline" :disabled="!canDownloadDocx || hasExportReadinessBlockers" @click="emit('download-tex')">
+        <AppIcon name="download" />
+        {{ isDownloadingDocx ? 'Preparing...' : 'Download TeX' }}
+      </button>
       <button class="btn btn-outline" :disabled="!paperQuestions.length" @click="emit('clear-paper')">
         <AppIcon name="x" />
         Clear All
@@ -235,6 +239,7 @@ const emit = defineEmits<{
   'save-paper': []
   'export-paper': []
   'download-docx': []
+  'download-tex': []
   'clear-paper': []
   'dismiss-export-access-prompt': []
 }>();

@@ -52,6 +52,7 @@
           @delete-draft="deleteSelectedCloudDraftFromWorkspace"
           @reload="loadCloudDrafts"
           @download="downloadCloudDraftDocx"
+          @download-tex="downloadCloudDraftTex"
           @load-latest="loadLatestActiveCloudDraft"
           @save-as-new="saveCloudDraftAsNewFromWorkspace"
           @save-and-download="saveCloudDraftAndDownloadDocx"
@@ -103,6 +104,7 @@
             @save-paper="savePaper"
             @export-paper="exportPaper"
             @download-docx="downloadDocx"
+            @download-tex="downloadTex"
             @clear-paper="clearPaper"
             @dismiss-export-access-prompt="dismissExportAccessPrompt"
           />
@@ -415,6 +417,7 @@ const {
   printPaper,
   savePaper,
   downloadDocx,
+  downloadTex,
   resetExportState,
   applyGenerationResult
 } = usePaperExport({
@@ -501,7 +504,8 @@ const {
   removeCloudDraftCollaborator,
   addCloudDraftComment,
   updateCloudDraftComment,
-  downloadCloudDraftDocx
+  downloadCloudDraftDocx,
+  downloadCloudDraftTex
 } = useSharedDrafts({
   createWorkspaceDraft,
   applyWorkspaceDraft,
