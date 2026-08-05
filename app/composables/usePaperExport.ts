@@ -4,6 +4,7 @@ import type { ExportMode, LayoutDensity } from '~/types/generation'
 import type { GeneratedPaperResponse, PaperEntityResponse, PaperState } from '~/domain/papers'
 import {
   DOCX_CONTENT_TYPE,
+  TEX_CONTENT_TYPE,
   buildPaperDraftDownloadPayload,
   buildPaperMetadataPayload,
   buildPaperPayload,
@@ -159,11 +160,11 @@ export function usePaperExport (params: UsePaperExportParams) {
     return response.data.publicId
   }
 
-  async function requestDocxDownload (paperPublicId: string) {
+  async function requestDownload (paperPublicId: string, format: 'docx' | 'tex') {
     return await apiFetchRaw(`/papers/${paperPublicId}/download`, {
       method: 'GET',
       query: {
-        format: 'docx',
+        format,
         questionOrder: exportMode.value,
         includeAnswer: String(includeAnswersInExport.value && canReadAnswers.value),
         layoutDensity: layoutDensity.value
@@ -171,9 +172,10 @@ export function usePaperExport (params: UsePaperExportParams) {
     })
   }
 
-  async function requestDraftDocxDownload () {
+  async function requestDraftDownload (format: 'docx' | 'tex') {
     return await apiFetchRaw('/papers/draft-download', {
       method: 'POST',
+      query: { format },
       body: buildPaperDraftDownloadPayload(
         paper,
         exportMode.value,
@@ -183,7 +185,7 @@ export function usePaperExport (params: UsePaperExportParams) {
     })
   }
 
-  async function downloadDocx () {
+  async function downloadFile (format: 'docx' | 'tex') {
     if (isDownloadingDocx.value) return
     const useDraftDownload = hasTemporaryQuestionEdits(paper)
     if (!hasExportPermission(useDraftDownload ? false : !hasReusableSavedPaper())) return
@@ -192,16 +194,17 @@ export function usePaperExport (params: UsePaperExportParams) {
     isDownloadingDocx.value = true
     try {
       const response = useDraftDownload
-        ? await requestDraftDocxDownload()
-        : await requestDocxDownload(await ensureDownloadablePaper())
+        ? await requestDraftDownload(format)
+        : await requestDownload(await ensureDownloadablePaper(), format)
       if (!response.ok) {
-        throw new Error(await response.text() || 'Failed to download DOCX.')
+        throw new Error(await response.text() || `Failed to download ${format.toUpperCase()}.`)
       }
 
       const contentType = response.headers.get('Content-Type')?.split(';', 1)[0]?.toLowerCase()
-      if (contentType !== DOCX_CONTENT_TYPE) {
+      const expectedContentType = format === 'docx' ? DOCX_CONTENT_TYPE : TEX_CONTENT_TYPE
+      if (contentType !== expectedContentType) {
         const responseText = await response.text()
-        let message = 'The download endpoint did not return a DOCX file.'
+        let message = `The download endpoint did not return a ${format.toUpperCase()} file.`
         try {
           const payload = JSON.parse(responseText)
           message = payload?.error?.message || payload?.detail?.message || message
@@ -212,20 +215,28 @@ export function usePaperExport (params: UsePaperExportParams) {
       }
 
       const blob = await response.blob()
-      downloadedLayoutDensity.value = layoutDensityFromHeader(response.headers.get('X-Layout-Density'))
+      if (format === 'docx') downloadedLayoutDensity.value = layoutDensityFromHeader(response.headers.get('X-Layout-Density'))
       const objectUrl = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = objectUrl
-      link.download = filenameFromDisposition(response.headers.get('Content-Disposition'), paper.title)
+      link.download = filenameFromDisposition(response.headers.get('Content-Disposition'), paper.title, format)
       document.body.appendChild(link)
       link.click()
       link.remove()
       window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1_000)
     } catch (error) {
-      downloadError.value = apiErrorMessage(error, 'Failed to download DOCX.')
+      downloadError.value = apiErrorMessage(error, `Failed to download ${format.toUpperCase()}.`)
     } finally {
       isDownloadingDocx.value = false
     }
+  }
+
+  async function downloadDocx () {
+    await downloadFile('docx')
+  }
+
+  async function downloadTex () {
+    await downloadFile('tex')
   }
 
   async function savePaper () {
@@ -288,6 +299,7 @@ export function usePaperExport (params: UsePaperExportParams) {
     ensureDownloadablePaper,
     savePaper,
     downloadDocx,
+    downloadTex,
     resetExportState,
     applyGenerationResult
   }

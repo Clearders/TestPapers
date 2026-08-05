@@ -37,7 +37,7 @@ assert(
   usePaperExport.includes('const useDraftDownload = hasTemporaryQuestionEdits(paper)') &&
     usePaperExport.includes("apiFetchRaw('/papers/draft-download'") &&
     usePaperExport.includes('hasExportPermission(useDraftDownload ? false : !hasReusableSavedPaper())') &&
-    usePaperExport.includes('? await requestDraftDocxDownload()'),
+    usePaperExport.includes('? await requestDraftDownload(format)'),
   'temporary question edits must export through draft-download without creating or updating a persisted paper.'
 )
 

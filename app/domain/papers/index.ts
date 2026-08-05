@@ -150,6 +150,7 @@ export const WORKSPACE_DRAFT_PREFIX = 'testpapers.workspaceDraft.v1'
 export const EXAM_DRAFT_INDEX_PREFIX = 'testpapers.examDrafts.v1'
 export const EXAM_DRAFT_ITEM_PREFIX = 'testpapers.examDraft.v1'
 export const DOCX_CONTENT_TYPE = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+export const TEX_CONTENT_TYPE = 'application/x-tex'
 
 const QUESTION_TYPE_SET = new Set<QuestionType>(QUESTION_TYPE_ORDER)
 const QUESTION_DIFFICULTY_SET = new Set<QuestionDifficulty>(DIFFICULTY_OPTIONS.map(option => option.value))
@@ -457,8 +458,8 @@ export function layoutDensityLabel (value: LayoutDensity) {
   return 'Auto'
 }
 
-export function filenameFromDisposition (disposition: string | null, fallbackTitle: string) {
-  const fallback = `${fallbackTitle.trim() || 'examination-paper'}.docx`
+export function filenameFromDisposition (disposition: string | null, fallbackTitle: string, extension = 'docx') {
+  const fallback = `${fallbackTitle.trim() || 'examination-paper'}.${extension}`
   if (!disposition) return fallback
 
   const encodedMatch = disposition.match(/filename\*=UTF-8''([^;]+)/i)

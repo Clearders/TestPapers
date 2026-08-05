@@ -136,6 +136,66 @@ Response: `201 AuthSession`.
 | `data` | string | yes | Base64 PNG data |
 | `mimeType` | string | no | Defaults to `image/png`; only PNG is accepted |
 
+### Native Client Authentication (Bearer Tokens)
+
+Native Desktop/Mobile clients authenticate without Cookies using short-lived access tokens and rotating refresh tokens. Tokens are only ever transmitted in request headers or bodies, never in URLs. All native endpoints are exempt from CSRF (Bearer requests are already exempt; the token endpoints are exempt so clients without Cookies can log in).
+
+#### `POST /api/v1/auth/token`
+
+Logs in a native client and returns an access/refresh token pair. No Cookie is set.
+
+| Field | Type | Required | Constraints |
+| --- | --- | --- | --- |
+| `username` | string | yes | Minimum 1 character |
+| `password` | string | yes | Minimum 1 character |
+| `deviceName` | string | yes | 1 to 120 chars, human-readable label |
+| `deviceId` | string | yes | 1 to 128 chars, stable client-generated device identifier |
+
+Response: `TokenPair`:
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `accessToken` | string | Short-lived bearer token for API and WebSocket access |
+| `refreshToken` | string | Long-lived token used only with the refresh endpoint |
+| `expiresIn` | integer | Access token lifetime in seconds |
+| `refreshExpiresIn` | integer | Refresh token lifetime in seconds |
+| `user` | `UserEntity` | Authenticated user |
+
+#### `POST /api/v1/auth/token/refresh`
+
+Rotates a refresh token. The submitted refresh token and its access token are revoked immediately; a fresh pair is returned. Only `refresh`-type tokens are accepted.
+
+| Field | Type | Required | Constraints |
+| --- | --- | --- | --- |
+| `refreshToken` | string | yes | Minimum 1 character |
+
+Response: `TokenPair`. Error codes: `INVALID_TOKEN`, `TOKEN_EXPIRED`, `ACCOUNT_DISABLED`.
+
+#### `GET /api/v1/auth/devices`
+
+Requires authentication. Returns the current user's device sessions aggregated by `deviceId`.
+
+Response: `DeviceSessionEntity[]`:
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `deviceId` | string | Device identifier |
+| `deviceName` | string | Device label |
+| `lastSeenAt` | datetime or null | Most recent activity |
+| `createdAt` | datetime | First seen |
+| `current` | boolean | Whether this is the device of the current request |
+
+#### `DELETE /api/v1/auth/devices/{device_id}`
+
+Requires authentication. Revokes every token belonging to the device, including its sessions, access tokens, and refresh tokens. Returns `204`. Revoking the device used by the current request is rejected with `409 DEVICE_IS_CURRENT`.
+
+### Native Auth Behavior
+
+- Access tokens are accepted via `Authorization: Bearer <token>` on all API endpoints and the WebSocket endpoint.
+- Refresh tokens must never be used as access credentials; they are rejected with `401 INVALID_TOKEN`.
+- Changing the password revokes all tokens for the user except the current request's token. Deleting the account revokes every token.
+- The `auth_audit_log` table records `login`, `refresh`, `device_revoked`, `password_changed`, and `account_deleted` events with device and IP context.
+
 ## Users
 
 All user management endpoints require `users:manage`.
@@ -667,6 +727,10 @@ interface PaperDraftDetail extends PaperDraftSummary {
 | `GET` | `/` | none | Service info |
 | `POST` | `/api/v1/auth/login` | none | Login |
 | `POST` | `/api/v1/auth/register` | none | Register and login |
+| `POST` | `/api/v1/auth/token` | none | Native login (Bearer token pair) |
+| `POST` | `/api/v1/auth/token/refresh` | none | Rotate native refresh token |
+| `GET` | `/api/v1/auth/devices` | logged in | List device sessions |
+| `DELETE` | `/api/v1/auth/devices/{device_id}` | logged in | Revoke a device |
 | `GET` | `/api/v1/auth/me` | logged in | Current user |
 | `POST` | `/api/v1/auth/refresh` | logged in | Refresh session |
 | `POST` | `/api/v1/auth/logout` | logged in | Logout |
