@@ -115,7 +115,12 @@ test('critical authoring and collaboration journey uses the real Cloud stack', a
   await approveButton.click()
   await expect(adminPage.locator('.cloud-draft-head')).toContainText('Approved')
 
-  const responsePromise = adminPage.waitForResponse(response => response.url().includes('/api/v1/drafts/') && response.url().endsWith('/download'))
+  const responsePromise = adminPage.waitForResponse(response => {
+    const url = new URL(response.url())
+    return url.pathname.includes('/api/v1/drafts/')
+      && url.pathname.endsWith('/download')
+      && url.searchParams.get('format') === 'docx'
+  })
   const downloadPromise = adminPage.waitForEvent('download')
   await adminPage.getByRole('button', { name: 'Download Saved Draft' }).click()
   const [downloadResponse, download] = await Promise.all([responsePromise, downloadPromise])
