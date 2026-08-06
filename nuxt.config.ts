@@ -1,5 +1,14 @@
 import { resolveRuntimeConfig } from './scripts/runtime-config.mjs'
 
+// Nuxt 4.5 removed the `nitro` key from NuxtConfig types while keeping runtime
+// support (nuxt/nuxt#34039; regression re nuxt/nuxt#34173). Restore the typed
+// key so the strict `.nuxt/tsconfig.json` typecheck accepts nitro config.
+declare module 'nuxt/schema' {
+  interface NuxtConfig {
+    nitro?: import('nitropack/config').NitroConfig
+  }
+}
+
 // https://nuxt.com/docs/api/configuration/nuxt-config
 const env = (globalThis as typeof globalThis & {
   process?: {
