@@ -27,11 +27,22 @@
       <AppIcon name="search" />
       Question Bank
     </button>
+    <button
+      type="button"
+      role="tab"
+      :aria-selected="activeSection === 'banks'"
+      class="workspace-tab"
+      :class="{ 'workspace-tab--active': activeSection === 'banks' }"
+      @click="emit('update:activeSection', 'banks')"
+    >
+      <AppIcon name="book" />
+      共享题库
+    </button>
   </div>
 </template>
 
 <script setup lang="ts">
-type WorkspaceSection = 'editor' | 'bank'
+type WorkspaceSection = 'editor' | 'bank' | 'banks'
 
 defineProps<{
   activeSection: WorkspaceSection
@@ -46,7 +57,7 @@ const emit = defineEmits<{
 .workspace-tabs {
   position: relative;
   display: inline-grid;
-  grid-template-columns: repeat(2, minmax(128px, 1fr));
+  grid-template-columns: repeat(3, minmax(128px, 1fr));
   gap: 6px;
   padding: 5px;
   margin-bottom: 20px;
@@ -64,7 +75,7 @@ const emit = defineEmits<{
   top: 5px;
   bottom: 5px;
   left: 5px;
-  width: calc((100% - 16px) / 2);
+  width: calc((100% - 22px) / 3);
   border-radius: var(--radius-pill);
   background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
   box-shadow: 0 10px 24px rgba(118, 87, 255, .22);
@@ -74,6 +85,10 @@ const emit = defineEmits<{
 
 .workspace-tabs--bank::before {
   transform: translateX(calc(100% + 6px));
+}
+
+.workspace-tabs--banks::before {
+  transform: translateX(calc(200% + 12px));
 }
 
 .workspace-tab {
@@ -120,12 +135,16 @@ const emit = defineEmits<{
     right: 5px;
     bottom: auto;
     width: auto;
-    height: calc((100% - 16px) / 2);
+    height: calc((100% - 22px) / 3);
     border-radius: var(--radius);
   }
 
   .workspace-tabs--bank::before {
     transform: translateY(calc(100% + 6px));
+  }
+
+  .workspace-tabs--banks::before {
+    transform: translateY(calc(200% + 12px));
   }
 }
 

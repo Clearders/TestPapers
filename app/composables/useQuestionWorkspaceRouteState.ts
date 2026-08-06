@@ -3,7 +3,7 @@ import type { QuestionDifficulty, QuestionQueryParams, QuestionType } from '~/ty
 import { parseBankMode, parseQuestionDifficulty } from '~/domain/papers'
 import { QUESTION_TYPE_ORDER } from '~/domain/questions'
 
-export type WorkspaceSection = 'editor' | 'bank'
+export type WorkspaceSection = 'editor' | 'bank' | 'banks'
 type LatexFilter = '' | 'true' | 'false'
 
 function queryString (value: unknown) {
@@ -11,7 +11,9 @@ function queryString (value: unknown) {
 }
 
 function parseWorkspaceSection (value: unknown): WorkspaceSection {
-  return value === 'bank' ? 'bank' : 'editor'
+  if (value === 'bank') return 'bank'
+  if (value === 'banks') return 'banks'
+  return 'editor'
 }
 
 function parseQuestionTypeFilter (value: unknown): QuestionType | '' {
