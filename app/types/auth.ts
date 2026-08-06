@@ -6,6 +6,11 @@ export type Permission =
   | 'papers:read'
   | 'papers:write'
   | 'users:manage'
+  | 'banks:read'
+  | 'banks:write'
+  | 'banks:delete'
+  | 'banks:publish'
+  | 'banks:subscribe'
 
 export type UserRole = 'admin' | 'teacher' | 'viewer'
 

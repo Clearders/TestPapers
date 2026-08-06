@@ -129,7 +129,7 @@
         </div>
       </div>
 
-      <div v-else key="bank" class="workspace-section">
+      <div v-else-if="activeSection === 'bank'" key="bank" class="workspace-section">
         <QuestionBankPanel
           v-if="canReadQuestions"
           v-model:search="search"
@@ -170,6 +170,10 @@
           :message="workspaceAccessMessage"
           :is-authenticated="isAuthenticated"
         />
+      </div>
+
+      <div v-else-if="activeSection === 'banks'" key="banks" class="workspace-section">
+        <SharedBanksPanel />
       </div>
     </Transition>
 

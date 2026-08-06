@@ -49,13 +49,15 @@ Errors use the same envelope shape:
 
 | Role | Permissions |
 | --- | --- |
-| `admin` | `questions:read`, `questions:write`, `questions:delete`, `answers:read`, `papers:read`, `papers:write`, `users:manage` |
-| `teacher` | `questions:read`, `questions:write`, `questions:delete`, `answers:read`, `papers:read`, `papers:write` |
-| `viewer` | `questions:read`, `papers:read` |
+| `admin` | `questions:read`, `questions:write`, `questions:delete`, `answers:read`, `papers:read`, `papers:write`, `users:manage`, `banks:read`, `banks:write`, `banks:delete`, `banks:publish`, `banks:subscribe` |
+| `teacher` | `questions:read`, `questions:write`, `questions:delete`, `answers:read`, `papers:read`, `papers:write`, `banks:read`, `banks:write`, `banks:delete`, `banks:publish`, `banks:subscribe` |
+| `viewer` | `questions:read`, `papers:read`, `banks:read`, `banks:subscribe` |
 
 `answers:read` controls whether answers are included in question, paper, revision, export preview, and DOCX responses. Passing `includeAnswer=true` does not override this permission.
 
 Shared paper drafts use the existing paper permissions plus draft-level access roles. Creating a shared draft requires `papers:write`; listing, reading, commenting on, and downloading accessible drafts require `papers:read`. Draft owners and admins can rename, delete, and manage collaborators. Draft editors can update draft content and move a draft to `in_review`; draft viewers can read and comment only. Admins can access all shared drafts.
+
+Question banks use the `banks:*` permissions plus bank-level access roles. Creating a bank requires `banks:write`; publishing and withdrawing require `banks:publish` plus owner/admin bank role; deleting requires `banks:delete` plus owner/admin bank role. Bank access roles are `owner`, `admin`, `editor`, and `viewer`; any authenticated user can read `public` banks.
 
 ## Pagination
 
@@ -487,6 +489,73 @@ The download is built from the stored draft state:
 
 Response headers include `Content-Disposition`, `X-Export-Format: docx`, `X-Layout-Density`, and `X-Cloud-Draft-Export: true`.
 
+## Question Banks
+
+Question banks are aggregate containers that group questions into shareable, publishable, and forkable units. A bank has a visibility of `private`, `team`, or `public`. `private` banks are visible only to the owner and admins; `team` banks are visible to bank members (owner, admin, editor, viewer); `public` banks are readable and subscribable by any authenticated user. Non-member reads of `private` or `team` banks return `404 BANK_NOT_FOUND` so existence is not leaked.
+
+Bank access roles: `owner` (bank creator), `admin` (any user with `users:manage`), `editor` (can add/remove items), `viewer` (read-only). Visibility changes require the owner role. Publishing and withdrawing additionally require the `banks:publish` permission; deleting requires `banks:delete`; creating requires `banks:write`.
+
+### List, Create, Read, Update, Delete
+
+| Method | Path | Permission | Description |
+| --- | --- | --- | --- |
+| `GET` | `/api/v1/banks` | authenticated | Lists banks owned by, or shared with, the current user plus all `public` banks |
+| `POST` | `/api/v1/banks` | `banks:write` | Creates a private-by-default bank, returns `201 QuestionBankEntity` |
+| `GET` | `/api/v1/banks/{bank_public_id}` | bank read access | Reads a bank detail |
+| `PATCH` | `/api/v1/banks/{bank_public_id}` | owner/admin bank role | Updates name, description, or visibility (visibility requires owner) |
+| `DELETE` | `/api/v1/banks/{bank_public_id}` | `banks:delete` plus owner/admin bank role | Deletes a bank and cascades items/members/publications/subscriptions, returns `204` |
+
+`BankCreate` body:
+
+| Field | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `name` | string | yes | Trimmed, 1 to 120 chars |
+| `description` | string | no | Trimmed, up to 1000 chars |
+| `visibility` | `private` / `team` / `public` | no | Defaults to `private` |
+
+`BankUpdate` accepts any subset of `name`, `description`, `visibility`; at least one field is required.
+
+### Items
+
+| Method | Path | Permission | Description |
+| --- | --- | --- | --- |
+| `GET` | `/api/v1/banks/{bank_public_id}/questions` | bank read access | Lists the bank's questions in insertion order; answers redacted to `[redacted]` unless the caller has `answers:read` |
+| `POST` | `/api/v1/banks/{bank_public_id}/items` | owner/admin/editor bank role plus `questions:read` | Adds questions by public ID; duplicate IDs within the request return `422 VALIDATION_ERROR`; questions already in the bank return `409 BANK_ITEM_EXISTS` with `details.questionPublicIds` |
+| `DELETE` | `/api/v1/banks/{bank_public_id}/items/{question_public_id}` | owner/admin/editor bank role | Removes a question from the bank |
+
+`BankItemAdd` body: `{ "questionIds": ["550e8400-e29b-41d4-a716-446655440000", ...] }` with at least one entry.
+
+### Members
+
+| Method | Path | Permission | Description |
+| --- | --- | --- | --- |
+| `POST` | `/api/v1/banks/{bank_public_id}/members` | owner/admin bank role | Adds a member by username with role `viewer` or `editor` |
+| `PATCH` | `/api/v1/banks/{bank_public_id}/members/{user_public_id}` | owner/admin bank role | Updates a member role |
+| `DELETE` | `/api/v1/banks/{bank_public_id}/members/{user_public_id}` | owner/admin bank role | Removes a member; the member loses access immediately |
+
+Member create body: `{ "username": "teacher2", "role": "editor" }`. The bank owner cannot be added as a member (`422 BANK_OWNER_CANNOT_BE_MEMBER`). Adding an existing member returns `422 BANK_MEMBER_EXISTS`.
+
+### Publish and Versions
+
+| Method | Path | Permission | Description |
+| --- | --- | --- | --- |
+| `POST` | `/api/v1/banks/{bank_public_id}/publish` | `banks:publish` plus owner/admin bank role | Creates an immutable versioned snapshot (`state` JSONB); empty banks return `422 BANK_PUBLISH_EMPTY`; already published banks return `409 BANK_ALREADY_PUBLISHED` |
+| `POST` | `/api/v1/banks/{bank_public_id}/withdraw` | `banks:publish` plus owner/admin bank role | Removes the latest active publication; unpublished banks return `409 BANK_NOT_PUBLISHED` |
+| `GET` | `/api/v1/banks/{bank_public_id}/versions` | bank read access | Lists published version summaries |
+| `GET` | `/api/v1/banks/{bank_public_id}/versions/{version}` | bank read access | Reads an immutable snapshot; unknown versions return `404 BANK_VERSION_NOT_FOUND` |
+
+A published snapshot is immutable: later edits to the bank do not change previously published versions. Snapshot reads go through the shared redaction entry point `load_bank_snapshot`: without `answers:read`, `items[].data.answer` is returned as `[redacted]` (or `["[redacted]"]` for multiple-choice questions) and the stored snapshot is never mutated.
+
+### Subscribe and Fork
+
+| Method | Path | Permission | Description |
+| --- | --- | --- | --- |
+| `POST` | `/api/v1/banks/{bank_public_id}/subscribe` | authenticated | Subscribes to a `public` or `team`-visible bank; `private` banks return `422 BANK_SUBSCRIBE_PRIVATE`; idempotent |
+| `DELETE` | `/api/v1/banks/{bank_public_id}/subscribe` | authenticated | Unsubscribes, returns `204` |
+| `POST` | `/api/v1/banks/{bank_public_id}/fork` | bank read access | Forks a published version into a new `private` bank owned by the caller, returns `201` |
+
+`BankForkRequest` body: `{ "version": 1 }` — `version` is optional and defaults to the latest publication. Fork copies question records (new public IDs) rather than references, so the fork is independent of the original bank. Forking reads through `load_bank_snapshot`, so a caller without `answers:read` gets copied questions whose answers are `[redacted]` — forking can never bypass answer permissions. Banks with no published version return `409 BANK_NOT_PUBLISHED`.
+
 ## Metadata and Images
 
 | Method | Path | Permission | Description |
@@ -709,11 +778,22 @@ interface PaperDraftDetail extends PaperDraftSummary {
 | 404 | `DRAFT_NOT_FOUND` | Draft does not exist or is not accessible |
 | 404 | `COLLABORATOR_NOT_FOUND` | Draft collaborator does not exist |
 | 404 | `COMMENT_NOT_FOUND` | Draft comment does not exist |
+| 404 | `BANK_NOT_FOUND` | Bank does not exist or is not accessible |
+| 404 | `BANK_VERSION_NOT_FOUND` | Bank version does not exist |
+| 404 | `BANK_ITEM_NOT_FOUND` | Question is not in the bank |
+| 404 | `MEMBER_NOT_FOUND` | Bank member does not exist |
 | 409 | `QUESTION_ALREADY_IN_PAPER` | Question already belongs to the paper |
 | 409 | `DRAFT_REVISION_CONFLICT` | Shared draft `baseRevision` is stale |
 | 409 | `USER_ALREADY_EXISTS` | Username already exists |
+| 409 | `BANK_ITEM_EXISTS` | One or more questions already exist in the bank |
+| 409 | `BANK_ALREADY_PUBLISHED` | Bank is already published; withdraw before publishing again |
+| 409 | `BANK_NOT_PUBLISHED` | Bank is not published or has no version to fork |
 | 413 | `PAYLOAD_TOO_LARGE` | Upload exceeds size limit |
 | 422 | `DRAFT_OPEN_COMMENTS` | Shared draft cannot be approved until open comments are resolved |
+| 422 | `BANK_PUBLISH_EMPTY` | Bank must contain at least one question before publishing |
+| 422 | `BANK_SUBSCRIBE_PRIVATE` | Private banks cannot be subscribed |
+| 422 | `BANK_OWNER_CANNOT_BE_MEMBER` | Bank owner cannot be added as a member |
+| 422 | `BANK_MEMBER_EXISTS` | User is already a member of the bank |
 | 422 | `VALIDATION_ERROR` | Request validation failed |
 | 422 | `INSUFFICIENT_QUESTIONS` | Auto-generation has too few candidates |
 | 429 | `RATE_LIMIT_EXCEEDED` | Too many requests |
@@ -780,6 +860,24 @@ interface PaperDraftDetail extends PaperDraftSummary {
 | `POST` | `/api/v1/drafts/{draft_public_id}/comments` | draft access | Add draft comment |
 | `PATCH` | `/api/v1/drafts/{draft_public_id}/comments/{comment_public_id}` | draft access | Update draft comment |
 | `GET` | `/api/v1/drafts/{draft_public_id}/download` | `papers:read` | Download DOCX from a cloud draft |
+| `GET` | `/api/v1/banks` | authenticated | List question banks |
+| `POST` | `/api/v1/banks` | `banks:write` | Create question bank |
+| `GET` | `/api/v1/banks/{bank_public_id}` | bank read access | Question bank detail |
+| `PATCH` | `/api/v1/banks/{bank_public_id}` | owner/admin bank role | Update question bank |
+| `DELETE` | `/api/v1/banks/{bank_public_id}` | `banks:delete` plus owner/admin bank role | Delete question bank |
+| `GET` | `/api/v1/banks/{bank_public_id}/questions` | bank read access | List bank questions |
+| `POST` | `/api/v1/banks/{bank_public_id}/items` | owner/admin/editor bank role | Add questions to bank |
+| `DELETE` | `/api/v1/banks/{bank_public_id}/items/{question_public_id}` | owner/admin/editor bank role | Remove question from bank |
+| `POST` | `/api/v1/banks/{bank_public_id}/members` | owner/admin bank role | Add bank member |
+| `PATCH` | `/api/v1/banks/{bank_public_id}/members/{user_public_id}` | owner/admin bank role | Update bank member role |
+| `DELETE` | `/api/v1/banks/{bank_public_id}/members/{user_public_id}` | owner/admin bank role | Remove bank member |
+| `POST` | `/api/v1/banks/{bank_public_id}/publish` | `banks:publish` plus owner/admin bank role | Publish bank version |
+| `POST` | `/api/v1/banks/{bank_public_id}/withdraw` | `banks:publish` plus owner/admin bank role | Withdraw bank |
+| `GET` | `/api/v1/banks/{bank_public_id}/versions` | bank read access | List bank versions |
+| `GET` | `/api/v1/banks/{bank_public_id}/versions/{version}` | bank read access | Bank version snapshot |
+| `POST` | `/api/v1/banks/{bank_public_id}/fork` | bank read access | Fork bank |
+| `POST` | `/api/v1/banks/{bank_public_id}/subscribe` | authenticated | Subscribe to bank |
+| `DELETE` | `/api/v1/banks/{bank_public_id}/subscribe` | authenticated | Unsubscribe from bank |
 | `POST` | `/api/v1/tasks/ping` | `questions:read` | Worker check |
 | `GET` | `/api/v1/tasks/{task_id}` | `questions:read` | Task status |
 | `POST` | `/api/v1/tasks/export-paper/{paper_public_id}` | `papers:read` | Async export |
