@@ -29,10 +29,10 @@ jobs:
 
     steps:
       - name: Checkout Web
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: npm
@@ -68,7 +68,7 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.13"
 
@@ -139,9 +139,43 @@ jobs:
 
       - name: Upload quality-gate artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: frontend-quality-${{ github.run_id }}
           path: output/playwright
           if-no-files-found: error
           retention-days: 14
+
+  docker-verification:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout Web
+        uses: actions/checkout@v7
+
+      - name: Build web development image
+        run: docker build --target development -t testpapers-web:dev .
+
+      - name: Build web runtime image
+        run: |
+          docker build --target runtime \
+            --build-arg NUXT_API_BASE=http://127.0.0.1:8000/api/v1 \
+            --build-arg NUXT_PUBLIC_API_BASE=/api/v1 \
+            -t testpapers-web:runtime .
+
+      - name: Smoke runtime image
+        run: |
+          docker run -d --rm --name web-smoke testpapers-web:runtime
+          ready=0
+          for attempt in $(seq 1 30); do
+            if docker exec web-smoke node -e "fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"; then
+              ready=1
+              break
+            fi
+            sleep 2
+          done
+          test "$ready" = "1"
+          docker rm -f web-smoke

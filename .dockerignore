@@ -1,0 +1,39 @@
+# VCS
+.git
+.github
+
+# Nuxt dev/build outputs
+.nuxt
+.nitro
+.output
+.data
+dist
+.cache
+
+# Node dependencies
+node_modules
+
+# Tests / QA artifacts
+e2e
+test-results
+playwright-report
+output
+artifacts
+logs
+*.log
+*.pid
+*-job.id
+
+# Local env files (never bake secrets into an image)
+.env
+.env.*
+!.env.example
+
+# Docs and contracts are not needed inside the image
+docs
+contracts
+
+# Misc
+.DS_Store
+.fleet
+.idea
