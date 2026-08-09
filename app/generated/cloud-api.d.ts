@@ -3806,24 +3806,6 @@ export interface operations {
                     "application/json": components["schemas"]["Envelope_TokenPair_"];
                 };
             };
-            /** @description Authentication is required. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description The caller is not allowed to perform this operation. */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
             /** @description Request validation failed. */
             422: {
                 headers: {
@@ -3873,24 +3855,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Envelope_TokenPair_"];
-                };
-            };
-            /** @description Authentication is required. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description The caller is not allowed to perform this operation. */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
             /** @description Request validation failed. */
