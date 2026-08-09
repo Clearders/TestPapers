@@ -18,6 +18,12 @@ async function login (page: Page, username: string, password: string) {
   await expect(page).toHaveURL(/\/questions(?:\?.*)?$/)
 }
 
+async function clickEnabledButton (page: Page, name: string) {
+  const button = page.locator('button:enabled').filter({ hasText: name })
+  await expect(button).toHaveCount(1)
+  await button.click()
+}
+
 async function registerViewer (browser: Browser, nonce: string) {
   const username = `e2e-bank-viewer-${nonce}`.slice(0, 60)
   const password = 'ViewerPass123!'
@@ -76,7 +82,7 @@ test('published bank subscriptions stay version-pinned and forks remain independ
   await expect(
     ownerPage.getByRole('region', { name: 'Bank questions' }).filter({ hasText: questionV1 })
   ).toBeVisible()
-  await ownerPage.getByRole('button', { name: 'Publish version 1' }).click()
+  await clickEnabledButton(ownerPage, 'Publish version 1')
   await expect(ownerPage.getByRole('button', { name: 'Withdraw publication' })).toBeVisible()
 
   const publicLink = ownerPage.getByRole('link', { name: 'Public bank link' })
@@ -103,7 +109,7 @@ test('published bank subscriptions stay version-pinned and forks remain independ
   await waitForHydration(viewerPage)
   await viewerPage.getByRole('button', { name: 'Subscribe to version 1' }).click()
   await expect(viewerPage.getByRole('heading', { name: 'Subscribed to version 1' })).toBeVisible()
-  await viewerPage.getByRole('button', { name: 'Fork version 1' }).click()
+  await clickEnabledButton(viewerPage, 'Fork version 1')
   await expect(viewerPage.getByText('Fork created as a private bank')).toBeVisible()
   const forkLink = viewerPage.getByRole('link', { name: 'Open fork' })
   const forkPath = new URL((await forkLink.getAttribute('href'))!, viewerPage.url()).pathname
@@ -131,7 +137,7 @@ test('published bank subscriptions stay version-pinned and forks remain independ
   await ownerPage.getByLabel('Add question to bank').fill(questionV2)
   await ownerPage.getByRole('option', { name: questionV2 }).click()
   await ownerPage.getByRole('button', { name: 'Add question' }).click()
-  await ownerPage.getByRole('button', { name: 'Publish version 2' }).click()
+  await clickEnabledButton(ownerPage, 'Publish version 2')
   await expect(ownerPage.getByRole('button', { name: 'Withdraw publication' })).toBeVisible()
 
   // The subscription remains pinned until the viewer explicitly advances it.
