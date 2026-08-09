@@ -73,7 +73,9 @@ test('published bank subscriptions stay version-pinned and forks remain independ
   await ownerPage.getByLabel('Add question to bank').fill(questionV1)
   await ownerPage.getByRole('option', { name: questionV1 }).click()
   await ownerPage.getByRole('button', { name: 'Add question' }).click()
-  await expect(ownerPage.getByRole('region', { name: 'Bank questions' })).toContainText(questionV1)
+  await expect(
+    ownerPage.getByRole('region', { name: 'Bank questions' }).filter({ hasText: questionV1 })
+  ).toBeVisible()
   await ownerPage.getByRole('button', { name: 'Publish version 1' }).click()
   await expect(ownerPage.getByRole('button', { name: 'Withdraw publication' })).toBeVisible()
 
