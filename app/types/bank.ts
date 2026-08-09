@@ -3,6 +3,7 @@ import type { QuestionType } from '~/types/question'
 export type BankVisibility = 'private' | 'team' | 'public'
 export type BankRole = 'viewer' | 'editor'
 export type BankAccessRole = 'owner' | 'admin' | 'editor' | 'viewer'
+export type BankListScope = 'visible' | 'owned' | 'subscribed' | 'public'
 
 export interface BankUserRef {
   publicId: string
@@ -29,6 +30,9 @@ export interface QuestionBankSummary {
   itemCount: number
   memberCount: number
   subscriberCount: number
+  isSubscribed: boolean
+  subscribedVersion?: number | null
+  hasUpdate: boolean
   createdAt: string
   updatedAt: string
 }
@@ -71,6 +75,8 @@ export interface BankVersionSummary {
   version: number
   createdBy?: BankUserRef | null
   createdAt: string
+  withdrawnAt?: string | null
+  isActive: boolean
 }
 
 export interface BankPublication {
@@ -81,12 +87,30 @@ export interface BankPublication {
   state: BankSnapshot
   createdBy?: BankUserRef | null
   createdAt: string
+  withdrawnAt?: string | null
 }
 
 export interface BankSubscription {
   bankId: number
   userId: number
+  version?: number | null
   createdAt: string
+  updatedAt: string
+}
+
+export interface PublicBankSummary {
+  publicId: string
+  name: string
+  description: string
+  owner?: BankUserRef | null
+  version: number
+  publishedAt: string
+  itemCount: number
+  subscriberCount: number
+}
+
+export interface PublicBankDetail extends PublicBankSummary {
+  state: BankSnapshot
 }
 
 export interface BankCreatePayload {
@@ -116,4 +140,10 @@ export interface BankMemberUpdatePayload {
 
 export interface BankForkPayload {
   version?: number
+}
+
+export interface BankListQuery {
+  q?: string
+  visibility?: BankVisibility
+  scope?: BankListScope
 }

@@ -238,7 +238,10 @@ The workspace shows stale cloud revisions, unsaved cloud-draft changes, open rev
 - WebSocket connection managed by `useRealtime.ts`.
 - Auth via HttpOnly Cookie or Bearer token; tokens are not accepted in URLs.
 - Heartbeat ping/pong and exponential backoff reconnection.
-- Broadcast events include question and paper create/update/delete/order changes plus shared draft update, delete, comment, and review changes.
+- Broadcast events include question and paper create/update/delete/order changes plus shared draft update, delete, comment, review, collaborator, and presence changes. Every server event includes `eventId` and `occurredAt`; clients ignore replayed event IDs.
+- When a cloud draft is active, clients send `draft.subscribe`/`draft.unsubscribe` and `draft.presence.update` messages. The server replies with `draft.presence.snapshot` and broadcasts `draft.collaborators.updated` when membership changes.
+- Presence is Redis-backed and shared across API instances: clients renew it every 15 seconds and it expires after 45 seconds. If Redis is unavailable, the UI identifies reconnecting state and the service exposes instance-local presence only until recovery.
+- Remote draft content is applied automatically only when the workspace has no local changes. A stale local workspace remains intact and offers Load Latest or Save as New after `409 DRAFT_REVISION_CONFLICT`; comments and collaborator events update metadata without replacing local content.
 
 ### Theme
 

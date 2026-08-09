@@ -74,6 +74,20 @@
       <span>{{ accessLabel(activeDraft.accessRole) }}</span>
       <span v-if="hasUnsavedChanges" class="cloud-unsaved">Unsaved workspace changes</span>
       <span>{{ activeDraft.collaboratorCount }} collaborator{{ activeDraft.collaboratorCount === 1 ? '' : 's' }}</span>
+      <span
+        class="presence-status"
+        :class="{ 'presence-status--connected': realtimeConnected, 'presence-status--reconnecting': !realtimeConnected }"
+        :title="realtimeStatusLabel"
+      >
+        <span class="presence-status-dot" aria-hidden="true" />
+        {{ realtimeStatusLabel }}
+      </span>
+      <span v-if="presenceMembers.length" class="presence-members" :aria-label="presenceMembersLabel">
+        <span v-for="member in presenceMembers" :key="member.user.publicId" class="presence-member" :class="`presence-member--${member.activity}`">
+          {{ member.user.displayName }} {{ member.activity === 'editing' ? 'editing' : 'viewing' }}
+        </span>
+      </span>
+      <span v-else-if="realtimeConnected" class="presence-members" aria-label="No other collaborators are online">No other collaborators online</span>
       <span>{{ activeDraft.openCommentCount }} open comment{{ activeDraft.openCommentCount === 1 ? '' : 's' }}</span>
       <span>Revision {{ activeDraft.revision }}</span>
       <span>Updated {{ formatTimestamp(activeDraft.updatedAt) }}</span>
@@ -158,11 +172,11 @@
 </template>
 
 <script setup lang="ts">
-import type { DraftCollaboratorRole, DraftReviewStatus, SharedDraft, SharedDraftSummary } from '~/types/draft'
+import type { DraftCollaboratorRole, DraftPresenceMember, DraftReviewStatus, SharedDraft, SharedDraftSummary } from '~/types/draft'
 import { nextReviewStatuses } from '~/domain/drafts'
 import { formatShortTimestamp } from '~/utils/format'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   drafts: SharedDraftSummary[]
   activeDraft: SharedDraft | null
   selectedDraftId: string
@@ -179,7 +193,14 @@ const props = defineProps<{
   canManageActive: boolean
   canEditActive: boolean
   hasUnsavedChanges: boolean
-}>()
+  presenceMembers?: DraftPresenceMember[]
+  realtimeConnected?: boolean
+  realtimeError?: string
+}>(), {
+  presenceMembers: () => [],
+  realtimeConnected: false,
+  realtimeError: ''
+})
 
 const emit = defineEmits<{
   'update:selectedDraftId': [value: string]
@@ -232,6 +253,16 @@ const collaboratorRoleModel = computed({
 const summaryText = computed(() => {
   if (!props.drafts.length) return 'No backend-saved shared drafts yet.'
   return `${props.drafts.length} cloud draft${props.drafts.length === 1 ? '' : 's'} available.`
+})
+
+const realtimeStatusLabel = computed(() => {
+  if (props.realtimeConnected) return 'Live collaboration connected'
+  return props.realtimeError ? `Collaboration reconnecting: ${props.realtimeError}` : 'Collaboration reconnecting'
+})
+
+const presenceMembersLabel = computed(() => {
+  const members = props.presenceMembers.map(member => `${member.user.displayName} is ${member.activity}`).join(', ')
+  return `Online collaborators: ${members}`
 })
 
 const availableReviewStatuses = computed(() => {
@@ -388,6 +419,59 @@ function onCollaboratorRoleChange (userPublicId: string, event: Event) {
 
 .cloud-unsaved {
   color: var(--color-warning);
+}
+
+.presence-status,
+.presence-members,
+.presence-member {
+  display: inline-flex;
+  align-items: center;
+}
+
+.presence-status {
+  gap: 5px;
+  font-weight: 700;
+}
+
+.presence-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--color-muted);
+}
+
+.presence-status--connected {
+  color: var(--color-success-text);
+}
+
+.presence-status--connected .presence-status-dot {
+  background: var(--color-success);
+}
+
+.presence-status--reconnecting {
+  color: var(--color-warning);
+}
+
+.presence-status--reconnecting .presence-status-dot {
+  background: var(--color-warning);
+}
+
+.presence-members {
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.presence-member {
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-muted) 12%, transparent);
+  color: var(--color-text);
+  font-size: .78rem;
+  font-weight: 700;
+}
+
+.presence-member--editing {
+  background: color-mix(in srgb, var(--color-primary) 16%, transparent);
 }
 
 .sharing-box {

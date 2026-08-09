@@ -47,6 +47,9 @@
           :can-manage-active="canManageActiveCloudDraft"
           :can-edit-active="canEditActiveCloudDraft"
           :has-unsaved-changes="hasActiveCloudDraftChanges"
+          :presence-members="presenceMembers"
+          :realtime-connected="realtimeConnected"
+          :realtime-error="realtimeError"
           @save="saveCloudDraftFromWorkspace"
           @load="loadSelectedCloudDraftFromWorkspace"
           @delete-draft="deleteSelectedCloudDraftFromWorkspace"
@@ -499,6 +502,7 @@ const {
   removeDeletedCloudDraft,
   loadCloudDrafts,
   loadCloudDraft,
+  refreshActiveCloudDraftMetadata,
   saveActiveCloudDraft,
   saveActiveCloudDraftAsNew,
   setCloudDraftReviewStatus,
@@ -520,6 +524,22 @@ const {
     commentsDrawerOpen.value = false
   }
 })
+
+const {
+  presenceMembers,
+  realtimeConnected,
+  realtimeError,
+  activateDraft: activateDraftPresence,
+  deactivateDraft: deactivateDraftPresence
+} = useDraftPresence(hasActiveCloudDraftChanges)
+
+watch(
+  () => activeCloudDraft.value?.publicId || '',
+  (draftId) => {
+    if (draftId) activateDraftPresence(draftId)
+    else deactivateDraftPresence()
+  }
+)
 
 const cloudDraftQuestionCommentCounts = computed(() => openCommentCountsByQuestion(activeCloudDraft.value?.comments || []))
 const exportReadinessItems = computed(() => buildExportReadinessItems({
@@ -574,8 +594,9 @@ watch(isAuthenticated, (authenticated) => {
 
 if (import.meta.client) {
   for (const event of ['draft.updated', 'draft.review.updated', 'draft.comment.created', 'draft.comment.updated']) {
-    onRealtimeEvent(event, handleDraftRealtimeEvent)
+    onRealtimeEvent(event, payload => handleDraftRealtimeEvent(event, payload))
   }
+  onRealtimeEvent('draft.collaborators.updated', payload => handleDraftRealtimeEvent('draft.collaborators.updated', payload))
   onRealtimeEvent('draft.deleted', handleDraftDeletedRealtimeEvent)
 }
 
@@ -721,14 +742,21 @@ function onQuestionsImported () {
   void loadCurrentPage(1)
 }
 
-function handleDraftRealtimeEvent (payload: unknown) {
+async function handleDraftRealtimeEvent (event: string, payload: unknown) {
   if (!isRecord(payload)) return
   if (canReadPapers.value) void loadCloudDrafts()
   const draftId = typeof payload.draftId === 'string' ? payload.draftId : ''
   const actorId = typeof payload.actorId === 'number' ? payload.actorId : null
-  if (draftId && draftId === activeCloudDraft.value?.publicId && actorId !== user.value?.id) {
-    cloudDraftConflict.value = true
+  if (!draftId || draftId !== activeCloudDraft.value?.publicId || actorId === user.value?.id) return
+  if (event === 'draft.comment.created' || event === 'draft.comment.updated' || event === 'draft.collaborators.updated') {
+    await refreshActiveCloudDraftMetadata()
+    return
   }
+  if (hasActiveCloudDraftChanges.value) {
+    cloudDraftConflict.value = true
+    return
+  }
+  await loadCloudDraft(draftId)
 }
 
 function handleDraftDeletedRealtimeEvent (payload: unknown) {

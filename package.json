@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "build": "node scripts/run-nuxi.mjs build",
-    "check": "npm run check:runtime-config && npm run check:data-model && npm run check:e2e-lock && node scripts/check-auth-ssr-state.mjs && node scripts/check-csp-hardening.mjs && node scripts/check-paper-domain.mjs && node scripts/check-shared-drafts.mjs && node scripts/check-paper-persistence-flow.mjs && node scripts/check-realtime-backoff.mjs && node scripts/run-nuxi.mjs build",
+    "check": "npm run check:runtime-config && npm run check:data-model && npm run check:e2e-lock && node scripts/check-auth-ssr-state.mjs && node scripts/check-csp-hardening.mjs && node scripts/check-paper-domain.mjs && node scripts/check-shared-drafts.mjs && node scripts/check-paper-persistence-flow.mjs && node scripts/check-realtime-backoff.mjs && node scripts/check-realtime-presence-contract.mjs && node scripts/run-nuxi.mjs build",
     "verify": "npm run contract:check && npm run lint && npm run typecheck && npm run check",
     "verify:ci": "npm run verify && npm run check:dependencies && npm run e2e:fullstack",
     "contract:generate": "openapi-typescript contracts/openapi.json --output app/generated/cloud-api.d.ts --alphabetize",
@@ -15,6 +15,7 @@
     "check:paper-domain": "node scripts/check-paper-domain.mjs",
     "check:shared-drafts": "node scripts/check-shared-drafts.mjs",
     "check:realtime-backoff": "node scripts/check-realtime-backoff.mjs",
+    "check:realtime-presence": "node scripts/check-realtime-presence-contract.mjs",
     "check:auth-ssr-state": "node scripts/check-auth-ssr-state.mjs",
     "check:data-model": "node scripts/check-data-model-contract.mjs",
     "check:e2e-lock": "node scripts/check-e2e-backend-lock.mjs",

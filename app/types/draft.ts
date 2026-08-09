@@ -11,6 +11,12 @@ export interface DraftUserRef {
   displayName: string
 }
 
+export interface DraftPresenceMember {
+  user: DraftUserRef
+  activity: 'viewing' | 'editing'
+  lastSeenAt: string
+}
+
 export interface DraftCollaborator {
   user: DraftUserRef
   role: DraftCollaboratorRole

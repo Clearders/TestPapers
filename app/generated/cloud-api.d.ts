@@ -414,7 +414,8 @@ export interface paths {
         delete: operations["unsubscribe"];
         options?: never;
         head?: never;
-        patch?: never;
+        /** Patch Subscription */
+        patch: operations["patch_subscription"];
         trace?: never;
     };
     "/api/v1/banks/{bank_public_id}/versions": {
@@ -831,6 +832,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/public/banks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Public Bank Snapshots */
+        get: operations["list_public_bank_snapshots"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/banks/{bank_public_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Public Bank Snapshot */
+        get: operations["get_public_bank_snapshot"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/questions": {
         parameters: {
             query?: never;
@@ -1142,6 +1177,16 @@ export interface components {
              * @enum {string}
              */
             event: "auth.connected";
+            /**
+             * Eventid
+             * Format: uuid
+             */
+            eventId?: string;
+            /**
+             * Occurredat
+             * Format: date-time
+             */
+            occurredAt?: string;
             payload: components["schemas"]["AuthConnectedPayload"];
         };
         /** AuthConnectedPayload */
@@ -1189,6 +1234,11 @@ export interface components {
             /** Questionids */
             questionIds: string[];
         };
+        /**
+         * BankListScope
+         * @enum {string}
+         */
+        BankListScope: "visible" | "owned" | "subscribed" | "public";
         /** BankMemberCreate */
         BankMemberCreate: {
             role: components["schemas"]["BankRole"];
@@ -1234,6 +1284,8 @@ export interface components {
             };
             /** Version */
             version: number;
+            /** Withdrawnat */
+            withdrawnAt?: string | null;
         };
         /**
          * BankRole
@@ -1249,8 +1301,20 @@ export interface components {
              * Format: date-time
              */
             createdAt: string;
+            /**
+             * Updatedat
+             * Format: date-time
+             */
+            updatedAt: string;
             /** Userid */
             userId: number;
+            /** Version */
+            version?: number | null;
+        };
+        /** BankSubscriptionUpdate */
+        BankSubscriptionUpdate: {
+            /** Version */
+            version: number;
         };
         /** BankUpdate */
         BankUpdate: {
@@ -1279,10 +1343,17 @@ export interface components {
             createdBy?: components["schemas"]["BankUserRef"] | null;
             /** Id */
             id: number;
+            /**
+             * Isactive
+             * @default false
+             */
+            isActive: boolean;
             /** Publicid */
             publicId: string;
             /** Version */
             version: number;
+            /** Withdrawnat */
+            withdrawnAt?: string | null;
         };
         /**
          * BankVisibility
@@ -1332,6 +1403,16 @@ export interface components {
              * @enum {string}
              */
             event: "draft.comment.created" | "draft.comment.updated" | "draft.review.updated" | "draft.updated";
+            /**
+             * Eventid
+             * Format: uuid
+             */
+            eventId?: string;
+            /**
+             * Occurredat
+             * Format: date-time
+             */
+            occurredAt?: string;
             payload: components["schemas"]["DraftChangedPayload"];
         };
         /** DraftChangedPayload */
@@ -1350,6 +1431,25 @@ export interface components {
          * @enum {string}
          */
         DraftCollaboratorRole: "viewer" | "editor";
+        /** DraftCollaboratorsUpdatedEvent */
+        DraftCollaboratorsUpdatedEvent: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            event: "draft.collaborators.updated";
+            /**
+             * Eventid
+             * Format: uuid
+             */
+            eventId?: string;
+            /**
+             * Occurredat
+             * Format: date-time
+             */
+            occurredAt?: string;
+            payload: components["schemas"]["DraftChangedPayload"];
+        };
         /**
          * DraftCommentStatus
          * @enum {string}
@@ -1362,6 +1462,16 @@ export interface components {
              * @enum {string}
              */
             event: "draft.deleted";
+            /**
+             * Eventid
+             * Format: uuid
+             */
+            eventId?: string;
+            /**
+             * Occurredat
+             * Format: date-time
+             */
+            occurredAt?: string;
             payload: components["schemas"]["DraftDeletedPayload"];
         };
         /** DraftDeletedPayload */
@@ -1371,11 +1481,86 @@ export interface components {
             /** Draftid */
             draftId: string;
         };
+        /** DraftPresenceMember */
+        DraftPresenceMember: {
+            /**
+             * Activity
+             * @enum {string}
+             */
+            activity: "viewing" | "editing";
+            /**
+             * Lastseenat
+             * Format: date-time
+             */
+            lastSeenAt: string;
+            user: components["schemas"]["DraftUserRef"];
+        };
+        /** DraftPresenceSnapshotEvent */
+        DraftPresenceSnapshotEvent: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            event: "draft.presence.snapshot";
+            /**
+             * Eventid
+             * Format: uuid
+             */
+            eventId?: string;
+            /**
+             * Occurredat
+             * Format: date-time
+             */
+            occurredAt?: string;
+            payload: components["schemas"]["DraftPresenceSnapshotPayload"];
+        };
+        /** DraftPresenceSnapshotPayload */
+        DraftPresenceSnapshotPayload: {
+            /** Draftid */
+            draftId: string;
+            /** Members */
+            members: components["schemas"]["DraftPresenceMember"][];
+        };
+        /** DraftPresenceUpdateEvent */
+        DraftPresenceUpdateEvent: {
+            /**
+             * Activity
+             * @enum {string}
+             */
+            activity: "viewing" | "editing";
+            /** Draftid */
+            draftId: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            event: "draft.presence.update";
+        };
         /**
          * DraftReviewStatus
          * @enum {string}
          */
         DraftReviewStatus: "draft" | "in_review" | "changes_requested" | "approved";
+        /** DraftSubscribeEvent */
+        DraftSubscribeEvent: {
+            /** Draftid */
+            draftId: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            event: "draft.subscribe";
+        };
+        /** DraftUnsubscribeEvent */
+        DraftUnsubscribeEvent: {
+            /** Draftid */
+            draftId: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            event: "draft.unsubscribe";
+        };
         /** DraftUserRef */
         DraftUserRef: {
             /** Displayname */
@@ -1471,6 +1656,18 @@ export interface components {
         Envelope_list_PaperDraftSummary__: {
             /** Data */
             data: components["schemas"]["PaperDraftSummary"][];
+            meta: components["schemas"]["MetaInfo"];
+            /**
+             * Success
+             * @default true
+             * @constant
+             */
+            success: true;
+        };
+        /** Envelope[list[PublicBankSummary]] */
+        Envelope_list_PublicBankSummary__: {
+            /** Data */
+            data: components["schemas"]["PublicBankSummary"][];
             meta: components["schemas"]["MetaInfo"];
             /**
              * Success
@@ -1595,6 +1792,17 @@ export interface components {
              */
             success: true;
         };
+        /** Envelope[PublicBankDetail] */
+        Envelope_PublicBankDetail_: {
+            data: components["schemas"]["PublicBankDetail"];
+            meta: components["schemas"]["MetaInfo"];
+            /**
+             * Success
+             * @default true
+             * @constant
+             */
+            success: true;
+        };
         /** Envelope[QuestionBankEntity] */
         Envelope_QuestionBankEntity_: {
             data: components["schemas"]["QuestionBankEntity"];
@@ -1692,6 +1900,16 @@ export interface components {
              * @enum {string}
              */
             event: "error";
+            /**
+             * Eventid
+             * Format: uuid
+             */
+            eventId?: string;
+            /**
+             * Occurredat
+             * Format: date-time
+             */
+            occurredAt?: string;
             payload: components["schemas"]["ErrorPayload"];
         };
         /** ErrorPayload */
@@ -1802,6 +2020,16 @@ export interface components {
              * @enum {string}
              */
             event: "paper.created" | "paper.updated";
+            /**
+             * Eventid
+             * Format: uuid
+             */
+            eventId?: string;
+            /**
+             * Occurredat
+             * Format: date-time
+             */
+            occurredAt?: string;
             payload: components["schemas"]["PaperChangedPayload"];
         };
         /** PaperChangedPayload */
@@ -2191,6 +2419,16 @@ export interface components {
              * @enum {string}
              */
             event: "paper.question.removed";
+            /**
+             * Eventid
+             * Format: uuid
+             */
+            eventId?: string;
+            /**
+             * Occurredat
+             * Format: date-time
+             */
+            occurredAt?: string;
             payload: components["schemas"]["PaperQuestionRemovedPayload"];
         };
         /** PaperQuestionRemovedPayload */
@@ -2210,6 +2448,16 @@ export interface components {
              * @enum {string}
              */
             event: "paper.questions.added" | "paper.questions.reordered";
+            /**
+             * Eventid
+             * Format: uuid
+             */
+            eventId?: string;
+            /**
+             * Occurredat
+             * Format: date-time
+             */
+            occurredAt?: string;
             payload: components["schemas"]["PaperQuestionsChangedPayload"];
         };
         /** PaperQuestionsChangedPayload */
@@ -2251,6 +2499,16 @@ export interface components {
              * @enum {string}
              */
             event: "pong";
+            /**
+             * Eventid
+             * Format: uuid
+             */
+            eventId?: string;
+            /**
+             * Occurredat
+             * Format: date-time
+             */
+            occurredAt?: string;
             payload: components["schemas"]["PongPayload"];
         };
         /** PongPayload */
@@ -2268,6 +2526,64 @@ export interface components {
             /** Username */
             username?: string | null;
         };
+        /** PublicBankDetail */
+        PublicBankDetail: {
+            /** Description */
+            description: string;
+            /**
+             * Itemcount
+             * @default 0
+             */
+            itemCount: number;
+            /** Name */
+            name: string;
+            owner?: components["schemas"]["BankUserRef"] | null;
+            /** Publicid */
+            publicId: string;
+            /**
+             * Publishedat
+             * Format: date-time
+             */
+            publishedAt: string;
+            /** State */
+            state: {
+                [key: string]: unknown;
+            };
+            /**
+             * Subscribercount
+             * @default 0
+             */
+            subscriberCount: number;
+            /** Version */
+            version: number;
+        };
+        /** PublicBankSummary */
+        PublicBankSummary: {
+            /** Description */
+            description: string;
+            /**
+             * Itemcount
+             * @default 0
+             */
+            itemCount: number;
+            /** Name */
+            name: string;
+            owner?: components["schemas"]["BankUserRef"] | null;
+            /** Publicid */
+            publicId: string;
+            /**
+             * Publishedat
+             * Format: date-time
+             */
+            publishedAt: string;
+            /**
+             * Subscribercount
+             * @default 0
+             */
+            subscriberCount: number;
+            /** Version */
+            version: number;
+        };
         /** QuestionBankEntity */
         QuestionBankEntity: {
             accessRole: components["schemas"]["BankAccessRole"];
@@ -2278,8 +2594,18 @@ export interface components {
             createdAt: string;
             /** Description */
             description: string;
+            /**
+             * Hasupdate
+             * @default false
+             */
+            hasUpdate: boolean;
             /** Id */
             id: number;
+            /**
+             * Issubscribed
+             * @default false
+             */
+            isSubscribed: boolean;
             /**
              * Itemcount
              * @default 0
@@ -2297,6 +2623,8 @@ export interface components {
             owner?: components["schemas"]["BankUserRef"] | null;
             /** Publicid */
             publicId: string;
+            /** Subscribedversion */
+            subscribedVersion?: number | null;
             /**
              * Subscribercount
              * @default 0
@@ -2321,8 +2649,18 @@ export interface components {
             createdAt: string;
             /** Description */
             description: string;
+            /**
+             * Hasupdate
+             * @default false
+             */
+            hasUpdate: boolean;
             /** Id */
             id: number;
+            /**
+             * Issubscribed
+             * @default false
+             */
+            isSubscribed: boolean;
             /**
              * Itemcount
              * @default 0
@@ -2338,6 +2676,8 @@ export interface components {
             owner?: components["schemas"]["BankUserRef"] | null;
             /** Publicid */
             publicId: string;
+            /** Subscribedversion */
+            subscribedVersion?: number | null;
             /**
              * Subscribercount
              * @default 0
@@ -2359,6 +2699,16 @@ export interface components {
              * @enum {string}
              */
             event: "question.created" | "question.updated";
+            /**
+             * Eventid
+             * Format: uuid
+             */
+            eventId?: string;
+            /**
+             * Occurredat
+             * Format: date-time
+             */
+            occurredAt?: string;
             payload: components["schemas"]["QuestionChangedPayload"];
         };
         /** QuestionChangedPayload */
@@ -2439,6 +2789,16 @@ export interface components {
              * @enum {string}
              */
             event: "question.deleted";
+            /**
+             * Eventid
+             * Format: uuid
+             */
+            eventId?: string;
+            /**
+             * Occurredat
+             * Format: date-time
+             */
+            occurredAt?: string;
             payload: components["schemas"]["QuestionDeletedPayload"];
         };
         /** QuestionDeletedPayload */
@@ -2578,7 +2938,7 @@ export interface components {
             text?: string | null;
             type?: components["schemas"]["QuestionType"] | null;
         };
-        RealtimeClientMessage: components["schemas"]["RealtimePing"];
+        RealtimeClientMessage: components["schemas"]["RealtimePing"] | components["schemas"]["DraftSubscribeEvent"] | components["schemas"]["DraftUnsubscribeEvent"] | components["schemas"]["DraftPresenceUpdateEvent"];
         /** RealtimePing */
         RealtimePing: {
             /**
@@ -2587,7 +2947,7 @@ export interface components {
              */
             event: "ping";
         };
-        RealtimeServerMessage: components["schemas"]["AuthConnectedEvent"] | components["schemas"]["ErrorEvent"] | components["schemas"]["PongEvent"] | components["schemas"]["QuestionChangedEvent"] | components["schemas"]["QuestionDeletedEvent"] | components["schemas"]["PaperChangedEvent"] | components["schemas"]["PaperQuestionsChangedEvent"] | components["schemas"]["PaperQuestionRemovedEvent"] | components["schemas"]["DraftChangedEvent"] | components["schemas"]["DraftDeletedEvent"];
+        RealtimeServerMessage: components["schemas"]["AuthConnectedEvent"] | components["schemas"]["ErrorEvent"] | components["schemas"]["PongEvent"] | components["schemas"]["QuestionChangedEvent"] | components["schemas"]["QuestionDeletedEvent"] | components["schemas"]["PaperChangedEvent"] | components["schemas"]["PaperQuestionsChangedEvent"] | components["schemas"]["PaperQuestionRemovedEvent"] | components["schemas"]["DraftChangedEvent"] | components["schemas"]["DraftDeletedEvent"] | components["schemas"]["DraftPresenceSnapshotEvent"] | components["schemas"]["DraftCollaboratorsUpdatedEvent"];
         /** RefreshTokenRequest */
         RefreshTokenRequest: {
             /** Refreshtoken */
@@ -3564,7 +3924,11 @@ export interface operations {
     };
     list_banks: {
         parameters: {
-            query?: never;
+            query?: {
+                q?: string | null;
+                scope?: components["schemas"]["BankListScope"];
+                visibility?: components["schemas"]["BankVisibility"] | null;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -4628,6 +4992,86 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The caller is not allowed to perform this operation. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The requested resource was not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The write rate limit was exceeded. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unexpected server error. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    patch_subscription: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                bank_public_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BankSubscriptionUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope_BankSubscriptionEntity_"];
+                };
             };
             /** @description Authentication is required. */
             401: {
@@ -6798,6 +7242,95 @@ export interface operations {
             };
             /** @description The write rate limit was exceeded. */
             429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unexpected server error. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    list_public_bank_snapshots: {
+        parameters: {
+            query?: {
+                q?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope_list_PublicBankSummary__"];
+                };
+            };
+            /** @description Request validation failed. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unexpected server error. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_public_bank_snapshot: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                bank_public_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope_PublicBankDetail_"];
+                };
+            };
+            /** @description The requested resource was not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed. */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };

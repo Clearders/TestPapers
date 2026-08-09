@@ -1,10 +1,10 @@
 {
-  "apiVersion": "1.0.0",
+  "apiVersion": "1.1.0",
   "source": {
     "repository": "https://github.com/Clearders/TestPaper-backend",
-    "ref": "api-v1.0.0",
-    "commit": "a45812a867743dd3160c3ca173510363ab889e08",
-    "sha256": "0ef341f29c8f83d3b1f8ed7b6de9380b518bce9f1ab23057a526475e7be4b5b8"
+    "ref": "api-v1.1.0",
+    "commit": "3d173f0bc338f8ee22175569542d4d45ba7f5f94",
+    "sha256": "376738f5c3cdebed61e4fe3be9864e9d1c5fc82f9bfaa122c77c4a6c24c10a1f"
   },
   "generator": {
     "name": "openapi-typescript",

@@ -1,9 +1,9 @@
 # TestPapers API Reference
 
-> Version: v11  
+> Version: v1.1.0
 > Backend: FastAPI 0.136 / Python 3.13+  
 > Frontend: Nuxt 4.4 / TypeScript  
-> Last updated: 2026-07-05
+> Last updated: 2026-08-09
 
 This document reflects the current FastAPI implementation in `TestPaper-backend/testpaper_backend/api/routes` and the Pydantic schemas in `testpaper_backend/schemas`.
 
@@ -57,7 +57,7 @@ Errors use the same envelope shape:
 
 Shared paper drafts use the existing paper permissions plus draft-level access roles. Creating a shared draft requires `papers:write`; listing, reading, commenting on, and downloading accessible drafts require `papers:read`. Draft owners and admins can rename, delete, and manage collaborators. Draft editors can update draft content and move a draft to `in_review`; draft viewers can read and comment only. Admins can access all shared drafts.
 
-Question banks use the `banks:*` permissions plus bank-level access roles. Creating a bank requires `banks:write`; publishing and withdrawing require `banks:publish` plus owner/admin bank role; deleting requires `banks:delete` plus owner/admin bank role. Bank access roles are `owner`, `admin`, `editor`, and `viewer`; any authenticated user can read `public` banks.
+Question banks use the `banks:*` permissions plus bank-level access roles. Creating a bank requires `banks:write`; publishing and withdrawing require `banks:publish` plus owner/admin bank role; deleting requires `banks:delete` plus owner/admin bank role. Bank access roles are `owner`, `admin`, `editor`, and `viewer`; any authenticated user can read `public` banks. The public snapshot endpoints below are anonymous and expose only active public publications with answers redacted.
 
 ## Pagination
 
@@ -505,6 +505,17 @@ Bank access roles: `owner` (bank creator), `admin` (any user with `users:manage`
 | `PATCH` | `/api/v1/banks/{bank_public_id}` | owner/admin bank role | Updates name, description, or visibility (visibility requires owner) |
 | `DELETE` | `/api/v1/banks/{bank_public_id}` | `banks:delete` plus owner/admin bank role | Deletes a bank and cascades items/members/publications/subscriptions, returns `204` |
 
+`GET /api/v1/banks` accepts optional `q`, `visibility` (`private`, `team`, or `public`), and `scope` (`visible`, `owned`, `subscribed`, or `public`; default `visible`). `q` is a trimmed, case-insensitive name/description search. Summaries add `isSubscribed`, `subscribedVersion`, and `hasUpdate`; `hasUpdate` is true only when the caller's pinned subscription is behind the active publication.
+
+### Anonymous Public Discovery
+
+| Method | Path | Auth | Description |
+| --- | --- | --- | --- |
+| `GET` | `/api/v1/public/banks` | none | Lists active public snapshots; optional `q` filters name and description |
+| `GET` | `/api/v1/public/banks/{bank_public_id}` | none | Reads the current active public snapshot |
+
+These routes expose only public ID, name, description, owner display data, active version, publication time, item and subscriber counts, and immutable snapshot state. Snapshot answers are always redacted for anonymous callers. A private, team-only, unpublished, withdrawn, or unknown bank returns `404 BANK_NOT_FOUND`; the response intentionally does not reveal which condition applied.
+
 `BankCreate` body:
 
 | Field | Type | Required | Notes |
@@ -540,19 +551,22 @@ Member create body: `{ "username": "teacher2", "role": "editor" }`. The bank own
 | Method | Path | Permission | Description |
 | --- | --- | --- | --- |
 | `POST` | `/api/v1/banks/{bank_public_id}/publish` | `banks:publish` plus owner/admin bank role | Creates an immutable versioned snapshot (`state` JSONB); empty banks return `422 BANK_PUBLISH_EMPTY`; already published banks return `409 BANK_ALREADY_PUBLISHED` |
-| `POST` | `/api/v1/banks/{bank_public_id}/withdraw` | `banks:publish` plus owner/admin bank role | Removes the latest active publication; unpublished banks return `409 BANK_NOT_PUBLISHED` |
+| `POST` | `/api/v1/banks/{bank_public_id}/withdraw` | `banks:publish` plus owner/admin bank role | Timestamps and withdraws the active publication; unpublished banks return `409 BANK_NOT_PUBLISHED` |
 | `GET` | `/api/v1/banks/{bank_public_id}/versions` | bank read access | Lists published version summaries |
 | `GET` | `/api/v1/banks/{bank_public_id}/versions/{version}` | bank read access | Reads an immutable snapshot; unknown versions return `404 BANK_VERSION_NOT_FOUND` |
 
-A published snapshot is immutable: later edits to the bank do not change previously published versions. Snapshot reads go through the shared redaction entry point `load_bank_snapshot`: without `answers:read`, `items[].data.answer` is returned as `[redacted]` (or `["[redacted]"]` for multiple-choice questions) and the stored snapshot is never mutated.
+A published snapshot is immutable: later edits to the bank do not change previously published versions. Withdrawal retains the version in history (`withdrawnAt` is set and `isActive` becomes false); republishing after withdrawal allocates the next version. Snapshot reads go through the shared redaction entry point `load_bank_snapshot`: without `answers:read`, `items[].data.answer` is returned as `[redacted]` (or `["[redacted]"]` for multiple-choice questions) and the stored snapshot is never mutated.
 
 ### Subscribe and Fork
 
 | Method | Path | Permission | Description |
 | --- | --- | --- | --- |
-| `POST` | `/api/v1/banks/{bank_public_id}/subscribe` | authenticated | Subscribes to a `public` or `team`-visible bank; `private` banks return `422 BANK_SUBSCRIBE_PRIVATE`; idempotent |
+| `POST` | `/api/v1/banks/{bank_public_id}/subscribe` | authenticated | Subscribes to a `public` or team-visible bank and pins a new subscription to the active publication; `private` banks return `422 BANK_SUBSCRIBE_PRIVATE`; idempotent and never silently advances an existing subscription |
+| `PATCH` | `/api/v1/banks/{bank_public_id}/subscribe` | authenticated | Explicitly advances a subscription to the current active version using `{ "version": 2 }` |
 | `DELETE` | `/api/v1/banks/{bank_public_id}/subscribe` | authenticated | Unsubscribes, returns `204` |
 | `POST` | `/api/v1/banks/{bank_public_id}/fork` | bank read access | Forks a published version into a new `private` bank owned by the caller, returns `201` |
+
+`BankSubscriptionEntity` returns `bankId`, `userId`, pinned `version`, `createdAt`, and `updatedAt`. The patch accepts a positive version number and succeeds without mutation when the caller is already pinned to it. It returns `404 BANK_SUBSCRIPTION_NOT_FOUND` when the caller has no subscription, `404 BANK_VERSION_NOT_FOUND` when the version does not exist, and `409 BANK_VERSION_NOT_ACTIVE` unless the requested version is the bank's current active publication. Subscription updates only move the pin; they never alter questions or forks.
 
 `BankForkRequest` body: `{ "version": 1 }` — `version` is optional and defaults to the latest publication. Fork copies question records (new public IDs) rather than references, so the fork is independent of the original bank. Forking reads through `load_bank_snapshot`, so a caller without `answers:read` gets copied questions whose answers are `[redacted]` — forking can never bypass answer permissions. Banks with no published version return `409 BANK_NOT_PUBLISHED`.
 
@@ -600,6 +614,28 @@ Authentication priority:
 
 On connect, the server sends `auth.connected`. Clients may send `{ "event": "ping" }`; the server replies with `{ "event": "pong" }`. The per-IP connection limit is 10 concurrent WebSocket connections.
 
+All server-originated events include `eventId` (a stable event identifier) and `occurredAt` (an ISO 8601 timestamp). Clients must keep a bounded recent-ID cache and ignore replayed events, including those received after reconnect.
+
+### Draft Presence (CLE-21)
+
+Presence is ephemeral runtime state, not a persisted draft field or audit record. It is stored in Redis so active members are visible across API instances; a client renews its subscription every 15 seconds and entries expire after 45 seconds. If Redis is unavailable, the backend falls back to instance-local presence and clients display reconnecting/degraded status until Redis recovers.
+
+Draft presence messages require read access to the identified draft:
+
+| Direction | Event | Required payload | Behavior |
+| --- | --- | --- | --- |
+| Client → server | `draft.subscribe` | `draftPublicId` | Begins presence tracking and returns the current authoritative snapshot. |
+| Client → server | `draft.unsubscribe` | `draftPublicId` | Stops presence tracking for that socket. |
+| Client → server | `draft.presence.update` | `draftPublicId`, `activity` (`viewing` or `editing`) | Renews presence and updates the member activity. |
+| Server → client | `draft.presence.snapshot` | `draftPublicId`, `members` | Authoritative online-member list; each member contains `user`, `activity`, and `lastSeenAt`. |
+| Server → client | `draft.collaborators.updated` | `draftPublicId`, collaborator metadata | Signals collaborator/access changes without replacing local draft content. |
+
+Connections resubscribe to the active draft after reconnect. A user with multiple open windows appears once; their activity is `editing` while any active window reports unsaved editing, otherwise `viewing`.
+
+### Draft Reconciliation
+
+`baseRevision` optimistic locking remains authoritative for persisted draft writes. On `draft.updated`, clients without local changes load the current revision. Clients with local changes retain their workspace, mark it stale, and must either load the latest revision or save the workspace as a new draft. Comment, collaborator, review, and presence events refresh only their relevant metadata; they never overwrite locally edited draft state.
+
 Broadcast events:
 
 | Event | Trigger |
@@ -617,6 +653,8 @@ Broadcast events:
 | `draft.review.updated` | Shared draft review status changed |
 | `draft.comment.created` | Shared draft comment added |
 | `draft.comment.updated` | Shared draft comment edited or resolved |
+| `draft.presence.snapshot` | Authoritative online draft-member snapshot |
+| `draft.collaborators.updated` | Shared draft collaborator or access change |
 
 ## Health and Root
 
@@ -780,6 +818,7 @@ interface PaperDraftDetail extends PaperDraftSummary {
 | 404 | `COMMENT_NOT_FOUND` | Draft comment does not exist |
 | 404 | `BANK_NOT_FOUND` | Bank does not exist or is not accessible |
 | 404 | `BANK_VERSION_NOT_FOUND` | Bank version does not exist |
+| 404 | `BANK_SUBSCRIPTION_NOT_FOUND` | Caller has no subscription to the bank |
 | 404 | `BANK_ITEM_NOT_FOUND` | Question is not in the bank |
 | 404 | `MEMBER_NOT_FOUND` | Bank member does not exist |
 | 409 | `QUESTION_ALREADY_IN_PAPER` | Question already belongs to the paper |
@@ -788,6 +827,7 @@ interface PaperDraftDetail extends PaperDraftSummary {
 | 409 | `BANK_ITEM_EXISTS` | One or more questions already exist in the bank |
 | 409 | `BANK_ALREADY_PUBLISHED` | Bank is already published; withdraw before publishing again |
 | 409 | `BANK_NOT_PUBLISHED` | Bank is not published or has no version to fork |
+| 409 | `BANK_VERSION_NOT_ACTIVE` | Only the current active publication can be selected for a subscription |
 | 413 | `PAYLOAD_TOO_LARGE` | Upload exceeds size limit |
 | 422 | `DRAFT_OPEN_COMMENTS` | Shared draft cannot be approved until open comments are resolved |
 | 422 | `BANK_PUBLISH_EMPTY` | Bank must contain at least one question before publishing |
@@ -860,6 +900,8 @@ interface PaperDraftDetail extends PaperDraftSummary {
 | `POST` | `/api/v1/drafts/{draft_public_id}/comments` | draft access | Add draft comment |
 | `PATCH` | `/api/v1/drafts/{draft_public_id}/comments/{comment_public_id}` | draft access | Update draft comment |
 | `GET` | `/api/v1/drafts/{draft_public_id}/download` | `papers:read` | Download DOCX from a cloud draft |
+| `GET` | `/api/v1/public/banks` | none | Discover active public bank snapshots |
+| `GET` | `/api/v1/public/banks/{bank_public_id}` | none | Read an active public bank snapshot |
 | `GET` | `/api/v1/banks` | authenticated | List question banks |
 | `POST` | `/api/v1/banks` | `banks:write` | Create question bank |
 | `GET` | `/api/v1/banks/{bank_public_id}` | bank read access | Question bank detail |
@@ -877,6 +919,7 @@ interface PaperDraftDetail extends PaperDraftSummary {
 | `GET` | `/api/v1/banks/{bank_public_id}/versions/{version}` | bank read access | Bank version snapshot |
 | `POST` | `/api/v1/banks/{bank_public_id}/fork` | bank read access | Fork bank |
 | `POST` | `/api/v1/banks/{bank_public_id}/subscribe` | authenticated | Subscribe to bank |
+| `PATCH` | `/api/v1/banks/{bank_public_id}/subscribe` | authenticated | Advance pinned subscription to active version |
 | `DELETE` | `/api/v1/banks/{bank_public_id}/subscribe` | authenticated | Unsubscribe from bank |
 | `POST` | `/api/v1/tasks/ping` | `questions:read` | Worker check |
 | `GET` | `/api/v1/tasks/{task_id}` | `questions:read` | Task status |

@@ -67,6 +67,10 @@ export function useWorkspaceDraft (params: UseWorkspaceDraftParams) {
   }
 
   function createWorkspaceDraft () {
+    // Touch nested reactive fields before buildWorkspaceDraft unwraps Vue proxies.
+    // This keeps consumers such as cloud-draft dirty state and presence activity
+    // reactive to in-place edits instead of only to top-level object replacement.
+    void JSON.stringify({ paper, generationForm, generationDiagnostics: generationDiagnostics.value })
     return buildWorkspaceDraft({
       paper,
       generationForm,

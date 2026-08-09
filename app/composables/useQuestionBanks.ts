@@ -1,12 +1,15 @@
 import type {
   BankForkPayload,
   BankItemAddPayload,
+  BankListQuery,
   BankMemberCreatePayload,
   BankMemberUpdatePayload,
   BankPublication,
   BankSubscription,
   BankUpdatePayload,
   BankVersionSummary,
+  PublicBankDetail,
+  PublicBankSummary,
   QuestionBank
 } from '~/types/bank'
 import type { QuestionEntity } from '~/types/question'
@@ -16,6 +19,7 @@ export function useQuestionBanks () {
   const banks = useState<QuestionBank[]>('shared-banks', () => [])
   const isLoading = useState<boolean>('shared-banks-loading', () => false)
   const error = useState<string>('shared-banks-error', () => '')
+  const publicBanks = useState<PublicBankSummary[]>('public-banks', () => [])
   const { hasPermission } = useAuth()
   const { apiFetch } = useApi()
 
@@ -40,11 +44,11 @@ export function useQuestionBanks () {
     }
   }
 
-  async function loadBanks () {
+  async function loadBanks (query: BankListQuery = {}) {
     return run(async () => {
       isLoading.value = true
       try {
-        const response = await apiFetch<QuestionBank[]>('/banks', { method: 'GET' })
+        const response = await apiFetch<QuestionBank[]>('/banks', { method: 'GET', query: { ...query } })
         banks.value = response.data || []
         return banks.value
       } finally {
@@ -172,6 +176,13 @@ export function useQuestionBanks () {
   async function subscribe (publicId: string) {
     return run(async () => {
       const response = await apiFetch<BankSubscription>(`/banks/${publicId}/subscribe`, { method: 'POST' })
+      const bank = banks.value.find(item => item.publicId === publicId)
+      if (bank) {
+        bank.isSubscribed = true
+        bank.subscribedVersion = response.data.version
+        bank.hasUpdate = Boolean(bank.version && (response.data.version || 0) < bank.version)
+        bank.subscriberCount += 1
+      }
       return response.data
     }, 'Failed to subscribe to the bank.')
   }
@@ -179,11 +190,59 @@ export function useQuestionBanks () {
   async function unsubscribe (publicId: string) {
     return run(async () => {
       await apiFetch(`/banks/${publicId}/subscribe`, { method: 'DELETE' })
+      const bank = banks.value.find(item => item.publicId === publicId)
+      if (bank?.isSubscribed) {
+        bank.isSubscribed = false
+        bank.subscribedVersion = null
+        bank.hasUpdate = false
+        bank.subscriberCount = Math.max(0, bank.subscriberCount - 1)
+      }
     }, 'Failed to unsubscribe from the bank.')
+  }
+
+  async function updateSubscription (publicId: string, version: number) {
+    return run(async () => {
+      const response = await apiFetch<BankSubscription>(`/banks/${publicId}/subscribe`, {
+        method: 'PATCH',
+        body: { version }
+      })
+      const bank = banks.value.find(item => item.publicId === publicId)
+      if (bank) {
+        bank.isSubscribed = true
+        bank.subscribedVersion = response.data.version
+        bank.hasUpdate = Boolean(bank.version && (response.data.version || 0) < bank.version)
+      }
+      return response.data
+    }, 'Failed to update the bank subscription.')
+  }
+
+  async function loadPublicBanks (query: { q?: string } = {}) {
+    return run(async () => {
+      const response = await apiFetch<PublicBankSummary[]>('/public/banks', {
+        method: 'GET',
+        query,
+        auth: false,
+        retryOnUnauthorized: false
+      })
+      publicBanks.value = response.data || []
+      return publicBanks.value
+    }, 'Failed to load public question banks.')
+  }
+
+  async function getPublicBank (publicId: string) {
+    return run(async () => {
+      const response = await apiFetch<PublicBankDetail>(`/public/banks/${publicId}`, {
+        method: 'GET',
+        auth: false,
+        retryOnUnauthorized: false
+      })
+      return response.data
+    }, 'Failed to load the public question bank.')
   }
 
   return {
     banks,
+    publicBanks,
     isLoading,
     error,
     canCreateBanks: computed(() => hasPermission('banks:write')),
@@ -206,6 +265,9 @@ export function useQuestionBanks () {
     getVersion,
     forkBank,
     subscribe,
-    unsubscribe
+    unsubscribe,
+    updateSubscription,
+    loadPublicBanks,
+    getPublicBank
   }
 }

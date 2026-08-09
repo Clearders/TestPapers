@@ -2,12 +2,18 @@ import { buildRealtimeUrl } from '~/utils/apiEndpoint'
 import { createRealtimeReconnectBackoff } from '~/utils/realtimeBackoff'
 
 type RealtimeHandler = (payload: unknown) => void
+type RealtimeConnectedHandler = () => void
 type RealtimeStatus = 'idle' | 'connecting' | 'open' | 'reconnecting'
+
+const MAX_SEEN_EVENT_IDS = 500
 
 let socket: WebSocket | null = null
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null
 let heartbeatTimer: ReturnType<typeof setInterval> | null = null
 const handlers = new Map<string, Set<RealtimeHandler>>()
+const connectedHandlers = new Set<RealtimeConnectedHandler>()
+const seenEventIds = new Set<string>()
+const seenEventIdQueue: string[] = []
 const reconnectBackoff = createRealtimeReconnectBackoff()
 
 function getRealtimeUrl () {
@@ -19,6 +25,23 @@ function emit (event: string, payload: unknown) {
   const listeners = handlers.get(event)
   if (!listeners) return
   for (const handler of listeners) handler(payload)
+}
+
+function emitConnected () {
+  for (const handler of connectedHandlers) handler()
+}
+
+function hasSeenEvent (eventId: string) {
+  if (seenEventIds.has(eventId)) return true
+
+  seenEventIds.add(eventId)
+  seenEventIdQueue.push(eventId)
+  if (seenEventIdQueue.length > MAX_SEEN_EVENT_IDS) {
+    const oldestEventId = seenEventIdQueue.shift()
+    if (oldestEventId) seenEventIds.delete(oldestEventId)
+  }
+
+  return false
 }
 
 function clearTimers () {
@@ -85,6 +108,7 @@ export function useRealtime () {
       status.value = 'open'
       lastError.value = ''
       reconnectBackoff.markConnected()
+      emitConnected()
       if (heartbeatTimer) clearInterval(heartbeatTimer)
       heartbeatTimer = setInterval(() => {
         if (socket?.readyState === WebSocket.OPEN) {
@@ -100,8 +124,9 @@ export function useRealtime () {
 
     socket.onmessage = (event) => {
       try {
-        const message = JSON.parse(event.data) as { event?: string, payload?: unknown }
+        const message = JSON.parse(event.data) as { event?: string, eventId?: string, occurredAt?: string, payload?: unknown }
         if (!message.event) return
+        if (message.eventId && hasSeenEvent(message.eventId)) return
         emit(message.event, message.payload)
       } catch {
         // Ignore malformed realtime frames without breaking the connection.
@@ -145,11 +170,39 @@ export function useRealtime () {
     }
   }
 
+  function onConnected (handler: RealtimeConnectedHandler) {
+    connectedHandlers.add(handler)
+
+    if (getCurrentScope()) {
+      onScopeDispose(() => {
+        connectedHandlers.delete(handler)
+      })
+    }
+
+    return () => {
+      connectedHandlers.delete(handler)
+    }
+  }
+
+  function send (message: Record<string, unknown>) {
+    if (socket?.readyState !== WebSocket.OPEN) return false
+    try {
+      socket.send(JSON.stringify(message))
+      return true
+    } catch {
+      lastError.value = 'Live updates are temporarily unavailable. Reconnecting...'
+      socket.close()
+      return false
+    }
+  }
+
   return {
     connect,
     disconnect,
     isConnected,
     lastError,
-    on
+    on,
+    onConnected,
+    send
   }
 }

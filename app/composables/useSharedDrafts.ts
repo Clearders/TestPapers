@@ -186,6 +186,22 @@ export function useSharedDrafts (params: UseSharedDraftsParams) {
     }
   }
 
+  async function refreshActiveCloudDraftMetadata () {
+    const current = activeCloudDraft.value
+    if (!current) return null
+    try {
+      const response = await apiFetch<SharedDraft>(`/drafts/${current.publicId}`)
+      // Collaboration metadata may race with a content update. Keep the
+      // optimistic-lock baseline paired with its saved state so a later save
+      // still receives 409 instead of silently overwriting the newer revision.
+      rememberDraft({ ...response.data, state: current.state, revision: current.revision })
+      return response.data
+    } catch (error) {
+      cloudDraftError.value = apiErrorMessage(error, 'Failed to refresh cloud draft collaboration status.')
+      return null
+    }
+  }
+
   async function patchActiveCloudDraft (patch: Omit<SharedDraftUpdatePayload, 'baseRevision'>, fallback: string) {
     if (!activeCloudDraft.value) return await createCloudDraft()
     if (blockStaleMutation('This cloud draft changed elsewhere. Load latest or save as a new cloud draft before editing it.')) return null
@@ -392,6 +408,7 @@ export function useSharedDrafts (params: UseSharedDraftsParams) {
     loadCloudDrafts,
     createCloudDraft,
     loadCloudDraft,
+    refreshActiveCloudDraftMetadata,
     saveActiveCloudDraft,
     saveActiveCloudDraftAsNew,
     setCloudDraftReviewStatus,

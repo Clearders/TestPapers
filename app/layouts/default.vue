@@ -38,6 +38,10 @@
             <AppIcon name="book" />
             <span>Workspace</span>
           </NuxtLink>
+          <NuxtLink to="/banks" class="nav-link">
+            <AppIcon name="book" />
+            <span>Shared Banks</span>
+          </NuxtLink>
           <NuxtLink to="/latex" class="nav-link">
             <AppIcon name="latex" />
             <span>LaTeX Preview</span>
