@@ -78,7 +78,7 @@
         v-for="bank in banks"
         :key="bank.publicId"
         :bank="bank"
-        :subscribed="subscribedMap[bank.publicId] || false"
+        :subscribed="bank.isSubscribed"
         @open="openBank"
         @publish="onPublish(bank)"
         @withdraw="onWithdraw(bank)"
@@ -205,7 +205,6 @@ const bankQuestions = ref<QuestionEntity[]>([])
 const versions = ref<BankVersionSummary[]>([])
 const bankLoading = ref(false)
 const errorMessage = ref('')
-const subscribedMap = reactive<Record<string, boolean>>({})
 const newQuestionId = ref('')
 const addingItem = ref(false)
 
@@ -287,7 +286,6 @@ async function onSubscribe (bank: QuestionBank) {
   errorMessage.value = ''
   try {
     await subscribe(bank.publicId)
-    subscribedMap[bank.publicId] = true
   } catch (err) {
     errorMessage.value = apiErrorMessage(err, '订阅失败。')
   }
@@ -297,7 +295,6 @@ async function onUnsubscribe (bank: QuestionBank) {
   errorMessage.value = ''
   try {
     await unsubscribe(bank.publicId)
-    subscribedMap[bank.publicId] = false
   } catch (err) {
     errorMessage.value = apiErrorMessage(err, '取消订阅失败。')
   }
