@@ -24,7 +24,7 @@
       </div>
 
       <div v-if="question.images?.length" class="q-images">
-        <img
+        <RecoverableAttachmentImage
           v-for="(img, imgIdx) in question.images"
           :key="imgIdx"
           :src="img.url"
@@ -35,7 +35,7 @@
           class="q-image-thumb"
           loading="lazy"
           decoding="async"
-        >
+        />
       </div>
 
       <p v-if="question.source" class="q-source">Source: {{ question.source }}</p>
@@ -386,7 +386,7 @@ function formatStatus (status: string) {
   gap: 8px;
   margin-top: 4px;
 }
-.q-image-thumb {
+:deep(.q-image-thumb) {
   max-width: 160px;
   max-height: 120px;
   object-fit: contain;
@@ -395,7 +395,7 @@ function formatStatus (status: string) {
   background: var(--color-surface-solid);
   transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease;
 }
-.q-image-thumb:hover {
+:deep(.q-image-thumb:hover) {
   transform: translateY(-2px) scale(1.02);
   border-color: var(--color-primary);
   box-shadow: var(--shadow-soft);
@@ -413,11 +413,11 @@ function formatStatus (status: string) {
   }
 
   .q-footer .btn,
-  .q-image-thumb {
+  :deep(.q-image-thumb) {
     width: 100%;
   }
 
-  .q-image-thumb {
+  :deep(.q-image-thumb) {
     max-width: 100%;
   }
 }
