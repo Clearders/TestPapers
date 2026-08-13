@@ -1,6 +1,9 @@
 import { randomUUID } from 'node:crypto'
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
 
+const adminUsername = process.env.E2E_ADMIN_USERNAME || 'e2e-admin'
+const adminPassword = process.env.E2E_ADMIN_PASSWORD || 'E2eAdmin123!'
+
 async function waitForHydration (page: Page) {
   await page.waitForFunction(() => Boolean(
     (document.querySelector('#__nuxt') as HTMLElement & { __vue_app__?: unknown } | null)?.__vue_app__
@@ -35,16 +38,10 @@ async function push (api: APIRequestContext, token: string, deviceId: string, mu
 
 test('personal Sync recovery survives reload and supports merge, undo, and restore', async ({ page, request }) => {
   const entityId = randomUUID()
-  const username = `sync-${entityId.replaceAll('-', '')}`
-  const password = 'SyncRecovery123!'
-  const registration = await request.post('/api/v1/auth/register', {
-    data: { username, displayName: 'Sync Recovery E2E', password }
-  })
-  if (!registration.ok()) throw new Error(`Registration failed (${registration.status()}): ${await registration.text()}`)
   const cloudDevice = `cloud-${randomUUID()}`
   const localDevice = `local-${randomUUID()}`
-  const cloudToken = await nativeToken(request, username, password, cloudDevice)
-  const localToken = await nativeToken(request, username, password, localDevice)
+  const cloudToken = await nativeToken(request, adminUsername, adminPassword, cloudDevice)
+  const localToken = await nativeToken(request, adminUsername, adminPassword, localDevice)
   const basePayload = { text: `CLE-68 baseline ${entityId}`, answer: '4', difficulty: 'medium' }
   const created = await push(request, cloudToken, cloudDevice, [{
     operationId: randomUUID(), entityType: 'question', entityId, kind: 'create', payload: basePayload, dependsOn: []
@@ -68,7 +65,7 @@ test('personal Sync recovery survives reload and supports merge, undo, and resto
   const conflictId = staleUpdate[0]?.conflictId as string
   expect(conflictId).toBeTruthy()
 
-  await loginWeb(page, username, password)
+  await loginWeb(page, adminUsername, adminPassword)
   await page.goto(`/sync-recovery?conflict=${conflictId}`)
   await waitForHydration(page)
   await expect(page.getByRole('heading', { name: 'Common baseline · Local · Cloud' })).toBeVisible()
