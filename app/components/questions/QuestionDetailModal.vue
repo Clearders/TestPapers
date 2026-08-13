@@ -35,14 +35,14 @@
         <section v-if="question.images?.length" class="detail-section">
           <h3>Images</h3>
           <div class="detail-images">
-            <img
+            <RecoverableAttachmentImage
               v-for="(image, index) in question.images"
               :key="index"
               :src="image.url"
               :alt="image.caption || 'Question image'"
               :title="image.caption || ''"
               class="detail-image"
-            >
+            />
           </div>
         </section>
 
@@ -175,7 +175,7 @@ const typeLabel = computed(() => QUESTION_TYPE_LABELS[props.question.type] || pr
   color: var(--color-primary);
 }
 
-.detail-image {
+:deep(.detail-image) {
   max-width: 220px;
   max-height: 160px;
   object-fit: contain;

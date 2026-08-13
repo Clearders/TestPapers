@@ -76,7 +76,7 @@
             />
 
             <div v-if="q.images?.length" class="export-images">
-              <img
+              <RecoverableAttachmentImage
                 v-for="(img, imgIdx) in q.images"
                 :key="imgIdx"
                 :src="img.url"
@@ -87,7 +87,7 @@
                 class="export-image-thumb"
                 loading="lazy"
                 decoding="async"
-              >
+              />
             </div>
 
             <div v-if="includeAnswersInExport && canReadAnswers" class="export-answer">
@@ -316,7 +316,7 @@ const exportSections = computed(() => {
   border-radius: var(--radius-lg);
   animation: revealUp .24s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
-.export-image-thumb {
+:deep(.export-image-thumb) {
   max-width: 160px;
   max-height: 120px;
   object-fit: contain;
@@ -324,7 +324,7 @@ const exportSections = computed(() => {
   border-radius: var(--radius-md);
   transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease;
 }
-.export-image-thumb:hover {
+:deep(.export-image-thumb:hover) {
   transform: translateY(-2px) scale(1.02);
   border-color: var(--color-primary);
   box-shadow: var(--shadow-soft);
@@ -355,7 +355,7 @@ const exportSections = computed(() => {
     width: 100%;
   }
 
-  .export-image-thumb {
+  :deep(.export-image-thumb) {
     max-width: 100%;
     width: 100%;
   }
