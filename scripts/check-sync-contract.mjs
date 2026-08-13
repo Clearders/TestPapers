@@ -41,6 +41,21 @@ if ((new Set(schema.$defs?.entityType?.enum ?? [])).size !== 7) fail('exactly se
 if (!fixtures.lifecycleCases?.some(item => item.name === 'stale-update-after-delete' && item.thirdStatus === 'conflict')) {
   fail('stale update after delete must remain a conflict')
 }
+const fixtureConflictReasons = new Set(fixtures.conflictCases?.map(item => item.reason).filter(Boolean) ?? [])
+const schemaConflictReasons = new Set(schema.$defs?.conflictReason?.enum ?? [])
+if (JSON.stringify([...fixtureConflictReasons].sort()) !== JSON.stringify([...schemaConflictReasons].sort())) {
+  fail('conflict reason catalogue differs from fixtures')
+}
+if (!fixtures.conflictCases?.every(item => (item.origin ?? 'personalSync') === 'personalSync')) {
+  fail('collaborative revisions must remain outside personal sync conflicts')
+}
+const resolutionActions = schema.$defs?.resolutionAction?.enum ?? []
+if (JSON.stringify(fixtures.resolutionCases?.map(item => item.action)) !== JSON.stringify(resolutionActions)) {
+  fail('resolution action catalogue differs from fixtures')
+}
+if (!fixtures.resolutionCases?.every(item => item.createsAcceptedVersion && item.appendOnly)) {
+  fail('each resolution and undo must append an accepted version and audit record')
+}
 
 if (process.exitCode) process.exit()
 console.log(`Sync v1 contract verified (${fingerprint}).`)
