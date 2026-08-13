@@ -42,6 +42,68 @@ export interface SyncConflictResolutionRecord {
   resolvedAt: string
 }
 
+export interface SyncEntityVersionRecord {
+  entityType: SyncConflictEntityType
+  entityId: string
+  version: number
+  schemaVersion: number
+  contentHash: string
+  mutationKind: SyncConflictMutationKind
+  tombstone: boolean
+  payload: Record<string, unknown> | null
+  operationId: string
+  deviceId: string
+  createdAt: string
+}
+
+export interface SyncRecoveryDraft {
+  schemaVersion: 1
+  conflictId: string
+  action: Exclude<SyncResolutionAction, 'undo'>
+  manualPayload: string
+  restoreVersion: number | null
+  updatedAt: string
+}
+
+export type SyncFieldChange = 'unchanged' | 'localOnly' | 'cloudOnly' | 'sameChange' | 'diverged'
+
+export interface SyncFieldDifference {
+  field: string
+  base: unknown
+  local: unknown
+  cloud: unknown
+  change: SyncFieldChange
+}
+
+function equivalent (left: unknown, right: unknown) {
+  return JSON.stringify(left) === JSON.stringify(right)
+}
+
+export function compareSyncPayloads (
+  base: Record<string, unknown> | null,
+  local: Record<string, unknown> | null,
+  cloud: Record<string, unknown> | null
+): SyncFieldDifference[] {
+  const keys = [...new Set([...Object.keys(base ?? {}), ...Object.keys(local ?? {}), ...Object.keys(cloud ?? {})])].sort()
+  return keys.map(field => {
+    const baseValue = base?.[field]
+    const localValue = local?.[field]
+    const cloudValue = cloud?.[field]
+    const localChanged = !equivalent(baseValue, localValue)
+    const cloudChanged = !equivalent(baseValue, cloudValue)
+    const change: SyncFieldChange = !localChanged && !cloudChanged
+      ? 'unchanged'
+      : localChanged && !cloudChanged
+        ? 'localOnly'
+        : !localChanged && cloudChanged
+          ? 'cloudOnly'
+          : equivalent(localValue, cloudValue)
+            ? 'sameChange'
+            : 'diverged'
+    return { field, base: baseValue, local: localValue, cloud: cloudValue, change }
+  })
+}
+
 export function classifySyncConflict (
   localKind: SyncConflictMutationKind,
   cloudKind: SyncConflictMutationKind,

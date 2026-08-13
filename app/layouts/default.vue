@@ -42,6 +42,10 @@
             <AppIcon name="book" />
             <span>Shared Banks</span>
           </NuxtLink>
+          <NuxtLink v-if="isAuthenticated" to="/sync-recovery" class="nav-link">
+            <AppIcon name="settings" />
+            <span>Sync Recovery</span>
+          </NuxtLink>
           <NuxtLink to="/latex" class="nav-link">
             <AppIcon name="latex" />
             <span>LaTeX Preview</span>
