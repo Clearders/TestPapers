@@ -88,6 +88,7 @@ test('published bank subscriptions stay version-pinned and forks remain independ
   const publicLink = ownerPage.getByRole('link', { name: 'Public bank link' })
   await expect(publicLink).toHaveAttribute('href', /\/banks\/[\w-]+$/)
   const publicPath = new URL((await publicLink.getAttribute('href'))!, ownerPage.url()).pathname
+  const publicId = publicPath.split('/').pop()!
 
   // An unauthenticated visitor sees the immutable public snapshot but never the answer.
   const anonymousContext = await browser.newContext()
@@ -120,6 +121,21 @@ test('published bank subscriptions stay version-pinned and forks remain independ
   await ownerPage.getByRole('button', { name: 'Withdraw publication' }).click()
   await ownerPage.getByRole('button', { name: 'Confirm withdrawal' }).click()
   await expect(ownerPage.getByText('Publication withdrawn')).toBeVisible()
+
+  // During withdrawal, outsiders receive a non-disclosing 404 while an existing
+  // subscriber can still read only the immutable version it explicitly pinned.
+  const withdrawnContext = await browser.newContext()
+  const withdrawnResponse = await withdrawnContext.request.get(
+    new URL(`/api/v1/public/banks/${publicId}`, ownerPage.url()).toString()
+  )
+  expect(withdrawnResponse.status()).toBe(404)
+  expect(await withdrawnResponse.text()).not.toContain(answerV1)
+  await withdrawnContext.close()
+
+  await viewerPage.reload()
+  await expect(viewerPage.getByRole('heading', { name: 'Subscribed to version 1' })).toBeVisible()
+  await expect(viewerPage.getByText(questionV1)).toBeVisible()
+  await expect(viewerPage.getByText(answerV1)).toHaveCount(0)
 
   await ownerPage.goto('/add-problem')
   await waitForHydration(ownerPage)

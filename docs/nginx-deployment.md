@@ -241,3 +241,11 @@ all consumers of the new API, confirm no retained publication/subscription data
 would be discarded, restore from the verified PostgreSQL backup if necessary,
 and rehearse the downgrade on a copy of production data. Re-run the health and
 public-bank smoke checks after every rollback.
+
+Alembic revision `20260809_0019` irreversibly replaces stored opaque bearer
+secrets with SHA-256 lookup digests and adds refresh-family revocation state.
+Application rollback should therefore keep this schema revision in place and
+deploy only code that hashes presented tokens before lookup. If an emergency
+schema downgrade is unavoidable, the migration deliberately deletes all rows
+from `auth_tokens`; expect every browser and native client to sign in again.
+Never copy a database digest into a Cookie or Authorization header.
