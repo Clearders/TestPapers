@@ -109,7 +109,7 @@ test('published bank subscriptions stay version-pinned and forks remain independ
   await viewerPage.goto(publicPath)
   await waitForHydration(viewerPage)
   await viewerPage.getByRole('button', { name: 'Subscribe to version 1' }).click()
-  await expect(viewerPage.getByRole('heading', { name: 'Subscribed to version 1' })).toBeVisible()
+  await expect(viewerPage.getByRole('heading', { name: 'Subscribed to version 1' }).first()).toBeVisible()
   await clickEnabledButton(viewerPage, 'Fork version 1')
   await expect(viewerPage.getByText('Fork created as a private bank')).toBeVisible()
   const forkLink = viewerPage.getByRole('link', { name: 'Open fork' })
@@ -162,7 +162,7 @@ test('published bank subscriptions stay version-pinned and forks remain independ
   await expect(viewerPage.getByRole('heading', { name: 'Subscribed to version 1' })).toBeVisible()
   await viewerPage.getByRole('button', { name: 'Update to version 2' }).click()
   await viewerPage.getByRole('button', { name: 'Confirm update' }).click()
-  await expect(viewerPage.getByRole('heading', { name: 'Subscribed to version 2' })).toBeVisible()
+  await expect(viewerPage.getByRole('heading', { name: 'Subscribed to version 2' }).first()).toBeVisible()
 
   // The independently forked v1 bank must not acquire v2 during the subscription update.
   await viewerPage.goto(forkPath)

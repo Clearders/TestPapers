@@ -990,6 +990,244 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/sync/ack": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ack Sync Cursor */
+        post: operations["ack_sync_cursor"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sync/attachments/{attachment_id}/content": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download Sync Attachment */
+        get: operations["download_sync_attachment"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sync/attachments/uploads": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Initiate Sync Attachment Upload */
+        post: operations["initiate_sync_attachment_upload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sync/attachments/uploads/{upload_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Sync Attachment Upload */
+        get: operations["get_sync_attachment_upload"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sync/attachments/uploads/{upload_id}/chunks/{ordinal}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Put Sync Attachment Chunk */
+        put: operations["put_sync_attachment_chunk"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sync/attachments/uploads/{upload_id}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Complete Sync Attachment Upload */
+        post: operations["complete_sync_attachment_upload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sync/conflicts/{conflict_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Sync Conflict */
+        get: operations["get_sync_conflict"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sync/conflicts/{conflict_id}/resolutions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Sync Conflict Resolutions */
+        get: operations["list_sync_conflict_resolutions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sync/conflicts/{conflict_id}/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resolve Sync Conflict */
+        post: operations["resolve_sync_conflict"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sync/entities/{entity_type}/{entity_id}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Sync Entity Versions */
+        get: operations["list_sync_entity_versions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sync/entities/{entity_type}/{entity_id}/versions/{version}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Restore Sync Entity Version */
+        post: operations["restore_sync_entity_version"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sync/pull": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Pull Sync Changes */
+        get: operations["pull_sync_changes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sync/push": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Push Sync Mutations */
+        post: operations["push_sync_mutations"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sync/snapshot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Sync Snapshot */
+        get: operations["get_sync_snapshot"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/tasks/{task_id}": {
         parameters: {
             query?: never;
@@ -1170,6 +1408,80 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AttachmentChunkReceipt */
+        AttachmentChunkReceipt: {
+            /** Duplicate */
+            duplicate: boolean;
+            /** Missingchunks */
+            missingChunks: number[];
+            /** Ordinal */
+            ordinal: number;
+            /** Protocolversion */
+            protocolVersion: number;
+            /** Uploadedbytes */
+            uploadedBytes: number;
+            /** Uploadid */
+            uploadId: string;
+        };
+        /** AttachmentUploadCompleteRequest */
+        AttachmentUploadCompleteRequest: {
+            /** Protocolversion */
+            protocolVersion: number;
+        };
+        /** AttachmentUploadInitiateRequest */
+        AttachmentUploadInitiateRequest: {
+            /** Attachmentid */
+            attachmentId: string;
+            /** Bytesize */
+            byteSize: number;
+            /**
+             * Chunksize
+             * @default 1048576
+             */
+            chunkSize: number;
+            /** Contenthash */
+            contentHash: string;
+            /** Contenttype */
+            contentType: string;
+            /** Filename */
+            fileName: string;
+            /** Idempotencykey */
+            idempotencyKey: string;
+            /** Protocolversion */
+            protocolVersion: number;
+            /** Targetentityid */
+            targetEntityId: string;
+        };
+        /** AttachmentUploadStatus */
+        AttachmentUploadStatus: {
+            /** Attachmentid */
+            attachmentId: string;
+            /** Bytesize */
+            byteSize: number;
+            /** Chunksize */
+            chunkSize: number;
+            /** Completed */
+            completed: boolean;
+            /** Contenthash */
+            contentHash: string;
+            /** Deduplicated */
+            deduplicated: boolean;
+            /**
+             * Expiresat
+             * Format: date-time
+             */
+            expiresAt: string;
+            /** Missingchunks */
+            missingChunks: number[];
+            /** Protocolversion */
+            protocolVersion: number;
+            /** Totalchunks */
+            totalChunks: number;
+            /** Uploadedbytes */
+            uploadedBytes: number;
+            /** Uploadid */
+            uploadId: string;
+        };
         /** AuthConnectedEvent */
         AuthConnectedEvent: {
             /**
@@ -1570,6 +1882,28 @@ export interface components {
             /** Username */
             username: string;
         };
+        /** Envelope[AttachmentChunkReceipt] */
+        Envelope_AttachmentChunkReceipt_: {
+            data: components["schemas"]["AttachmentChunkReceipt"];
+            meta: components["schemas"]["MetaInfo"];
+            /**
+             * Success
+             * @default true
+             * @constant
+             */
+            success: true;
+        };
+        /** Envelope[AttachmentUploadStatus] */
+        Envelope_AttachmentUploadStatus_: {
+            data: components["schemas"]["AttachmentUploadStatus"];
+            meta: components["schemas"]["MetaInfo"];
+            /**
+             * Success
+             * @default true
+             * @constant
+             */
+            success: true;
+        };
         /** Envelope[AuthSession] */
         Envelope_AuthSession_: {
             data: components["schemas"]["AuthSession"];
@@ -1736,6 +2070,30 @@ export interface components {
              */
             success: true;
         };
+        /** Envelope[list[SyncConflictResolutionRecord]] */
+        Envelope_list_SyncConflictResolutionRecord__: {
+            /** Data */
+            data: components["schemas"]["SyncConflictResolutionRecord"][];
+            meta: components["schemas"]["MetaInfo"];
+            /**
+             * Success
+             * @default true
+             * @constant
+             */
+            success: true;
+        };
+        /** Envelope[list[SyncEntityVersionRecord]] */
+        Envelope_list_SyncEntityVersionRecord__: {
+            /** Data */
+            data: components["schemas"]["SyncEntityVersionRecord"][];
+            meta: components["schemas"]["MetaInfo"];
+            /**
+             * Success
+             * @default true
+             * @constant
+             */
+            success: true;
+        };
         /** Envelope[list[UserEntity]] */
         Envelope_list_UserEntity__: {
             /** Data */
@@ -1828,6 +2186,83 @@ export interface components {
         /** Envelope[QuestionEntity] */
         Envelope_QuestionEntity_: {
             data: components["schemas"]["QuestionEntity"];
+            meta: components["schemas"]["MetaInfo"];
+            /**
+             * Success
+             * @default true
+             * @constant
+             */
+            success: true;
+        };
+        /** Envelope[SyncAckResponse] */
+        Envelope_SyncAckResponse_: {
+            data: components["schemas"]["SyncAckResponse"];
+            meta: components["schemas"]["MetaInfo"];
+            /**
+             * Success
+             * @default true
+             * @constant
+             */
+            success: true;
+        };
+        /** Envelope[SyncConflictRecord] */
+        Envelope_SyncConflictRecord_: {
+            data: components["schemas"]["SyncConflictRecord"];
+            meta: components["schemas"]["MetaInfo"];
+            /**
+             * Success
+             * @default true
+             * @constant
+             */
+            success: true;
+        };
+        /** Envelope[SyncConflictResolutionRecord] */
+        Envelope_SyncConflictResolutionRecord_: {
+            data: components["schemas"]["SyncConflictResolutionRecord"];
+            meta: components["schemas"]["MetaInfo"];
+            /**
+             * Success
+             * @default true
+             * @constant
+             */
+            success: true;
+        };
+        /** Envelope[SyncPullResponse] */
+        Envelope_SyncPullResponse_: {
+            data: components["schemas"]["SyncPullResponse"];
+            meta: components["schemas"]["MetaInfo"];
+            /**
+             * Success
+             * @default true
+             * @constant
+             */
+            success: true;
+        };
+        /** Envelope[SyncPushResponse] */
+        Envelope_SyncPushResponse_: {
+            data: components["schemas"]["SyncPushResponse"];
+            meta: components["schemas"]["MetaInfo"];
+            /**
+             * Success
+             * @default true
+             * @constant
+             */
+            success: true;
+        };
+        /** Envelope[SyncSnapshotResponse] */
+        Envelope_SyncSnapshotResponse_: {
+            data: components["schemas"]["SyncSnapshotResponse"];
+            meta: components["schemas"]["MetaInfo"];
+            /**
+             * Success
+             * @default true
+             * @constant
+             */
+            success: true;
+        };
+        /** Envelope[SyncVersionRestoreRecord] */
+        Envelope_SyncVersionRestoreRecord_: {
+            data: components["schemas"]["SyncVersionRestoreRecord"];
             meta: components["schemas"]["MetaInfo"];
             /**
              * Success
@@ -2967,6 +3402,351 @@ export interface components {
          * @enum {string}
          */
         SortOrder: "asc" | "desc";
+        /** SyncAckRequest */
+        SyncAckRequest: {
+            /** Cursor */
+            cursor: string;
+            /** Deviceid */
+            deviceId: string;
+            /** Protocolversion */
+            protocolVersion: number;
+        };
+        /** SyncAckResponse */
+        SyncAckResponse: {
+            /** Advanced */
+            advanced: boolean;
+            /** Cursor */
+            cursor: string;
+            /** Deviceid */
+            deviceId: string;
+            /** Protocolversion */
+            protocolVersion: number;
+        };
+        /** SyncChange */
+        SyncChange: {
+            /** Contenthash */
+            contentHash: string;
+            /** Entityid */
+            entityId: string;
+            entityType: components["schemas"]["SyncEntityType"];
+            kind: components["schemas"]["SyncMutationKind"];
+            /** Sequence */
+            sequence: string;
+            /** Snapshot */
+            snapshot?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Updatedat
+             * Format: date-time
+             */
+            updatedAt: string;
+            /** Version */
+            version: number;
+        };
+        /**
+         * SyncConflictReason
+         * @enum {string}
+         */
+        SyncConflictReason: "concurrentCreate" | "divergentContent" | "tombstoneDivergence" | "restoreDivergence" | "renameDivergence";
+        /**
+         * SyncConflictRecord
+         * @description A personal-sync conflict; realtime collaborative revisions use a separate model.
+         */
+        SyncConflictRecord: {
+            base: components["schemas"]["SyncConflictSnapshot"] | null;
+            cloud: components["schemas"]["SyncConflictSnapshot"];
+            /** Conflictid */
+            conflictId: string;
+            /**
+             * Detectedat
+             * Format: date-time
+             */
+            detectedAt: string;
+            /** Entityid */
+            entityId: string;
+            entityType: components["schemas"]["SyncEntityType"];
+            local: components["schemas"]["SyncConflictSnapshot"];
+            /**
+             * Origin
+             * @constant
+             */
+            origin: "personalSync";
+            /**
+             * Protocolversion
+             * @constant
+             */
+            protocolVersion: 1;
+            reason: components["schemas"]["SyncConflictReason"];
+        };
+        /** SyncConflictResolutionRecord */
+        SyncConflictResolutionRecord: {
+            /** Acceptedcontenthash */
+            acceptedContentHash: string;
+            /** Acceptedversion */
+            acceptedVersion: number;
+            action: components["schemas"]["SyncResolutionAction"];
+            /** Actordeviceid */
+            actorDeviceId: string;
+            /** Conflictid */
+            conflictId: string;
+            /** Newentityid */
+            newEntityId?: string | null;
+            /** Operationid */
+            operationId: string;
+            /**
+             * Protocolversion
+             * @constant
+             */
+            protocolVersion: 1;
+            /** Resolutionid */
+            resolutionId: string;
+            /**
+             * Resolvedat
+             * Format: date-time
+             */
+            resolvedAt: string;
+            result: components["schemas"]["SyncConflictSnapshot"];
+            /** Undoesresolutionid */
+            undoesResolutionId?: string | null;
+        };
+        /** SyncConflictResolutionRequest */
+        SyncConflictResolutionRequest: {
+            action: components["schemas"]["SyncResolutionAction"];
+            /** Currentcontenthash */
+            currentContentHash: string;
+            /** Currentversion */
+            currentVersion: number;
+            /** Newentityid */
+            newEntityId?: string | null;
+            /** Operationid */
+            operationId: string;
+            /** Payload */
+            payload?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Protocolversion
+             * @constant
+             */
+            protocolVersion: 1;
+            /** Undoesresolutionid */
+            undoesResolutionId?: string | null;
+        };
+        /**
+         * SyncConflictSnapshot
+         * @description Immutable candidate captured when personal-device sync cannot converge.
+         */
+        SyncConflictSnapshot: {
+            /** Contenthash */
+            contentHash: string;
+            /** Deviceid */
+            deviceId: string;
+            /**
+             * Modifiedat
+             * Format: date-time
+             */
+            modifiedAt: string;
+            mutationKind: components["schemas"]["SyncMutationKind"];
+            /** Payload */
+            payload: {
+                [key: string]: unknown;
+            } | null;
+            /** Schemaversion */
+            schemaVersion: number;
+            /** Tombstone */
+            tombstone: boolean;
+            /** Version */
+            version: number;
+        };
+        /**
+         * SyncEntityType
+         * @enum {string}
+         */
+        SyncEntityType: "question" | "paper" | "draft" | "attachment" | "comment" | "favorite" | "setting";
+        /** SyncEntityVersionRecord */
+        SyncEntityVersionRecord: {
+            /** Contenthash */
+            contentHash: string;
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            /** Deviceid */
+            deviceId: string;
+            /** Entityid */
+            entityId: string;
+            entityType: components["schemas"]["SyncEntityType"];
+            mutationKind: components["schemas"]["SyncMutationKind"];
+            /** Operationid */
+            operationId: string;
+            /** Payload */
+            payload: {
+                [key: string]: unknown;
+            } | null;
+            /** Schemaversion */
+            schemaVersion: number;
+            /** Tombstone */
+            tombstone: boolean;
+            /** Version */
+            version: number;
+        };
+        /** SyncError */
+        SyncError: {
+            code: components["schemas"]["SyncErrorCode"];
+            /** Details */
+            details?: {
+                [key: string]: unknown;
+            } | null;
+            /** Message */
+            message: string;
+            /** Retryable */
+            retryable: boolean;
+        };
+        /**
+         * SyncErrorCode
+         * @enum {string}
+         */
+        SyncErrorCode: "SYNC_PROTOCOL_UNSUPPORTED" | "SYNC_BATCH_INVALID" | "SYNC_BATCH_TOO_LARGE" | "SYNC_IDEMPOTENCY_MISMATCH" | "SYNC_DEPENDENCY_FAILED" | "SYNC_CONFLICT" | "SYNC_CURSOR_INVALID" | "SYNC_CURSOR_EXPIRED" | "SYNC_SNAPSHOT_EXPIRED" | "SYNC_ENTITY_FORBIDDEN" | "SYNC_ENTITY_NOT_FOUND" | "SYNC_ENTITY_SCHEMA_UNSUPPORTED" | "SYNC_UPLOAD_EXPIRED" | "SYNC_UPLOAD_CHUNK_MISMATCH" | "SYNC_UPLOAD_INCOMPLETE" | "SYNC_ATTACHMENT_HASH_MISMATCH";
+        /** SyncMutation */
+        SyncMutation: {
+            /** Basecontenthash */
+            baseContentHash?: string | null;
+            /** Baseversion */
+            baseVersion?: number | null;
+            /** Dependson */
+            dependsOn?: string[];
+            /** Entityid */
+            entityId: string;
+            entityType: components["schemas"]["SyncEntityType"];
+            kind: components["schemas"]["SyncMutationKind"];
+            /** Operationid */
+            operationId: string;
+            /** Payload */
+            payload?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /**
+         * SyncMutationKind
+         * @enum {string}
+         */
+        SyncMutationKind: "create" | "update" | "delete" | "restore" | "rename" | "attach" | "detach";
+        /** SyncOperationResult */
+        SyncOperationResult: {
+            /** Changecursor */
+            changeCursor?: string | null;
+            /** Conflictid */
+            conflictId?: string | null;
+            /** Contenthash */
+            contentHash?: string | null;
+            /** Entityversion */
+            entityVersion?: number | null;
+            error?: components["schemas"]["SyncError"] | null;
+            /** Faileddependencyids */
+            failedDependencyIds?: string[] | null;
+            /** Operationid */
+            operationId: string;
+            status: components["schemas"]["SyncOperationStatus"];
+        };
+        /**
+         * SyncOperationStatus
+         * @enum {string}
+         */
+        SyncOperationStatus: "applied" | "noop" | "conflict" | "rejected" | "dependencyFailed";
+        /** SyncPullResponse */
+        SyncPullResponse: {
+            /** Changes */
+            changes: components["schemas"]["SyncChange"][];
+            /** Hasmore */
+            hasMore: boolean;
+            /** Nextcursor */
+            nextCursor: string;
+            /** Protocolversion */
+            protocolVersion: number;
+        };
+        /** SyncPushRequest */
+        SyncPushRequest: {
+            /** Batchid */
+            batchId: string;
+            /** Deviceid */
+            deviceId: string;
+            /** Mutations */
+            mutations: components["schemas"]["SyncMutation"][];
+            /** Protocolversion */
+            protocolVersion: number;
+        };
+        /** SyncPushResponse */
+        SyncPushResponse: {
+            /** Batchid */
+            batchId: string;
+            /** Protocolversion */
+            protocolVersion: number;
+            /** Results */
+            results: components["schemas"]["SyncOperationResult"][];
+        };
+        /**
+         * SyncResolutionAction
+         * @enum {string}
+         */
+        SyncResolutionAction: "keepLocal" | "useCloud" | "saveCopy" | "manualMerge" | "restoreVersion" | "undo";
+        /** SyncSnapshotResponse */
+        SyncSnapshotResponse: {
+            /** Entries */
+            entries: components["schemas"]["SyncChange"][];
+            /** Hasmore */
+            hasMore: boolean;
+            /** Nextcursor */
+            nextCursor: string;
+            /** Protocolversion */
+            protocolVersion: number;
+            /** Resumecursor */
+            resumeCursor: string;
+            /** Snapshotid */
+            snapshotId: string;
+        };
+        /** SyncVersionRestoreRecord */
+        SyncVersionRestoreRecord: {
+            /** Acceptedcontenthash */
+            acceptedContentHash: string;
+            /** Acceptedversion */
+            acceptedVersion: number;
+            /** Actordeviceid */
+            actorDeviceId: string;
+            /** Entityid */
+            entityId: string;
+            entityType: components["schemas"]["SyncEntityType"];
+            /** Operationid */
+            operationId: string;
+            /**
+             * Protocolversion
+             * @constant
+             */
+            protocolVersion: 1;
+            /**
+             * Restoredat
+             * Format: date-time
+             */
+            restoredAt: string;
+            /** Restoredfromversion */
+            restoredFromVersion: number;
+            result: components["schemas"]["SyncEntityVersionRecord"];
+        };
+        /** SyncVersionRestoreRequest */
+        SyncVersionRestoreRequest: {
+            /** Currentcontenthash */
+            currentContentHash: string;
+            /** Currentversion */
+            currentVersion: number;
+            /** Operationid */
+            operationId: string;
+            /**
+             * Protocolversion
+             * @constant
+             */
+            protocolVersion: 1;
+        };
         /** TokenPair */
         TokenPair: {
             /** Accesstoken */
@@ -8169,6 +8949,1445 @@ export interface operations {
             };
             /** @description Request validation failed. */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unexpected server error. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    ack_sync_cursor: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SyncAckRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope_SyncAckResponse_"];
+                };
+            };
+            /** @description The sync cursor or request is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The caller is not allowed to perform this operation. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The sync cursor or snapshot has expired. */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The requested sync protocol version is unsupported. */
+            426: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The write rate limit was exceeded. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unexpected server error. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    download_sync_attachment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                attachment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Verified attachment bytes. */
+            200: {
+                headers: {
+                    "Content-Disposition"?: string;
+                    ETag?: string;
+                    "X-Content-SHA256"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": string;
+                };
+            };
+            /** @description The sync cursor or request is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The caller is not allowed to perform this operation. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The requested resource was not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The upload state, digest, or attachment version conflicts. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The sync cursor or snapshot has expired. */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The requested sync protocol version is unsupported. */
+            426: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unexpected server error. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    initiate_sync_attachment_upload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AttachmentUploadInitiateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope_AttachmentUploadStatus_"];
+                };
+            };
+            /** @description The sync cursor or request is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The caller is not allowed to perform this operation. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The upload state, digest, or attachment version conflicts. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The sync cursor or snapshot has expired. */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The requested sync protocol version is unsupported. */
+            426: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The write rate limit was exceeded. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unexpected server error. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_sync_attachment_upload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                upload_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope_AttachmentUploadStatus_"];
+                };
+            };
+            /** @description The sync cursor or request is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The caller is not allowed to perform this operation. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The requested resource was not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The upload state, digest, or attachment version conflicts. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The sync cursor or snapshot has expired. */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The requested sync protocol version is unsupported. */
+            426: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unexpected server error. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    put_sync_attachment_chunk: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Chunk-SHA256": string;
+            };
+            path: {
+                ordinal: number;
+                upload_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/octet-stream": string;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope_AttachmentChunkReceipt_"];
+                };
+            };
+            /** @description The sync cursor or request is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The caller is not allowed to perform this operation. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The requested resource was not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The upload state, digest, or attachment version conflicts. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The sync cursor or snapshot has expired. */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The attachment chunk exceeds the size limit. */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The requested sync protocol version is unsupported. */
+            426: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The write rate limit was exceeded. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unexpected server error. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    complete_sync_attachment_upload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                upload_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AttachmentUploadCompleteRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope_AttachmentUploadStatus_"];
+                };
+            };
+            /** @description The sync cursor or request is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The caller is not allowed to perform this operation. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The requested resource was not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The upload state, digest, or attachment version conflicts. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The sync cursor or snapshot has expired. */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The requested sync protocol version is unsupported. */
+            426: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The write rate limit was exceeded. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unexpected server error. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_sync_conflict: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conflict_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope_SyncConflictRecord_"];
+                };
+            };
+            /** @description The sync cursor or request is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The caller is not allowed to perform this operation. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The requested resource was not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The sync cursor or snapshot has expired. */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The requested sync protocol version is unsupported. */
+            426: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unexpected server error. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    list_sync_conflict_resolutions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conflict_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope_list_SyncConflictResolutionRecord__"];
+                };
+            };
+            /** @description The sync cursor or request is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The caller is not allowed to perform this operation. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The requested resource was not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The sync cursor or snapshot has expired. */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The requested sync protocol version is unsupported. */
+            426: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unexpected server error. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    resolve_sync_conflict: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conflict_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SyncConflictResolutionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope_SyncConflictResolutionRecord_"];
+                };
+            };
+            /** @description The sync cursor or request is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The caller is not allowed to perform this operation. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The requested resource was not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The sync cursor or snapshot has expired. */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The requested sync protocol version is unsupported. */
+            426: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The write rate limit was exceeded. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unexpected server error. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    list_sync_entity_versions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entity_id: string;
+                entity_type: components["schemas"]["SyncEntityType"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope_list_SyncEntityVersionRecord__"];
+                };
+            };
+            /** @description The sync cursor or request is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The caller is not allowed to perform this operation. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The requested resource was not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The sync cursor or snapshot has expired. */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The requested sync protocol version is unsupported. */
+            426: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unexpected server error. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    restore_sync_entity_version: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entity_id: string;
+                entity_type: components["schemas"]["SyncEntityType"];
+                version: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SyncVersionRestoreRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope_SyncVersionRestoreRecord_"];
+                };
+            };
+            /** @description The sync cursor or request is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The caller is not allowed to perform this operation. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The requested resource was not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The sync cursor or snapshot has expired. */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The requested sync protocol version is unsupported. */
+            426: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The write rate limit was exceeded. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unexpected server error. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    pull_sync_changes: {
+        parameters: {
+            query?: {
+                cursor?: string | null;
+                pageSize?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope_SyncPullResponse_"];
+                };
+            };
+            /** @description The sync cursor or request is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The caller is not allowed to perform this operation. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The sync cursor or snapshot has expired. */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The requested sync protocol version is unsupported. */
+            426: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unexpected server error. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    push_sync_mutations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SyncPushRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope_SyncPushResponse_"];
+                };
+            };
+            /** @description The sync cursor or request is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The caller is not allowed to perform this operation. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The idempotency key or entity base version conflicts. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The sync cursor or snapshot has expired. */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The sync batch exceeds the operation limit. */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The requested sync protocol version is unsupported. */
+            426: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The write rate limit was exceeded. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unexpected server error. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_sync_snapshot: {
+        parameters: {
+            query?: {
+                cursor?: string | null;
+                pageSize?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope_SyncSnapshotResponse_"];
+                };
+            };
+            /** @description The sync cursor or request is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The caller is not allowed to perform this operation. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The sync cursor or snapshot has expired. */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description The requested sync protocol version is unsupported. */
+            426: {
                 headers: {
                     [name: string]: unknown;
                 };
